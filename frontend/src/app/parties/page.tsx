@@ -839,7 +839,7 @@ export default function PartyMasterRegistryPage() {
   // Data fetching: SSOT Registry from backend & live announcements
   const ssotUrl = isBranchUser && userBranch
     ? `/parties/ssot-registry?branchCode=${encodeURIComponent(userBranch)}`
-    : (locationFilter !== 'All Branches' ? `/parties/ssot-registry?branchCode=${encodeURIComponent(locationFilter)}` : '/parties/ssot-registry');
+    : '/parties/ssot-registry';
 
   const { data: ssotData, mutate: mutateSsot, isLoading } = useSWR(ssotUrl, fetcher);
   const { data: branchesData } = useSWR('/branches', fetcher);
@@ -863,15 +863,20 @@ export default function PartyMasterRegistryPage() {
     });
   }, [ssotData]);
 
-  // Extract distinct dropdown values dynamically from actual party_master data
+  // Extract distinct dropdown values dynamically from actual party_master data & branches master
   const branchesList = useMemo(() => {
     const set = new Set<string>();
-    rawList.forEach(p => {
+    if (Array.isArray(branchesData)) {
+      branchesData.forEach((b: any) => {
+        if (b.code) set.add(b.code);
+      });
+    }
+    rawList.forEach((p: any) => {
       const loc = p.baseLoc || p.primaryBranchCode;
       if (loc && loc !== '-') set.add(loc);
     });
     return ['All Branches', ...Array.from(set).sort()];
-  }, [rawList]);
+  }, [branchesData, rawList]);
 
   const executivesList = useMemo(() => {
     const set = new Set<string>();

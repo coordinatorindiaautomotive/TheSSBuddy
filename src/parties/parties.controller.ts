@@ -50,7 +50,20 @@ export class PartiesController {
     @Query('branchCode') branchCode?: string,
     @Req() req?: any,
   ) {
-    const effectiveBranch = branchCode || (req?.user?.role !== 'SuperAdmin' ? (req?.user?.branchCode || req?.branchContext?.defaultBranchCode) : undefined);
+    const roleList = (req?.user?.roles || []).map((r: any) => (typeof r === 'string' ? r : r.name || '').toUpperCase());
+    const isSuper = roleList.some((r: string) => r.includes('SUPER') || r.includes('ADMIN')) || 
+                    req?.user?.username?.toLowerCase() === 'admin';
+
+    // SuperAdmin: if specific branch requested filter by it, otherwise return full SSOT registry (all 3,195)
+    if (isSuper) {
+      if (branchCode && branchCode !== 'ALL' && branchCode !== 'All Branches') {
+        return this.partiesService.getPartyMasterSsotRegistry(branchCode);
+      }
+      return this.partiesService.getPartyMasterSsotRegistry(undefined);
+    }
+
+    // Branch manager: restrict to their assigned branch
+    const effectiveBranch = branchCode || req?.user?.branchCode || req?.branchContext?.defaultBranchCode;
     return this.partiesService.getPartyMasterSsotRegistry(effectiveBranch);
   }
 
