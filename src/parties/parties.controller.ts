@@ -43,12 +43,15 @@ export class PartiesController {
     return this.partiesService.findAll(filter);
   }
 
-  // ── Static routes MUST be declared before @Get(':id') ──
   @Get('ssot-registry')
   @RequirePermissions('party:read')
   @ApiOperation({ summary: 'Get Party Master SSOT Registry dynamically derived from raw_sales and bank master' })
-  async getSsotRegistry() {
-    return this.partiesService.getPartyMasterSsotRegistry();
+  async getSsotRegistry(
+    @Query('branchCode') branchCode?: string,
+    @Req() req?: any,
+  ) {
+    const effectiveBranch = branchCode || (req?.user?.role !== 'SuperAdmin' ? (req?.user?.branchCode || req?.branchContext?.defaultBranchCode) : undefined);
+    return this.partiesService.getPartyMasterSsotRegistry(effectiveBranch);
   }
 
   @Get('code/:code')

@@ -834,8 +834,14 @@ export default function PartyMasterRegistryPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [dismissedAnnouncementIds, setDismissedAnnouncementIds] = useState<Set<string>>(new Set());
 
+  const effectiveLocation = isBranchUser && userBranch ? userBranch : locationFilter;
+
   // Data fetching: SSOT Registry from backend & live announcements
-  const { data: ssotData, mutate: mutateSsot, isLoading } = useSWR('/parties/ssot-registry', fetcher);
+  const ssotUrl = isBranchUser && userBranch
+    ? `/parties/ssot-registry?branchCode=${encodeURIComponent(userBranch)}`
+    : (locationFilter !== 'All Branches' ? `/parties/ssot-registry?branchCode=${encodeURIComponent(locationFilter)}` : '/parties/ssot-registry');
+
+  const { data: ssotData, mutate: mutateSsot, isLoading } = useSWR(ssotUrl, fetcher);
   const { data: branchesData } = useSWR('/branches', fetcher);
   const { data: announcementsData } = useSWR('/notifications/announcements', fetcher, { revalidateOnFocus: true });
 
@@ -898,7 +904,7 @@ export default function PartyMasterRegistryPage() {
       const pPhone = (p.phone || '').toLowerCase();
       const pGst = (p.gstIn || p.gstin || '').toLowerCase();
 
-      if (locationFilter !== 'All Branches' && pLoc !== locationFilter) return false;
+      if (effectiveLocation !== 'All Branches' && pLoc.toUpperCase() !== effectiveLocation.toUpperCase()) return false;
       if (executiveFilter !== 'All Executives' && pExec !== executiveFilter) return false;
       if (partyTypeFilter !== 'All Types' && formatShortPartyType(pType) !== partyTypeFilter) return false;
 
@@ -910,7 +916,7 @@ export default function PartyMasterRegistryPage() {
 
       return true;
     });
-  }, [rawList, locationFilter, executiveFilter, partyTypeFilter, searchQuery]);
+  }, [rawList, effectiveLocation, executiveFilter, partyTypeFilter, searchQuery]);
 
   // Sorting
   const [sortField, setSortField] = useState<string>('code');
@@ -1013,15 +1019,16 @@ export default function PartyMasterRegistryPage() {
 
   // Metrics computation for Stat Cards
   const stats = useMemo(() => {
-    const total = rawList.length;
-    const active = rawList.filter(p => p.status === 'Active' || p.isActive !== false).length;
-    const fixedRate = rawList.filter(p => (p.incentiveRule || p.incentiveType || '').toLowerCase().includes('fixed')).length;
-    const slabBased = rawList.filter(p => (p.incentiveRule || p.incentiveType || '').toLowerCase().includes('slab')).length;
-    const hasBank = rawList.filter(p => p.accountNumber && p.accountNumber !== '-' && p.accountNumber !== 'Pending Setup').length;
+    const listToCount = effectiveLocation !== 'All Branches' ? filteredList : rawList;
+    const total = listToCount.length;
+    const active = listToCount.filter(p => p.status === 'Active' || p.isActive !== false).length;
+    const fixedRate = listToCount.filter(p => (p.incentiveRule || p.incentiveType || '').toLowerCase().includes('fixed')).length;
+    const slabBased = listToCount.filter(p => (p.incentiveRule || p.incentiveType || '').toLowerCase().includes('slab')).length;
+    const hasBank = listToCount.filter(p => p.accountNumber && p.accountNumber !== '-' && p.accountNumber !== 'Pending Setup').length;
     const pendingBank = total - hasBank;
 
     return { total, active, fixedRate, slabBased, hasBank, pendingBank, reviewQueue: 0 };
-  }, [rawList]);
+  }, [rawList, filteredList, effectiveLocation]);
 
   // Sync Party Master from raw sales
   const handleSync = async () => {

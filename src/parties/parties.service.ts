@@ -706,7 +706,7 @@ export class PartiesService {
    * Fast read from the party_master table (simple SELECT — no raw_sales scan).
    * Returns all active non-walk-in parties, shape compatible with the frontend.
    */
-  async getPartyMasterSsotRegistry(): Promise<any[]> {
+  async getPartyMasterSsotRegistry(requestedBranch?: string): Promise<any[]> {
     // Delete any legacy dummy/hyphen records if present
     await this.prisma.partyMaster.deleteMany({
       where: {
@@ -733,13 +733,17 @@ export class PartiesService {
       ],
     };
 
-    const branchFilter: any = {};
-    this.branchIsolation.mergeBranchFilter(branchFilter, 'baseLoc');
+    if (requestedBranch && requestedBranch !== 'ALL' && requestedBranch !== 'All Branches') {
+      where.baseLoc = requestedBranch;
+    } else {
+      const branchFilter: any = {};
+      this.branchIsolation.mergeBranchFilter(branchFilter, 'baseLoc');
 
-    // If branch filter active, strictly exclude disabled/inactive parties for branch users
-    if (Object.keys(branchFilter).length > 0) {
-      where.isActive = true;
-      Object.assign(where, branchFilter);
+      // If branch filter active, strictly exclude disabled/inactive parties for branch users
+      if (Object.keys(branchFilter).length > 0) {
+        where.isActive = true;
+        Object.assign(where, branchFilter);
+      }
     }
 
     const rows = await this.prisma.partyMaster.findMany({
