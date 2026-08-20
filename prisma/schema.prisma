@@ -1,0 +1,1418 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum PeriodModuleType {
+  INCENTIVE
+  CASH
+  MONTH
+}
+
+enum PeriodStatus {
+  OPEN
+  LOCKED
+  CLOSED
+}
+
+enum RuleType {
+  INCENTIVE_SLAB
+  TDS_DEDUCTION
+  OUTSTANDING_AGING
+}
+
+enum RuleConditionOperator {
+  EQ
+  NEQ
+  GT
+  GTE
+  LT
+  LTE
+  IN
+  NOT_IN
+  BETWEEN
+  LIKE
+  IS_NULL
+  IS_NOT_NULL
+}
+
+enum RuleActionType {
+  SET_VALUE
+  MULTIPLY
+  ADD
+  SUBTRACT
+  APPLY_FORMULA
+  SET_FLAG
+}
+
+enum RuleVersionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum WorkflowEntityType {
+  INCENTIVE_RECORD
+  CASH_RECONCILIATION
+  EXTERNAL_INCENTIVE_UPLOAD
+  GENERAL
+}
+
+enum WorkflowStepType {
+  APPROVAL
+  NOTIFICATION
+  CONDITIONAL
+}
+
+enum WorkflowStepStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SKIPPED
+  IN_PROGRESS
+}
+
+enum WorkflowInstanceStatus {
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum MessageChannel {
+  EMAIL
+  SMS
+  IN_APP
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  FAILED
+  QUEUED
+}
+
+enum NotificationType {
+  SYSTEM
+  ANNOUNCEMENT
+  TASK
+  ALERT
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum ImportStatus {
+  STAGING
+  VALIDATED
+  COMMITTED
+  ROLLED_BACK
+  FAILED
+}
+
+enum PartyType {
+  DEALER
+  CUSTOMER
+  CONSIGNEE
+}
+
+enum PartySubType {
+  REGULAR
+  PREMIUM
+  TEMPORARY
+  DORMANT
+  RO
+  MW
+  AW
+}
+
+enum MappingType {
+  EXECUTIVE_ASSIGNMENT
+  BRANCH_ASSOCIATION
+  CODE_ALTERNATE
+  CATEGORY_MAPPING
+}
+
+enum CashTransactionType {
+  CASH_IN
+  CASH_OUT
+}
+
+enum ReconciliationStatus {
+  UNRECONCILED
+  RECONCILED
+  EXCEPTION
+}
+
+enum IncentiveRecordType {
+  CALCULATED
+  MANUALLY_UPLOADED
+  OVERRIDE
+}
+
+enum IncentiveRecordStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  POSTED
+}
+
+enum AnnouncementScope {
+  ALL
+  BRANCH
+  ROLE
+  USER
+}
+
+// ─── CORE: USERS, ROLES, PERMISSIONS ─────────────────────────────────────────
+
+model User {
+  id              String    @id @default(uuid()) @db.Uuid
+  username        String    @unique @db.VarChar(100)
+  email           String?   @unique @db.VarChar(255)
+  phone           String?   @db.VarChar(20)
+  passwordHash    String    @map("password_hash") @db.VarChar(255)
+  fullName        String    @map("full_name") @db.VarChar(200)
+  isActive        Boolean   @default(true) @map("is_active")
+  lastLoginAt     DateTime? @map("last_login_at")
+  refreshToken    String?   @map("refresh_token") @db.VarChar(500)
+  refreshTokenExp DateTime? @map("refresh_token_exp")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  updatedBy       String?   @map("updated_by") @db.Uuid
+
+  roles              UserRole[]
+  branchAccesses     UserBranchAccess[]
+  sentMessages       MessageLog[]           @relation("MessageSender")
+  workflowAssignments WorkflowStepAssignment[]
+  auditLogsCreated   AuditLog[]             @relation("AuditCreator")
+  periodLocks        PeriodLock[]           @relation("PeriodLocker")
+  incentiveOverrides IncentiveRecord[]      @relation("OverrideBy")
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  createdBy   String?  @map("created_by") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   String?  @map("updated_by") @db.Uuid
+
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(150)
+  name        String   @db.VarChar(200)
+  module      String   @db.VarChar(100)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  createdBy   String?  @map("created_by") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   String?  @map("updated_by") @db.Uuid
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId String @db.Uuid
+  roleId String @db.Uuid
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  assignedBy String?  @map("assigned_by") @db.Uuid
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model UserBranchAccess {
+  userId     String @db.Uuid
+  branchCode String @db.VarChar(20)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchCode], references: [code])
+
+  grantedAt DateTime @default(now()) @map("granted_at")
+  grantedBy String?  @map("granted_by") @db.Uuid
+  isDefault Boolean  @default(false) @map("is_default")
+
+  @@id([userId, branchCode])
+  @@map("user_branch_access")
+}
+
+// ─── BRANCHES ────────────────────────────────────────────────────────────────
+
+model Branch {
+  code        String   @id @db.VarChar(20)
+  name        String   @db.VarChar(200)
+  region      String?  @db.VarChar(100)
+  address     String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  
+  type               String?   @db.VarChar(50)
+  consignee          String?   @db.VarChar(50)
+  incharge           String?   @db.VarChar(200)
+  phone              String?   @db.VarChar(50)
+  email              String?   @db.VarChar(200)
+  area               String?   @db.VarChar(50)
+  coordinates        String?   @db.Text
+  latitude           String?   @db.VarChar(50)
+  longitude          String?   @db.VarChar(50)
+  openingDate        DateTime? @map("opening_date")
+  allowedCategories  String?   @db.Text
+  allowedPartyTypes  String?   @db.Text
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  createdBy   String?  @map("created_by") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   String?  @map("updated_by") @db.Uuid
+
+  users           UserBranchAccess[]
+  parties         Party[]
+  periodLocks     PeriodLock[]
+  incentiveSchemes IncentiveScheme[]
+  incentiveRecords IncentiveRecord[]
+  cashTransactions CashTransaction[]
+  dealerTargets    DealerTarget[]
+  dealerPerformances DealerMonthlyPerformance[]
+  announcements    Announcement[]
+
+  @@map("branches")
+}
+
+// ─── PARTIES ─────────────────────────────────────────────────────────────────
+
+model Party {
+  id            String     @id @default(uuid()) @db.Uuid
+  code          String     @unique @db.VarChar(50)
+  name          String     @db.VarChar(300)
+  type          PartyType
+  subType       PartySubType @default(REGULAR) @map("sub_type")
+  primaryBranchCode String?  @map("primary_branch_code") @db.VarChar(20)
+  pan           String?    @db.VarChar(20)
+  gstIn         String?    @map("gst_in") @db.VarChar(20)
+  contactPerson String?    @map("contact_person") @db.VarChar(200)
+  phone         String?    @db.VarChar(20)
+  email         String?    @db.VarChar(255)
+  address       String?    @db.Text
+  city          String?    @db.VarChar(100)
+  state         String?    @db.VarChar(100)
+  pincode       String?    @db.VarChar(10)
+  isActive      Boolean    @default(true) @map("is_active")
+  rowVersion    Int        @default(1) @map("row_version")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  createdBy     String?    @map("created_by") @db.Uuid
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  updatedBy     String?    @map("updated_by") @db.Uuid
+
+  primaryBranch    Branch?             @relation(fields: [primaryBranchCode], references: [code])
+  mappings         PartyMapping[]
+  bankDetails      PartyBankDetail[]
+  incentiveRecords IncentiveRecord[]
+  dealerTargets    DealerTarget[]
+  dealerPerformances DealerMonthlyPerformance[]
+  cashTransactions CashTransaction[]
+  ledgerSnapshots  LedgerSnapshot[]
+  receivedMessages MessageLog[]         @relation("MessageRecipient")
+
+  @@index([primaryBranchCode])
+  @@index([type, subType])
+  @@index([code, primaryBranchCode])
+  @@map("parties")
+}
+
+model PartyMapping {
+  id           String      @id @default(uuid()) @db.Uuid
+  partyId      String      @db.Uuid
+  mappingType  MappingType @map("mapping_type")
+  mappedValue  String      @map("mapped_value") @db.VarChar(200)
+  mappedLabel  String?     @map("mapped_label") @db.VarChar(300)
+  effectiveFrom DateTime?  @map("effective_from")
+  effectiveTo   DateTime?  @map("effective_to")
+  isActive     Boolean     @default(true) @map("is_active")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  createdBy    String?     @map("created_by") @db.Uuid
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  updatedBy    String?     @map("updated_by") @db.Uuid
+
+  party Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
+
+  @@index([partyId, mappingType])
+  @@index([mappingType, mappedValue])
+  @@map("party_mapping")
+}
+
+model PartyBankDetail {
+  id            String   @id @default(uuid()) @db.Uuid
+  partyId       String   @db.Uuid
+  bankName      String   @map("bank_name") @db.VarChar(200)
+  branchName    String?  @map("branch_name") @db.VarChar(200)
+  accountNumber String   @map("account_number") @db.VarChar(50)
+  ifscCode      String?  @map("ifsc_code") @db.VarChar(20)
+  accountType   String?  @map("account_type") @db.VarChar(30)
+  accountHolder String?  @map("account_holder") @db.VarChar(200)
+  isDefault     Boolean  @default(false) @map("is_default")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  createdBy     String?  @map("created_by") @db.Uuid
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  updatedBy     String?  @map("updated_by") @db.Uuid
+
+  party Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
+
+  @@index([partyId])
+  @@map("party_bank_details")
+}
+
+// ─── PARTY MASTER (CONSOLIDATED SSOT TABLE) ──────────────────────────────────
+// Single table holding all party info. Synced from raw_sales, manual fields
+// (executive, bank, original_code etc.) are preserved across syncs.
+
+model PartyMaster {
+  id              String    @id @default(uuid()) @db.Uuid
+
+  // Core identity — sourced from raw_sales cons_party_code (unique)
+  consPartyCode   String    @unique @map("cons_party_code") @db.VarChar(50)
+  consPartyName   String    @map("cons_party_name") @db.VarChar(300)
+  partyType       String?   @map("party_type") @db.VarChar(100)  // INDEPENDENT WORKSHOP, CO-DEALER, etc.
+
+  // Base location — derived from raw_sales (loc with max net_retail_selling)
+  baseLoc         String?   @map("base_loc") @db.VarChar(20)
+  totalSales      Decimal   @default(0) @map("total_sales") @db.Decimal(18, 2)
+
+  // Alternate / original code mapping (manual)
+  originalCode    String?   @map("original_code") @db.VarChar(50)
+
+  // Contact (manual)
+  phone           String?   @db.VarChar(20)
+  pan             String?   @db.VarChar(20)
+  gstIn           String?   @map("gst_in") @db.VarChar(20)
+
+  // Sales executive (manual assignment)
+  salesExecutive  String?   @map("sales_executive") @db.VarChar(100)
+
+  // Bank details (manual — same as PartyBankDetail but denormalised here for speed)
+  bankName        String?   @map("bank_name") @db.VarChar(200)
+  bankBranch      String?   @map("bank_branch") @db.VarChar(200)
+  accountNumber   String?   @map("account_number") @db.VarChar(50)
+  ifscCode        String?   @map("ifsc_code") @db.VarChar(20)
+  accountHolder   String?   @map("account_holder") @db.VarChar(200)
+
+  // Incentive settings (manual)
+  incentiveType   String    @default("Slab-Based") @map("incentive_type") @db.VarChar(50)
+  incentiveRule   String?   @map("incentive_rule") @db.VarChar(100)
+
+  // Status
+  isActive        Boolean   @default(true) @map("is_active")
+  lastSyncedAt    DateTime? @map("last_synced_at")
+
+  // Audit
+  createdAt       DateTime  @default(now()) @map("created_at")
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  updatedBy       String?   @map("updated_by") @db.Uuid
+
+  @@index([consPartyCode])
+  @@index([baseLoc])
+  @@index([partyType])
+  @@index([salesExecutive])
+  @@index([isActive])
+  @@map("party_master")
+}
+
+// ─── PERIOD LOCKS ────────────────────────────────────────────────────────────
+
+model PeriodLock {
+  id               String            @id @default(uuid()) @db.Uuid
+  moduleType       PeriodModuleType  @map("module_type")
+  year             Int
+  month            Int
+  branchCode       String?           @map("branch_code") @db.VarChar(20)
+  partCategoryCode String?           @map("part_category_code") @db.VarChar(50)
+  incentiveSource  String?           @map("incentive_source") @db.VarChar(50)
+  status           PeriodStatus
+  lockedBy         String?           @map("locked_by") @db.Uuid
+  lockedDate       DateTime?         @map("locked_date")
+  postedBy         String?           @map("posted_by") @db.Uuid
+  postedDate       DateTime?         @map("posted_date")
+  closedAt         DateTime?         @map("closed_at")
+  closedBy         String?           @map("closed_by") @db.Uuid
+  unlockReason     String?           @map("unlock_reason") @db.VarChar(200)
+  unlockRemarks    String?           @map("unlock_remarks") @db.Text
+  createdAt        DateTime          @default(now()) @map("created_at")
+  createdBy        String?           @map("created_by") @db.Uuid
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  updatedBy        String?           @map("updated_by") @db.Uuid
+
+  branch Branch? @relation(fields: [branchCode], references: [code])
+  locker User?   @relation("PeriodLocker", fields: [lockedBy], references: [id])
+
+  @@unique([moduleType, year, month, branchCode, partCategoryCode, incentiveSource])
+  @@index([moduleType, year, month])
+  @@index([branchCode, year, month])
+  @@map("period_locks")
+}
+
+// ─── RULE ENGINE ─────────────────────────────────────────────────────────────
+
+model RuleMaster {
+  id          String            @id @default(uuid()) @db.Uuid
+  code        String            @unique @db.VarChar(100)
+  name        String            @db.VarChar(300)
+  ruleType    RuleType          @map("rule_type")
+  description String?           @db.Text
+  isActive    Boolean           @default(true) @map("is_active")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  createdBy   String?           @map("created_by") @db.Uuid
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  updatedBy   String?           @map("updated_by") @db.Uuid
+
+  @@index([ruleType])
+  @@map("rule_master")
+}
+
+// ─── INCENTIVE SCHEMES ───────────────────────────────────────────────────────
+
+model IncentiveScheme {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(100)
+  name        String   @db.VarChar(300)
+  description String?  @db.Text
+  source      String   @db.VarChar(50) // internal, external, etc.
+  effectiveFrom DateTime @map("effective_from")
+  effectiveTo   DateTime? @map("effective_to")
+  isActive    Boolean  @default(true) @map("is_active")
+  branchCode  String?  @map("branch_code") @db.VarChar(20) // null = all branches
+  createdAt   DateTime @default(now()) @map("created_at")
+  createdBy   String?  @map("created_by") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   String?  @map("updated_by") @db.Uuid
+
+  branch  Branch?               @relation(fields: [branchCode], references: [code])
+  details IncentiveSchemeDetail[]
+  records IncentiveRecord[]
+
+  @@index([branchCode, isActive])
+  @@map("incentive_schemes")
+}
+
+model IncentiveSchemeDetail {
+  id               String   @id @default(uuid()) @db.Uuid
+  incentiveSchemeId String  @map("incentive_scheme_id") @db.Uuid
+  locationType     String?  @map("location_type") @db.VarChar(50)
+  partCategoryCode String?  @map("part_category_code") @db.VarChar(50)
+  partyType        PartyType @map("party_type")
+  slabFrom         Decimal  @map("slab_from") @db.Decimal(18, 2)
+  slabTo           Decimal? @map("slab_to") @db.Decimal(18, 2)
+  incentiveRate    Decimal  @map("incentive_rate") @db.Decimal(10, 4)
+  incentiveType    String   @default("PERCENTAGE") @map("incentive_type") @db.VarChar(30) // PERCENTAGE, FLAT, TIERED
+  minAmount        Decimal? @map("min_amount") @db.Decimal(18, 2)
+  maxAmount        Decimal? @map("max_amount") @db.Decimal(18, 2)
+  sortOrder        Int      @default(0) @map("sort_order")
+  createdAt        DateTime @default(now()) @map("created_at")
+  createdBy        String?  @map("created_by") @db.Uuid
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  updatedBy        String?  @map("updated_by") @db.Uuid
+
+  incentiveScheme IncentiveScheme @relation(fields: [incentiveSchemeId], references: [id], onDelete: Cascade)
+
+  @@index([incentiveSchemeId])
+  @@index([partyType, partCategoryCode])
+  @@map("incentive_scheme_detail")
+}
+
+model IncentiveRecord {
+  id                String              @id @default(uuid()) @db.Uuid
+  partyId           String              @db.Uuid
+  schemeId          String?             @map("scheme_id") @db.Uuid
+  year              Int
+  month             Int
+  branchCode        String              @map("branch_code") @db.VarChar(20)
+  partCategoryCode  String?             @map("part_category_code") @db.VarChar(50)
+  incentiveSource   String?             @map("incentive_source") @db.VarChar(50)
+  recordType        IncentiveRecordType @default(CALCULATED) @map("record_type")
+  status            IncentiveRecordStatus @default(DRAFT)
+  baseAmount        Decimal             @map("base_amount") @db.Decimal(18, 2)
+  incentiveRate     Decimal?            @map("incentive_rate") @db.Decimal(10, 4)
+  calculatedAmount  Decimal             @map("calculated_amount") @db.Decimal(18, 2)
+  tdsAmount         Decimal             @default(0) @map("tds_amount") @db.Decimal(18, 2)
+  netAmount         Decimal             @map("net_amount") @db.Decimal(18, 2)
+  overrideRemarks   String?             @map("override_remarks") @db.Text
+  overriddenById    String?             @map("overridden_by_id") @db.Uuid
+  rowVersion        Int                 @default(1) @map("row_version")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  createdBy         String?             @map("created_by") @db.Uuid
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  updatedBy         String?             @map("updated_by") @db.Uuid
+
+  party       Party              @relation(fields: [partyId], references: [id])
+  scheme      IncentiveScheme?   @relation(fields: [schemeId], references: [id])
+  branch      Branch             @relation(fields: [branchCode], references: [code])
+  overriddenBy User?              @relation("OverrideBy", fields: [overriddenById], references: [id])
+  workflowInstances WorkflowInstance[]
+
+  @@index([partyId, year, month])
+  @@index([branchCode, year, month])
+  @@index([branchCode, status, year, month])
+  @@index([schemeId, year, month])
+  @@index([status, year, month])
+  @@map("incentive_records")
+}
+
+// ─── DEALER TARGETS & PERFORMANCE ────────────────────────────────────────────
+
+model DealerTarget {
+  id                    String   @id @default(uuid()) @db.Uuid
+  partyId               String   @map("party_id") @db.Uuid
+  partyCode             String   @default("") @map("party_code") @db.VarChar(100)
+  partyName             String?  @map("party_name") @db.VarChar(255)
+  branchCode            String   @map("branch_code") @db.VarChar(50)
+  year                  Int
+  month                 Int
+  partCategoryCode      String?  @map("part_category_code") @db.VarChar(50)
+  systemSuggestedTarget Decimal  @default(0) @map("system_suggested_target") @db.Decimal(18, 2)
+  adminDefinedTarget    Decimal? @map("admin_defined_target") @db.Decimal(18, 2)
+  finalTarget           Decimal  @default(0) @map("final_target") @db.Decimal(18, 2)
+  targetAmount          Decimal  @default(0) @map("target_amount") @db.Decimal(18, 2)
+  targetQuantity        Int?     @map("target_quantity")
+  remarks               String?  @db.Text
+  rowVersion            Int      @default(1) @map("row_version")
+  createdAt             DateTime @default(now()) @map("created_at")
+  createdBy             String?  @map("created_by") @db.Uuid
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  updatedBy             String?  @map("updated_by") @db.Uuid
+
+  party  Party   @relation(fields: [partyId], references: [id])
+  branch Branch? @relation(fields: [branchCode], references: [code])
+
+  @@unique([partyCode, branchCode, year, month, partCategoryCode], name: "party_branch_period_unique")
+  @@index([branchCode, year, month])
+  @@index([partyCode])
+  @@map("dealer_targets")
+}
+
+// ─── TARGET VS ACHIEVEMENT PRE-AGGREGATED PERFORMANCE CACHE ─────────────────
+
+model TargetVsAchievementSnapshot {
+  id                    String   @id @default(uuid()) @db.Uuid
+  fiscalYear            Int      @map("fiscal_year")
+  month                 String   @db.VarChar(20)
+  monthNum              Int      @map("month_num")
+  branchCode            String   @map("branch_code") @db.VarChar(50)
+  branchName            String?  @map("branch_name") @db.VarChar(255)
+  partyCode             String   @map("party_code") @db.VarChar(100)
+  partyName             String   @map("party_name") @db.VarChar(255)
+  partyType             String?  @map("party_type") @db.VarChar(100)
+  partCategoryCode      String?  @map("part_category_code") @db.VarChar(50)
+  salesExecutive        String?  @map("sales_executive") @db.VarChar(255)
+  
+  // Historical Baseline Components
+  lySameMonthSales      Decimal  @default(0) @map("ly_same_month_sales") @db.Decimal(18, 2)
+  lastMonthSales        Decimal  @default(0) @map("last_month_sales") @db.Decimal(18, 2)
+  lastQuarterAvg        Decimal  @default(0) @map("last_quarter_avg") @db.Decimal(18, 2)
+  lastFyAvg             Decimal  @default(0) @map("last_fy_avg") @db.Decimal(18, 2)
+  avgSaleLast6Month     Decimal  @default(0) @map("avg_sale_last_6_month") @db.Decimal(18, 2)
+
+  // Target Engine Output
+  weightedBase          Decimal  @default(0) @map("weighted_base") @db.Decimal(18, 2)
+  recommendedTarget     Decimal  @default(0) @map("recommended_target") @db.Decimal(18, 2)
+  gapAdjustment         Decimal  @default(0) @map("gap_adjustment") @db.Decimal(18, 2)
+  systemSuggestedTarget Decimal  @default(0) @map("system_suggested_target") @db.Decimal(18, 2)
+  adminDefinedTarget    Decimal? @map("admin_defined_target") @db.Decimal(18, 2)
+  finalTarget           Decimal  @default(0) @map("final_target") @db.Decimal(18, 2)
+
+  // Actual Performance & Growth
+  currentSales          Decimal  @default(0) @map("current_sales") @db.Decimal(18, 2)
+  achievementPercent    Decimal  @default(0) @map("achievement_percent") @db.Decimal(10, 2)
+  ytdSales              Decimal  @default(0) @map("ytd_sales") @db.Decimal(18, 2)
+  lastYearYTDSales      Decimal  @default(0) @map("last_year_ytd_sales") @db.Decimal(18, 2)
+  yoyGrowthPercent      Decimal  @default(0) @map("yoy_growth_percent") @db.Decimal(10, 2)
+  
+  // Workflow Status
+  targetStatus          String   @default("DRAFT") @map("target_status") @db.VarChar(50) // DRAFT, REVIEWED, APPROVED, LOCKED
+  lockedAt              DateTime? @map("locked_at")
+  lockedBy              String?   @map("locked_by") @db.VarChar(100)
+  calculatedAt          DateTime @default(now()) @map("calculated_at")
+
+  @@unique([fiscalYear, month, branchCode, partyCode, partCategoryCode], name: "target_achievement_snapshot_unique")
+  @@index([fiscalYear, month])
+  @@index([branchCode, fiscalYear, month])
+  @@index([partyCode, fiscalYear, monthNum])
+  @@index([salesExecutive, fiscalYear, monthNum])
+  @@index([partyType])
+  @@index([targetStatus])
+  @@map("target_vs_achievement_snapshots")
+}
+
+model DealerMonthlyPerformance {
+  id               String   @id @default(uuid()) @db.Uuid
+  partyId          String   @map("party_id") @db.Uuid
+  branchCode       String   @map("branch_code") @db.VarChar(20)
+  year             Int
+  month            Int
+  partCategoryCode String?  @map("part_category_code") @db.VarChar(50)
+  salesAmount      Decimal  @map("sales_amount") @db.Decimal(18, 2) @default(0)
+  salesQuantity    Int      @map("sales_quantity") @default(0)
+  returnAmount     Decimal  @map("return_amount") @db.Decimal(18, 2) @default(0)
+  returnQuantity   Int      @map("return_quantity") @default(0)
+  netAmount        Decimal  @map("net_amount") @db.Decimal(18, 2) @default(0)
+  outstandingAmount Decimal @map("outstanding_amount") @db.Decimal(18, 2) @default(0)
+  rowVersion       Int      @default(1) @map("row_version")
+  createdAt        DateTime @default(now()) @map("created_at")
+  createdBy        String?  @map("created_by") @db.Uuid
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  updatedBy        String?  @map("updated_by") @db.Uuid
+
+  party  Party  @relation(fields: [partyId], references: [id])
+  branch Branch @relation(fields: [branchCode], references: [code])
+
+  @@unique([partyId, branchCode, year, month, partCategoryCode])
+  @@index([branchCode, year, month])
+  @@index([year, month])
+  @@map("dealer_monthly_performance")
+}
+
+// ─── CASH MANAGEMENT ─────────────────────────────────────────────────────────
+
+model CashTransaction {
+  id                   String              @id @default(uuid()) @db.Uuid
+  transactionType      CashTransactionType @map("transaction_type")
+  branchCode           String              @map("branch_code") @db.VarChar(20)
+  partyId              String?             @map("party_id") @db.Uuid
+  costCenter           String?             @map("cost_center") @db.VarChar(50)
+  amount               Decimal             @db.Decimal(18, 2)
+  transactionDate      DateTime            @map("transaction_date")
+  referenceNo          String?             @map("reference_no") @db.VarChar(100)
+  description          String?             @db.Text
+  reconciliationStatus ReconciliationStatus @default(UNRECONCILED) @map("reconciliation_status")
+  reconciledWithId     String?             @map("reconciled_with_id") @db.Uuid
+  reconciledAt         DateTime?           @map("reconciled_at")
+  rowVersion           Int                 @default(1) @map("row_version")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  createdBy            String?             @map("created_by") @db.Uuid
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+  updatedBy            String?             @map("updated_by") @db.Uuid
+
+  branch       Branch            @relation(fields: [branchCode], references: [code])
+  party        Party?            @relation(fields: [partyId], references: [id])
+  reconciledWith RawStagingRecord? @relation("CashReconciliation", fields: [reconciledWithId], references: [id])
+  workflowInstances WorkflowInstance[]
+
+  @@index([branchCode, transactionDate])
+  @@index([branchCode, reconciliationStatus, transactionDate])
+  @@index([partyId, transactionDate])
+  @@index([reconciliationStatus])
+  @@index([costCenter, transactionDate])
+  @@map("cash_transactions")
+}
+
+// ─── RETAIL SALES UPLOAD ─────────────────────────────────────────────────────
+
+model RetailSalesRecord {
+  id                String   @id @default(uuid()) @db.Uuid
+  uploadBatchId     String   @map("upload_batch_id") @db.VarChar(100)
+
+  // Core identifiers from Excel
+  consignee         String   @db.VarChar(50)
+  dealerCode        String   @map("dealer_code") @db.VarChar(20)
+  loc               String?  @db.VarChar(20)
+  partCategoryCode  String?  @map("part_category_code") @db.VarChar(20)
+  partNum           String   @map("part_num") @db.VarChar(100)
+  rootPartNum       String?  @map("root_part_num") @db.VarChar(100)
+  day               String?  @db.VarChar(5)
+  fiscalYear        Int?     @map("fiscal_year")
+  month             String?  @db.VarChar(20)
+  monthYear         String   @map("month_year") @db.VarChar(20)  // e.g. "Jun 2026"
+  consPartyCode     String?  @map("cons_party_code") @db.VarChar(50)
+  consPartyName     String?  @map("cons_party_name") @db.VarChar(200)
+  partyType         String?  @map("party_type") @db.VarChar(100)
+  documentNum       String   @map("document_num") @db.VarChar(100)
+  remarks           String?  @db.VarChar(500)
+
+  // Metrics
+  netRetailQty      Decimal? @map("net_retail_qty") @db.Decimal(18, 4)
+  netRetailSelling  Decimal? @map("net_retail_selling") @db.Decimal(18, 4)
+  discountAmount    Decimal? @map("discount_amount") @db.Decimal(18, 4)
+  netRetailDdl      Decimal? @map("net_retail_ddl") @db.Decimal(18, 4)
+
+  // Metadata
+  createdAt         DateTime @default(now()) @map("created_at")
+  createdBy         String?  @map("created_by") @db.Uuid
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([consignee, dealerCode, partNum, documentNum, monthYear])
+  @@index([dealerCode, monthYear])
+  @@index([uploadBatchId])
+  @@index([monthYear])
+  @@index([consignee, monthYear])
+  @@index([consPartyCode, monthYear])
+  @@index([fiscalYear, month])
+  @@index([loc, monthYear])
+  @@index([consPartyCode, fiscalYear])
+  @@map("retail_sales_records")
+}
+
+model RetailSalesUploadLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  batchId       String   @unique @map("batch_id") @db.VarChar(100)
+  fileName      String   @map("file_name") @db.VarChar(500)
+  monthYear     String   @map("month_year") @db.VarChar(500)  // period this upload covers
+  totalRows     Int      @map("total_rows")
+  insertedRows  Int      @map("inserted_rows") @default(0)
+  deletedRows   Int      @map("deleted_rows") @default(0)
+  status        String   @db.VarChar(20) // PROCESSING, DONE, FAILED
+  errorMessage  String?  @map("error_message") @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+  createdBy     String?  @map("created_by") @db.Uuid
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([monthYear])
+  @@index([createdBy, createdAt])
+  @@map("retail_sales_upload_logs")
+}
+
+// ─── RAW STAGING RECORD (unified for all imports) ────────────────────────────
+
+model RawStagingRecord {
+  id            String       @id @default(uuid()) @db.Uuid
+  sourceType    String       @map("source_type") @db.VarChar(50) // BANK_STATEMENT, EXTERNAL_INCENTIVE, GENERIC
+  batchId       String       @map("batch_id") @db.Uuid
+  status        ImportStatus
+  amount        Decimal?     @db.Decimal(18, 2)
+  transactionDate DateTime?  @map("transaction_date")
+  referenceNo   String?      @map("reference_no") @db.VarChar(200)
+  partyCode     String?      @map("party_code") @db.VarChar(50)
+  branchCode    String?      @map("branch_code") @db.VarChar(20)
+  payload       Json?        // source-specific fields
+  validationErrors Json?     @map("validation_errors")
+  errorMessage  String?      @map("error_message") @db.Text
+  committedEntityId String?  @map("committed_entity_id") @db.Uuid
+  committedEntityType String? @map("committed_entity_type") @db.VarChar(50)
+  committedAt   DateTime?    @map("committed_at")
+  rolledBackAt  DateTime?    @map("rolled_back_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  createdBy     String?      @map("created_by") @db.Uuid
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  updatedBy     String?      @map("updated_by") @db.Uuid
+
+  importLog                  ImportLog?        @relation(fields: [batchId], references: [batchId])
+  reconciledCashTransactions CashTransaction[] @relation("CashReconciliation")
+
+  @@index([sourceType, batchId])
+  @@index([sourceType, status])
+  @@index([referenceNo])
+  @@index([partyCode])
+  @@index([branchCode, transactionDate])
+  @@map("raw_staging_record")
+}
+
+// ─── WORKFLOW ENGINE ─────────────────────────────────────────────────────────
+
+model WorkflowDefinition {
+  id          String              @id @default(uuid()) @db.Uuid
+  code        String              @unique @db.VarChar(100)
+  name        String              @db.VarChar(200)
+  entityType  WorkflowEntityType  @map("entity_type")
+  description String?             @db.Text
+  isActive    Boolean             @default(true) @map("is_active")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  createdBy   String?             @map("created_by") @db.Uuid
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  updatedBy   String?             @map("updated_by") @db.Uuid
+
+  steps     WorkflowStep[]
+  instances WorkflowInstance[]
+
+  @@index([entityType, isActive])
+  @@map("workflow_definitions")
+}
+
+model WorkflowStep {
+  id                 String             @id @default(uuid()) @db.Uuid
+  workflowDefinitionId String           @map("workflow_definition_id") @db.Uuid
+  stepNumber         Int                @map("step_number")
+  name               String             @db.VarChar(200)
+  stepType           WorkflowStepType   @map("step_type")
+  assigneeType       String?            @map("assignee_type") @db.VarChar(50) // ROLE, USER, DYNAMIC
+  assigneeValue      String?            @map("assignee_value") @db.VarChar(200)
+  timeoutHours       Int?               @map("timeout_hours")
+  isRequired         Boolean            @default(true) @map("is_required")
+  conditionExpression String?           @map("condition_expression") @db.Text
+  createdAt          DateTime           @default(now()) @map("created_at")
+  createdBy          String?            @map("created_by") @db.Uuid
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  updatedBy          String?            @map("updated_by") @db.Uuid
+
+  workflowDefinition WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id], onDelete: Cascade)
+  assignments        WorkflowStepAssignment[]
+  histories          WorkflowStepHistory[]
+
+  @@unique([workflowDefinitionId, stepNumber])
+  @@map("workflow_steps")
+}
+
+model WorkflowInstance {
+  id                   String                @id @default(uuid()) @db.Uuid
+  workflowDefinitionId String                @map("workflow_definition_id") @db.Uuid
+  entityType           WorkflowEntityType    @map("entity_type")
+  entityId             String                @map("entity_id") @db.Uuid
+  status               WorkflowInstanceStatus @default(IN_PROGRESS)
+  currentStepNumber    Int                   @map("current_step_number") @default(1)
+  initiatedBy          String                @map("initiated_by") @db.Uuid
+  completedAt          DateTime?             @map("completed_at")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  createdBy            String?               @map("created_by") @db.Uuid
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  updatedBy            String?               @map("updated_by") @db.Uuid
+
+  workflowDefinition WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id])
+  incentiveRecords   IncentiveRecord[]  @relation
+  cashTransactions   CashTransaction[]  @relation
+  stepHistories      WorkflowStepHistory[]
+  stepAssignments    WorkflowStepAssignment[]
+
+  @@index([entityType, entityId])
+  @@index([status])
+  @@index([initiatedBy])
+  @@map("workflow_instances")
+}
+
+model WorkflowStepAssignment {
+  id                   String              @id @default(uuid()) @db.Uuid
+  workflowInstanceId   String              @map("workflow_instance_id") @db.Uuid
+  workflowStepId       String              @map("workflow_step_id") @db.Uuid
+  assignedTo          String              @map("assigned_to") @db.Uuid
+  status              WorkflowStepStatus  @default(PENDING)
+  remarks             String?             @db.Text
+  actedAt             DateTime?           @map("acted_at")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  createdBy           String?             @map("created_by") @db.Uuid
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+  updatedBy           String?             @map("updated_by") @db.Uuid
+
+  workflowInstance WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  workflowStep     WorkflowStep     @relation(fields: [workflowStepId], references: [id])
+  assignee         User             @relation(fields: [assignedTo], references: [id])
+
+  @@index([workflowInstanceId, status])
+  @@index([assignedTo, status])
+  @@map("workflow_step_assignments")
+}
+
+model WorkflowStepHistory {
+  id                   String             @id @default(uuid()) @db.Uuid
+  workflowInstanceId   String             @map("workflow_instance_id") @db.Uuid
+  workflowStepId       String             @map("workflow_step_id") @db.Uuid
+  action               String             @db.VarChar(50) // APPROVED, REJECTED, SKIPPED, COMMENT
+  actedBy              String             @map("acted_by") @db.Uuid
+  remarks              String?            @db.Text
+  createdAt            DateTime           @default(now()) @map("created_at")
+
+  workflowInstance WorkflowInstance @relation(fields: [workflowInstanceId], references: [id], onDelete: Cascade)
+  workflowStep     WorkflowStep     @relation(fields: [workflowStepId], references: [id])
+
+  @@index([workflowInstanceId])
+  @@map("workflow_step_history")
+}
+
+// ─── MESSAGES & NOTIFICATIONS ────────────────────────────────────────────────
+
+model MessageTemplate {
+  id          String        @id @default(uuid()) @db.Uuid
+  code        String        @unique @db.VarChar(100)
+  name        String        @db.VarChar(200)
+  channel     MessageChannel
+  subject     String?       @db.VarChar(500) // for email
+  body        String        @db.Text // template with {{mergeField}} placeholders
+  mergeFields Json?         @map("merge_fields") // documented list of available fields
+  isActive    Boolean       @default(true) @map("is_active")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  createdBy   String?       @map("created_by") @db.Uuid
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  updatedBy   String?       @map("updated_by") @db.Uuid
+
+  logs MessageLog[]
+
+  @@index([channel, isActive])
+  @@map("message_templates")
+}
+
+model MessageLog {
+  id            String        @id @default(uuid()) @db.Uuid
+  templateId    String?       @map("template_id") @db.Uuid
+  channel       MessageChannel
+  recipientId   String?       @map("recipient_id") @db.Uuid // party or user id
+  recipientType String?       @map("recipient_type") @db.VarChar(50)
+  recipientAddr String        @map("recipient_addr") @db.VarChar(500) // email/phone
+  subject       String?       @db.VarChar(500)
+  body          String        @db.Text
+  status        MessageStatus @default(QUEUED)
+  errorMessage  String?       @map("error_message") @db.Text
+  sentAt        DateTime?     @map("sent_at")
+  providerRef   String?       @map("provider_ref") @db.VarChar(500)
+  sentById      String?       @map("sent_by_id") @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at")
+  createdBy     String?       @map("created_by") @db.Uuid
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  updatedBy     String?       @map("updated_by") @db.Uuid
+
+  template    MessageTemplate? @relation(fields: [templateId], references: [id])
+  sender      User?            @relation("MessageSender", fields: [sentById], references: [id])
+  recipientParty Party?        @relation("MessageRecipient", fields: [recipientId], references: [id])
+
+  @@index([templateId])
+  @@index([channel, status])
+  @@index([recipientId])
+  @@index([createdAt])
+  @@map("message_logs")
+}
+
+model Notification {
+  id          String           @id @default(uuid()) @db.Uuid
+  userId      String           @map("user_id") @db.Uuid
+  type        NotificationType
+  title       String           @db.VarChar(300)
+  body        String           @db.Text
+  status      NotificationStatus @default(UNREAD)
+  link        String?          @db.VarChar(500)
+  metadata    Json?
+  expiresAt   DateTime?        @map("expires_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model Announcement {
+  id          String           @id @default(uuid()) @db.Uuid
+  title       String           @db.VarChar(300)
+  body        String           @db.Text
+  scope       AnnouncementScope @default(ALL)
+  branchCode  String?          @map("branch_code") @db.VarChar(20)
+  roleIds     Json?            @map("role_ids") // array of role UUIDs
+  userIds     Json?            @map("user_ids") // array of user UUIDs
+  isActive    Boolean          @default(true) @map("is_active")
+  startsAt    DateTime?        @map("starts_at")
+  endsAt      DateTime?        @map("ends_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  createdBy   String?          @map("created_by") @db.Uuid
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  updatedBy   String?          @map("updated_by") @db.Uuid
+
+  branch Branch? @relation(fields: [branchCode], references: [code])
+
+  @@index([scope, isActive])
+  @@index([branchCode])
+  @@map("announcements")
+}
+
+// ─── LEDGER SNAPSHOTS ────────────────────────────────────────────────────────
+
+model LedgerSnapshot {
+  id            String   @id @default(uuid()) @db.Uuid
+  partyId       String   @map("party_id") @db.Uuid
+  year          Int
+  month         Int
+  openingBalance Decimal @map("opening_balance") @db.Decimal(18, 2)
+  totalDebit   Decimal  @map("total_debit") @db.Decimal(18, 2) @default(0)
+  totalCredit  Decimal  @map("total_credit") @db.Decimal(18, 2) @default(0)
+  closingBalance Decimal @map("closing_balance") @db.Decimal(18, 2)
+  lineItems    Json?    // detailed line items as jsonb
+  rowVersion   Int      @default(1) @map("row_version")
+  createdAt    DateTime @default(now()) @map("created_at")
+  createdBy    String?  @map("created_by") @db.Uuid
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  updatedBy    String?  @map("updated_by") @db.Uuid
+
+  party Party @relation(fields: [partyId], references: [id])
+
+  @@unique([partyId, year, month])
+  @@index([partyId])
+  @@index([year, month])
+  @@map("ledger_snapshots")
+}
+
+// ─── IMPORT TEMPLATES (for generic import framework) ─────────────────────────
+
+model ImportTemplate {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @db.VarChar(200)
+  sourceType      String   @map("source_type") @db.VarChar(50)
+  columnMappings  Json     @map("column_mappings") // [{sourceCol, targetField, required, transform}]
+  validationRules Json?    @map("validation_rules") // [{field, rule, params}]
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  createdBy       String?  @map("created_by") @db.Uuid
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  updatedBy       String?  @map("updated_by") @db.Uuid
+
+  importLogs      ImportLog[]
+
+  @@index([sourceType])
+  @@map("import_templates")
+}
+
+model ImportLog {
+  id            String       @id @default(uuid()) @db.Uuid
+  batchId       String       @unique @map("batch_id") @db.Uuid
+  sourceType    String       @map("source_type") @db.VarChar(50)
+  templateId    String?      @map("template_id") @db.Uuid
+  fileName      String       @map("file_name") @db.VarChar(500)
+  totalRows     Int          @map("total_rows")
+  validRows     Int          @map("valid_rows") @default(0)
+  invalidRows   Int          @map("invalid_rows") @default(0)
+  committedRows Int          @map("committed_rows") @default(0)
+  status        ImportStatus
+  errorMessage  String?      @map("error_message") @db.Text
+  committedAt   DateTime?    @map("committed_at")
+  rolledBackAt  DateTime?    @map("rolled_back_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  createdBy     String?      @map("created_by") @db.Uuid
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  updatedBy     String?     @map("updated_by") @db.Uuid
+
+  template ImportTemplate? @relation(fields: [templateId], references: [id])
+  records RawStagingRecord[]
+
+  @@index([sourceType, status])
+  @@index([createdBy, createdAt])
+  @@map("import_logs")
+}
+
+// ─── AUDIT LOG (single generic table) ────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  entityType  String   @map("entity_type") @db.VarChar(100)
+  entityId    String   @map("entity_id") @db.Uuid
+  action      String   @db.VarChar(50) // CREATE, UPDATE, DELETE
+  oldValues   Json?    @map("old_values")
+  newValues   Json?    @map("new_values")
+  changedBy   String?  @map("changed_by") @db.Uuid
+  changedAt   DateTime @default(now()) @map("changed_at")
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.Text
+
+  changedByUser User? @relation("AuditCreator", fields: [changedBy], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([changedBy])
+  @@index([changedAt])
+  @@index([entityType, changedAt])
+  @@map("audit_log")
+}
+
+// ─── THESSBUDDY: RAW SALES ──────────────────────────────────────────────────
+
+model RawSales {
+  id               String   @id @default(uuid()) @db.Uuid
+  consignee        String   @db.VarChar(100)
+  dealerCode       String   @map("dealer_code") @db.VarChar(100)
+  loc              String   @db.VarChar(50) // Location / Branch
+  partCategoryCode String   @map("part_category_code") @db.VarChar(50)
+  partNum          String   @map("part_num") @db.VarChar(100)
+  rootPartNum      String   @map("root_part_num") @db.VarChar(100)
+  day              Int
+  fiscalYear       Int      @map("fiscal_year")
+  month            String   @db.VarChar(20)
+  monthYear        String   @map("month_year") @db.VarChar(50)
+  consPartyCode    String   @map("cons_party_code") @db.VarChar(100)
+  consPartyName    String   @map("cons_party_name") @db.VarChar(200)
+  partyType        String   @map("party_type") @db.VarChar(100)
+  documentNum      String?  @map("document_num") @db.VarChar(100)
+  remarks          String?  @db.Text
+  netRetailQty     Int      @map("net_retail_qty")
+  netRetailSelling Float    @map("net_retail_selling")
+  discountAmount   Float    @map("discount_amount")
+  netRetailDdl     Float    @map("net_retail_ddl")
+  batchId          String   @map("batch_id") @db.Uuid
+  uploadedBy       String   @map("uploaded_by") @db.Uuid
+  uploadedAt       DateTime @default(now()) @map("uploaded_at")
+
+  @@map("raw_sales")
+}
+
+// ─── INCENTIVE GOVERNOR & PROCESSING ENGINE ───────────────────────────
+
+model IncentiveGovernorPeriodControl {
+  id                   String   @id @default(uuid()) @db.Uuid
+  year                 Int
+  month                Int
+  monthName            String   @map("month_name") @db.VarChar(50)
+  processingMethod     String   @default("DYNAMIC") @map("processing_method") @db.VarChar(50) // DYNAMIC, PRE_CALCULATED
+  status               String   @default("NOT_PROCESSED") @db.VarChar(50) // NOT_PROCESSED, DRAFT, PREVIEW, COMMITTED, LOCKED, REOPENED, CANCELLED
+  governorRules        Json?    @map("governor_rules") // array of { branch, categories, partyTypes }
+  batchId              String?  @map("batch_id") @db.VarChar(100)
+  totalEligibleParties Int      @default(0) @map("total_eligible_parties")
+  totalNrs             Float    @default(0) @map("total_nrs")
+  totalDiscount        Float    @default(0) @map("total_discount")
+  grossIncentive       Float    @default(0) @map("gross_incentive")
+  finalIncentive       Float    @default(0) @map("final_incentive")
+  committedAt          DateTime? @map("committed_at")
+  committedBy          String?  @map("committed_by") @db.VarChar(200)
+  reopenedAt           DateTime? @map("reopened_at")
+  reopenedBy           String?  @map("reopened_by") @db.VarChar(200)
+  reopenReason         String?  @map("reopen_reason") @db.Text
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@unique([year, month], name: "year_month_governor_unique")
+  @@index([status])
+  @@map("incentive_governor_period_controls")
+}
+
+model IncentiveRegisterRecord {
+  id                String   @id @default(uuid()) @db.Uuid
+  governorBatchId   String   @map("governor_batch_id") @db.VarChar(100)
+  year              Int
+  month             Int
+  monthName         String?  @map("month_name") @db.VarChar(50)
+  originalPartyCode String   @map("original_party_code") @db.VarChar(100) // Original Party Code SSOT
+  partyName         String   @map("party_name") @db.VarChar(300)
+  baseBranch        String   @map("base_branch") @db.VarChar(50) // Party Master Base Branch
+  partyType         String   @map("party_type") @db.VarChar(100) // Party Master Party Type
+  nrs               Float    @default(0) // Net Retail Selling aggregated from RAW
+  totalDiscount     Float    @default(0) @map("total_discount") // Discount aggregated from RAW
+  incentiveType     String   @default("Fixed") @map("incentive_type") @db.VarChar(50) // Fixed / Slab-Based
+  applicableRate    Float?   @map("applicable_rate")
+  applicableSlab    String?  @map("applicable_slab") @db.VarChar(150)
+  grossIncentive    Float    @default(0) @map("gross_incentive")
+  finalIncentive    Float    @default(0) @map("final_incentive") // MAX(grossIncentive - totalDiscount, 0)
+  processingMethod  String   @default("DYNAMIC") @map("processing_method") @db.VarChar(50) // DYNAMIC / PRE_CALCULATED
+  validationStatus  String   @default("VALID") @map("validation_status") @db.VarChar(50) // VALID, WARNING, ERROR
+  validationErrors  Json?    @map("validation_errors")
+  status            String   @default("DRAFT") @db.VarChar(50) // DRAFT, COMMITTED, REVERSED
+  createdBy         String?  @map("created_by") @db.VarChar(200)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  // Bank Payout Transfer Fields
+  payoutStatus      String?  @map("payout_status") @db.VarChar(50)   // Success, Paid, Reversed, Failed
+  transferredAmount Float?   @map("transferred_amount")               // Column H: Amount
+  transferDate      String?  @map("transfer_date") @db.VarChar(50)   // Column N: Pymt_Date
+  accountHolder     String?  @map("account_holder") @db.VarChar(200)  // Column E: Beneficiary Name
+  accountNo         String?  @map("account_no") @db.VarChar(100)      // Column F: Beneficiary Account No
+  ifscCode          String?  @map("ifsc_code") @db.VarChar(50)        // Column G: Bene_IFSC_Code
+  utrNo             String?  @map("utr_no") @db.VarChar(100)          // Column AC: UTR NO
+  payoutBatchId     String?  @map("payout_batch_id") @db.VarChar(100) // Upload batch ID
+
+  @@index([year, month, processingMethod])
+  @@index([originalPartyCode])
+  @@index([baseBranch])
+  @@index([governorBatchId])
+  @@index([payoutStatus])
+  @@map("incentive_register_records")
+}
+
+model IncentiveGovernorAuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  batchId     String?  @map("batch_id") @db.VarChar(100)
+  year        Int
+  month       Int
+  action      String   @db.VarChar(100) // CONFIG_SAVED, CALCULATION_EXECUTED, PREVIEW_GENERATED, EXCEL_UPLOADED, COMMITTED, PERIOD_LOCKED, PERIOD_REOPENED
+  performedBy String   @map("performed_by") @db.VarChar(200)
+  details     Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([year, month])
+  @@index([action])
+  @@map("incentive_governor_audit_logs")
+}
+
+// ─── THESSBUDDY: ASSET MANAGEMENT ──────────────────────────────────────────
+
+model Asset {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String   @db.VarChar(200)
+  code             String   @unique @db.VarChar(100)
+  category         String   @db.VarChar(100)
+  allocatedToUser  String?  @map("allocated_to_user") @db.Uuid
+  allocatedToBranch String? @map("allocated_to_branch") @db.VarChar(20)
+  status           String   @default("AVAILABLE") @db.VarChar(50) // AVAILABLE, ALLOCATED, MAINTENANCE, DISPOSED
+  warrantyExpiry   DateTime? @map("warranty_expiry")
+  amcExpiry        DateTime? @map("amc_expiry")
+  insuranceExpiry  DateTime? @map("insurance_expiry")
+  barcode          String?  @db.VarChar(100)
+  qrCode           String?  @map("qr_code") @db.VarChar(255)
+  depreciationRate Float    @default(0.0) @map("depreciation_rate")
+  disposalDate     DateTime? @map("disposal_date")
+  vendorName       String?  @map("vendor_name") @db.VarChar(200)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("assets")
+}
+
+// ─── THESSBUDDY: IT HELP DESK ────────────────────────────────────────────────
+
+model HelpDeskTicket {
+  id          String   @id @default(uuid()) @db.Uuid
+  ticketNo    String   @unique @map("ticket_no") @db.VarChar(50) // Human-friendly ID like TKT-1001
+  category    String   @db.VarChar(100)
+  priority    String   @db.VarChar(50) // LOW, MEDIUM, HIGH, URGENT
+  title       String   @db.VarChar(300)
+  description String   @db.Text
+  status      String   @default("OPEN") @db.VarChar(50) // OPEN, ASSIGNED, IN_PROGRESS, RESOLVED, CLOSED
+  createdBy   String   @map("created_by") @db.Uuid
+  assignedTo  String?  @map("assigned_to") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("help_desk_tickets")
+}
+
+// ─── THESSBUDDY: DEALER OUTSTANDINGS (Matches .NET model) ────────────────────
+
+model DealerOutstanding {
+  id                     String   @id @default(uuid()) @db.Uuid
+  month                  Int
+  year                   Int
+  monthLabel             String   @map("month_label") @db.VarChar(50)
+  partyCode              String   @map("party_code") @db.VarChar(50)
+  partyName              String   @map("party_name") @db.VarChar(200)
+  branchCode             String   @default("MUMBAI-01") @map("branch_code") @db.VarChar(20)
+  outstanding            Float    @default(0)
+  outstandingLess7Days   Float?   @map("outstanding_less_7_days")
+  outstanding7To14Days   Float?   @map("outstanding_7_to_14_days")
+  outstanding14To21Days  Float?   @map("outstanding_14_to_21_days")
+  outstanding21To28Days  Float?   @map("outstanding_21_to_28_days")
+  outstanding28To35Days  Float?   @map("outstanding_28_to_35_days")
+  outstanding35To50Days  Float?   @map("outstanding_35_to_50_days")
+  outstanding50To80Days  Float?   @map("outstanding_50_to_80_days")
+  outstandingMore80Days  Float?   @map("outstanding_more_80_days")
+  syncedAt               DateTime? @map("synced_at")
+  createdAt              DateTime @default(now()) @map("created_at")
+  createdBy              String?  @map("created_by")
+
+  @@unique([partyCode, year, month])
+  @@map("dealer_outstandings")
+}
+
+// ─── THESSBUDDY: CASH MANAGEMENT (Matches .NET Cashbook Module) ─────────────────
+
+model CashInTransaction {
+  id               String   @id @default(uuid()) @db.Uuid
+  transactionNo    String   @map("transaction_no") @db.VarChar(50)
+  branchCode       String   @map("branch_code") @db.VarChar(20)
+  transactionDate  DateTime @map("transaction_date")
+  receiptType      String   @map("receipt_type") @db.VarChar(100)
+  customerName     String   @map("customer_name") @db.VarChar(200)
+  dealerCode       String?  @map("dealer_code") @db.VarChar(50)
+  amount           Float
+  paymentMode      String   @default("CASH") @map("payment_mode") @db.VarChar(50)
+  bankName         String?  @map("bank_name") @db.VarChar(150)
+  referenceNo      String?  @map("reference_no") @db.VarChar(100)
+  narration        String?  @db.Text
+  attachmentPath   String?  @map("attachment_path") @db.VarChar(300)
+  status           String   @default("Draft") @db.VarChar(50)
+  tallyVoucherNo   String?  @map("tally_voucher_no") @db.VarChar(50)
+  tallyVoucherType String?  @map("tally_voucher_type") @db.VarChar(50)
+  tallyLedgerName  String?  @map("tally_ledger_name") @db.VarChar(100)
+  tallyGuid        String?  @map("tally_guid") @db.VarChar(100)
+  tallySyncAt      DateTime? @map("tally_sync_at")
+  tallySyncStatus  String?  @map("tally_sync_status") @db.VarChar(50)
+  approvalRemarks  String?  @map("approval_remarks") @db.Text
+  approvedAt       DateTime? @map("approved_at")
+  approvedBy       String?  @map("approved_by")
+  createdAt        DateTime @default(now()) @map("created_at")
+  createdBy        String?  @map("created_by")
+
+  reconRecords     CashReconRecord[]
+
+  @@map("cash_in_transactions")
+}
+
+model CashOutTransaction {
+  id                 String   @id @default(uuid()) @db.Uuid
+  transactionNo      String   @map("transaction_no") @db.VarChar(50)
+  branchCode         String   @map("branch_code") @db.VarChar(20)
+  transactionDate    DateTime @map("transaction_date")
+  expenseCategory    String   @map("expense_category") @db.VarChar(100)
+  vendorName         String   @map("vendor_name") @db.VarChar(200)
+  costCenter         String?  @map("cost_center") @db.VarChar(100)
+  glAccount          String?  @map("gl_account") @db.VarChar(100)
+  amount             Float
+  paymentMode        String   @default("CASH") @map("payment_mode") @db.VarChar(50)
+  paymentInstrument  String?  @map("payment_instrument") @db.VarChar(100)
+  bankName           String?  @map("bank_name") @db.VarChar(150)
+  referenceNo        String?  @map("reference_no") @db.VarChar(100)
+  narration          String?  @db.Text
+  attachmentPath     String?  @map("attachment_path") @db.VarChar(300)
+  status             String   @default("Draft") @db.VarChar(50)
+  tallyVoucherNo     String?  @map("tally_voucher_no") @db.VarChar(50)
+  tallyGuid          String?  @map("tally_guid") @db.VarChar(100)
+  tallySyncAt        DateTime? @map("tally_sync_at")
+  tallySyncStatus    String?  @map("tally_sync_status") @db.VarChar(50)
+  approvalRemarks    String?  @map("approval_remarks") @db.Text
+  approvedAt         DateTime? @map("approved_at")
+  approvedBy         String?  @map("approved_by")
+  createdAt          DateTime @default(now()) @map("created_at")
+  createdBy          String?  @map("created_by")
+
+  reconRecords       CashReconRecord[]
+
+  @@map("cash_out_transactions")
+}
+
+model CashReconRecord {
+  id              String   @id @default(uuid()) @db.Uuid
+  reconRef        String   @map("recon_ref") @db.VarChar(50)
+  branchCode      String   @map("branch_code") @db.VarChar(20)
+  reconDate       DateTime @map("recon_date")
+  transactionType String   @map("transaction_type") @db.VarChar(20)
+  cashInId        String?  @map("cash_in_id") @db.Uuid
+  cashOutId       String?  @map("cash_out_id") @db.Uuid
+  portalAmount    Float    @map("portal_amount")
+  tallyVoucherNo  String?  @map("tally_voucher_no") @db.VarChar(50)
+  tallyAmount     Float    @map("tally_amount")
+  variance        Float    @default(0)
+  reconStatus     String   @default("Pending") @map("recon_status") @db.VarChar(50)
+  remarks         String?  @db.Text
+  approvedAt      DateTime? @map("approved_at")
+  approvedBy      String?  @map("approved_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+  createdBy       String?  @map("created_by")
+
+  cashIn          CashInTransaction?  @relation(fields: [cashInId], references: [id], onDelete: Cascade)
+  cashOut         CashOutTransaction? @relation(fields: [cashOutId], references: [id], onDelete: Cascade)
+
+  @@map("cash_recon_records")
+}
+
+model CashPeriodControl {
+  id           String   @id @default(uuid()) @db.Uuid
+  controlYear  Int      @map("control_year")
+  controlMonth Int      @map("control_month")
+  status       String   @default("Open") @db.VarChar(20)
+  closedAt     DateTime? @map("closed_at")
+  closedBy     String?  @map("closed_by")
+  unlockReason String?  @map("unlock_reason") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  createdBy    String?  @map("created_by")
+
+  @@unique([controlYear, controlMonth])
+  @@map("cash_period_controls")
+}

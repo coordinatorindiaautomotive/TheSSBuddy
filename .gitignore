@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+.pnp
+.pnp.js
+
+# Production & Build outputs
+dist/
+build/
+frontend/.next/
+frontend/out/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# Logs & Temporary files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+scratch/
+service/daemon/
+uploads/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.tsbuildinfo
+next-env.d.ts
+
+# Misc
+{
