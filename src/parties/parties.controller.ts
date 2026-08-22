@@ -123,7 +123,12 @@ export class PartiesController {
     },
     @Req() req: any,
   ) {
-    return this.partiesService.updatePartyMasterRecord(code, { ...dto, updatedBy: req.user?.id });
+    return this.partiesService.updatePartyMasterRecord(code, {
+      ...dto,
+      updatedBy: req.user?.id,
+      updatedByUsername: req.user?.username,
+      updaterRoles: req.user?.roles || [],
+    });
   }
 
   @Get('ifsc/:ifscCode')

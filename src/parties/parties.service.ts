@@ -908,9 +908,19 @@ export class PartiesService {
     incentiveRule?:   string;
     isActive?:        boolean;
     updatedBy?:       string;
+    updatedByUsername?: string;
+    updaterRoles?:    string[];
   }): Promise<any> {
     const record = await this.prisma.partyMaster.findUnique({ where: { consPartyCode } });
     if (!record) throw new NotFoundException(`Party master record not found for code: ${consPartyCode}`);
+
+    // Check if bank details or critical identification changed
+    const hasBankChange =
+      (dto.accountNumber !== undefined && dto.accountNumber !== record.accountNumber) ||
+      (dto.ifscCode      !== undefined && dto.ifscCode      !== record.ifscCode) ||
+      (dto.bankName      !== undefined && dto.bankName      !== record.bankName) ||
+      (dto.accountHolder !== undefined && dto.accountHolder !== record.accountHolder) ||
+      (dto.bankBranch    !== undefined && dto.bankBranch    !== record.bankBranch);
 
     const updated = await this.prisma.partyMaster.update({
       where: { consPartyCode },
@@ -932,6 +942,61 @@ export class PartiesService {
         ...(dto.updatedBy      !== undefined && { updatedBy:      dto.updatedBy }),
       },
     });
+
+    // ── SEND SUPERADMIN NOTIFICATION ON BANK DETAILS UPDATE ─────────────────
+    if (hasBankChange) {
+      try {
+        const updaterName = dto.updatedByUsername || 'Branch User';
+        const partyName = record.consPartyName || record.consPartyCode;
+        const branch = dto.baseLoc || record.baseLoc || 'General';
+
+        const adminUsers = await this.prisma.user.findMany({
+          where: {
+            OR: [
+              { roles: { some: { role: { name: { in: ['SuperAdmin', 'Admin', 'FinanceHead', 'Auditor'] } } } } },
+              { username: 'admin' },
+            ],
+            isActive: true,
+          },
+          select: { id: true, username: true },
+        });
+
+        const newBankName = dto.bankName ?? record.bankName ?? '-';
+        const newAccNum = dto.accountNumber ?? record.accountNumber ?? '-';
+        const newIfsc = dto.ifscCode ?? record.ifscCode ?? '-';
+        const newAccHolder = dto.accountHolder ?? record.accountHolder ?? '-';
+
+        const title = `🏦 Bank Details Updated: ${partyName} (${branch})`;
+        const body = `User "${updaterName}" updated bank details for ${partyName} [${record.consPartyCode}]: Bank: ${newBankName} | A/c: ${newAccNum} | IFSC: ${newIfsc} | Holder: ${newAccHolder}`;
+
+        for (const admin of adminUsers) {
+          // If the admin user himself updated, still send so all superadmins get notified
+          await this.prisma.notification.create({
+            data: {
+              userId: admin.id,
+              type: 'ALERT',
+              title,
+              body,
+              link: '/parties',
+              metadata: {
+                partyCode: record.consPartyCode,
+                partyName,
+                branch,
+                updatedBy: updaterName,
+                bankName: newBankName,
+                accountNumber: newAccNum,
+                ifscCode: newIfsc,
+                accountHolder: newAccHolder,
+                timestamp: new Date().toISOString(),
+              },
+            },
+          });
+        }
+        this.logger.log(`[Party Master] Bank update notification sent to ${adminUsers.length} admin(s) for party ${consPartyCode}`);
+      } catch (err: any) {
+        this.logger.error(`[Party Master] Failed to send bank update notification: ${err.message}`);
+      }
+    }
 
     // ── CASCADE SYNC: If baseLoc changed, propagate to all related tables ──────
     if (dto.baseLoc !== undefined && dto.baseLoc !== record.baseLoc) {

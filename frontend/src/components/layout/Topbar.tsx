@@ -247,14 +247,24 @@ export default function Topbar({
                           {n.isAnnouncement ? <Sparkles size={14} className="text-amber-500" /> : <Bell size={14} className="text-blue-500" />}
                         </div>
                         <div className="flex-1 min-w-0 pr-5">
-                          <p className="font-bold text-slate-800 text-xs truncate">
-                            {n.title || n.subject || 'System Notification'}
-                          </p>
-                          <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">
+                          {n.link ? (
+                            <Link
+                              href={n.link}
+                              onClick={() => setNotifMenuOpen(false)}
+                              className="font-bold text-slate-800 hover:text-blue-600 text-xs block truncate"
+                            >
+                              {n.title || n.subject || 'System Notification'}
+                            </Link>
+                          ) : (
+                            <p className="font-bold text-slate-800 text-xs truncate">
+                              {n.title || n.subject || 'System Notification'}
+                            </p>
+                          )}
+                          <p className="text-[11px] text-slate-600 line-clamp-3 mt-0.5 whitespace-pre-line font-normal leading-relaxed">
                             {n.message || n.body || 'No description provided.'}
                           </p>
                           <span className="text-[10px] text-slate-400 font-mono mt-1 block">
-                            {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : 'Just now'}
+                            {n.createdAt ? new Date(n.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : 'Just now'}
                           </span>
                         </div>
 
