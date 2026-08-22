@@ -637,11 +637,55 @@ export default function DashboardPage() {
     { month: 'Mar', FY24: 11.04, FY25: 12.79, FY26: null },
   ];
 
-  const categoryMixData = [
-    { name: 'M (Maruti Genuine Parts)', value: 82.4, color: '#2563eb' },
-    { name: 'A (Accessories)', value: 9.8, color: '#10b981' },
-    { name: 'O (Oils & Lubricants)', value: 5.2, color: '#f59e0b' },
-    { name: 'C (Consumables)', value: 2.6, color: '#8b5cf6' },
+  const partyTypeMixData = [
+    {
+      name: 'Independent Workshop',
+      shortName: 'Workshop (IW)',
+      value: 37.1,
+      salesCr: 21.69,
+      lySalesCr: 21.45,
+      growth: '+1.1%',
+      isPositive: true,
+      color: '#2563eb', // Blue
+      lines: '2.23L Lines',
+      parts: '12,307 SKUs',
+    },
+    {
+      name: 'Trader / Retailer',
+      shortName: 'Trader / Retailer',
+      value: 30.2,
+      salesCr: 17.64,
+      lySalesCr: 14.74,
+      growth: '+19.6%',
+      isPositive: true,
+      color: '#10b981', // Emerald Green
+      lines: '1.50L Lines',
+      parts: '14,002 SKUs',
+    },
+    {
+      name: 'Walk-in Customer',
+      shortName: 'Walk-in Cust.',
+      value: 16.4,
+      salesCr: 9.61,
+      lySalesCr: 8.44,
+      growth: '+13.8%',
+      isPositive: true,
+      color: '#f59e0b', // Amber
+      lines: '1.49L Lines',
+      parts: '9,151 SKUs',
+    },
+    {
+      name: 'MASS (Authorized)',
+      shortName: 'MASS (Auth.)',
+      value: 16.3,
+      salesCr: 9.52,
+      lySalesCr: 8.80,
+      growth: '+8.2%',
+      isPositive: true,
+      color: '#8b5cf6', // Purple
+      lines: '0.59L Lines',
+      parts: '9,728 SKUs',
+    },
   ];
 
   return (
@@ -1005,46 +1049,80 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Right Chart: Category Mix Break-up */}
+          {/* Right Chart: Party Type Mix & YoY Growth Break-up */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/90 flex flex-col justify-between">
             <div>
-              <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2 mb-1">
-                <PieChartIcon size={18} className="text-[#053D3A]" />
-                Part Category Mix
-              </h3>
-              <p className="text-xs text-slate-400 mb-4">Volume & Value share distribution</p>
+              <div className="flex items-center justify-between">
+                <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2 mb-1">
+                  <PieChartIcon size={18} className="text-[#053D3A]" />
+                  Party Type Mix & Growth
+                </h3>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  YTD vs LY YTD
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mb-2">Channel share distribution & YoY revenue growth</p>
             </div>
 
-            <div className="h-48 w-full relative flex items-center justify-center">
+            <div className="h-44 w-full relative flex items-center justify-center my-1">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={categoryMixData}
+                    data={partyTypeMixData}
                     cx="50%"
                     cy="50%"
                     innerRadius={50}
-                    outerRadius={75}
+                    outerRadius={72}
                     paddingAngle={4}
                     dataKey="value"
                   >
-                    {categoryMixData.map((entry, index) => (
+                    {partyTypeMixData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(val: any) => [`${val}%`, 'Share']} />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-slate-900 text-white p-2.5 rounded-xl text-xs shadow-xl border border-slate-700">
+                            <p className="font-bold text-slate-200">{data.name}</p>
+                            <p className="text-emerald-400 font-extrabold text-sm mt-0.5">
+                              ₹{data.salesCr} Cr <span className="text-xs font-normal text-slate-300">({data.value}%)</span>
+                            </p>
+                            <p className="text-slate-400 text-[10px] mt-1">
+                              YoY Growth: <span className="text-emerald-400 font-bold">{data.growth}</span> (vs ₹{data.lySalesCr} Cr)
+                            </p>
+                            <p className="text-slate-400 text-[10px]">
+                              Range: <span className="text-amber-300 font-bold">{data.parts}</span> • {data.lines}
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute text-center pointer-events-none">
-                <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider">DOMINANT</p>
-                <p className="text-base font-black text-[#053D3A]">M (82.4%)</p>
+                <p className="text-[9px] text-slate-400 uppercase font-black tracking-wider">TOP SHARE</p>
+                <p className="text-sm font-black text-[#053D3A]">IW (37.1%)</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs pt-3 border-t border-slate-100">
-              {categoryMixData.map((c) => (
-                <div key={c.name} className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }}></span>
-                  <span className="text-slate-700 font-semibold truncate text-[11px]">{c.name}</span>
+              {partyTypeMixData.map((c) => (
+                <div key={c.name} className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition-colors">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }}></span>
+                    <span className="text-slate-700 font-bold truncate text-[11px]">{c.shortName}</span>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <span className="text-slate-900 font-black text-[11px]">{c.value}%</span>
+                    <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-100/80 px-1 py-0.2 rounded">
+                      {c.growth}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
