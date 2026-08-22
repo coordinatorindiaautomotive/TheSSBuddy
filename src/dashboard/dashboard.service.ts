@@ -975,6 +975,7 @@ export class DashboardService {
     const locWhereClause = locFilters.length > 0 ? 'AND ' + locFilters.join(' AND ') : '';
     const dayCastSql = `CAST(CASE WHEN r.day ~ '^[0-9]+$' THEN r.day ELSE '0' END AS INTEGER)`;
     const qtdPriorCond = qMonthsPrior.length > 0 ? `r.month IN (${qMonthsPrior.map(m => `'${m}'`).join(', ')})` : '1=0';
+    const lqPriorCond = priorQMonthsEquivalent.length > 0 ? `r.month IN (${priorQMonthsEquivalent.map(m => `'${m}'`).join(', ')})` : '1=0';
     const ytdPriorCond = currentMonthIdx > 0 ? `r.month IN (${MONTH_ORDER.slice(0, currentMonthIdx).map(m => `'${m}'`).join(', ')})` : '1=0';
 
     const locationRows = await this.prisma.$queryRawUnsafe<any[]>(`
@@ -992,7 +993,7 @@ export class DashboardService {
         
         -- QTD
         SUM(CASE WHEN r.fiscal_year = ${targetFY} AND (${qtdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "qtdSales",
-        SUM(CASE WHEN r.fiscal_year = ${prevQuarterFY} AND (${qtdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "qtdLqSales",
+        SUM(CASE WHEN r.fiscal_year = ${prevQuarterFY} AND (${lqPriorCond} OR (r.month = '${equivalentPrevQMonthName}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "qtdLqSales",
         SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} AND (${qtdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "qtdLySales",
         
         -- YTD
