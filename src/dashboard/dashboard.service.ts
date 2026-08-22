@@ -1010,16 +1010,19 @@ export class DashboardService {
       const ftdLm = Number(r.ftdLmSales || 0);
       const ftdLy = Number(r.ftdLySales || 0);
       const ftdGrowthLM = ftdLm > 0 ? ((ftdCur - ftdLm) / ftdLm) * 100 : (ftdCur > 0 ? 100 : 0);
+      const ftdGrowthLY = ftdLy > 0 ? ((ftdCur - ftdLy) / ftdLy) * 100 : (ftdCur > 0 ? 100 : 0);
 
       const mtdCur = Number(r.mtdSales || 0);
       const mtdLm = Number(r.mtdLmSales || 0);
       const mtdLy = Number(r.mtdLySales || 0);
       const mtdGrowthLM = mtdLm > 0 ? ((mtdCur - mtdLm) / mtdLm) * 100 : (mtdCur > 0 ? 100 : 0);
+      const mtdGrowthLY = mtdLy > 0 ? ((mtdCur - mtdLy) / mtdLy) * 100 : (mtdCur > 0 ? 100 : 0);
 
       const qtdCur = Number(r.qtdSales || 0);
       const qtdLq = Number(r.qtdLqSales || 0);
       const qtdLy = Number(r.qtdLySales || 0);
       const qtdGrowthLQ = qtdLq > 0 ? ((qtdCur - qtdLq) / qtdLq) * 100 : (qtdCur > 0 ? 100 : 0);
+      const qtdGrowthLY = qtdLy > 0 ? ((qtdCur - qtdLy) / qtdLy) * 100 : (qtdCur > 0 ? 100 : 0);
 
       const ytdCur = Number(r.ytdSales || 0);
       const ytdLy = Number(r.ytdLySales || 0);
@@ -1028,9 +1031,9 @@ export class DashboardService {
       return {
         loc: r.loc || 'UNSPECIFIED',
         branchName: branchMap.get(r.loc) || r.loc || 'UNSPECIFIED',
-        ftd: { current: ftdCur, formatted: formatINR(ftdCur), lm: ftdLm, formattedLm: formatINR(ftdLm), ly: ftdLy, formattedLy: formatINR(ftdLy), growthLM: Number(ftdGrowthLM.toFixed(1)) },
-        mtd: { current: mtdCur, formatted: formatINR(mtdCur), lm: mtdLm, formattedLm: formatINR(mtdLm), ly: mtdLy, formattedLy: formatINR(mtdLy), growthLM: Number(mtdGrowthLM.toFixed(1)) },
-        qtd: { current: qtdCur, formatted: formatINR(qtdCur), lq: qtdLq, formattedLq: formatINR(qtdLq), ly: qtdLy, formattedLy: formatINR(qtdLy), growthLQ: Number(qtdGrowthLQ.toFixed(1)) },
+        ftd: { current: ftdCur, formatted: formatINR(ftdCur), lm: ftdLm, formattedLm: formatINR(ftdLm), ly: ftdLy, formattedLy: formatINR(ftdLy), growthLM: Number(ftdGrowthLM.toFixed(1)), growthLY: Number(ftdGrowthLY.toFixed(1)) },
+        mtd: { current: mtdCur, formatted: formatINR(mtdCur), lm: mtdLm, formattedLm: formatINR(mtdLm), ly: mtdLy, formattedLy: formatINR(mtdLy), growthLM: Number(mtdGrowthLM.toFixed(1)), growthLY: Number(mtdGrowthLY.toFixed(1)) },
+        qtd: { current: qtdCur, formatted: formatINR(qtdCur), lq: qtdLq, formattedLq: formatINR(qtdLq), ly: qtdLy, formattedLy: formatINR(qtdLy), growthLQ: Number(qtdGrowthLQ.toFixed(1)), growthLY: Number(qtdGrowthLY.toFixed(1)) },
         ytd: { current: ytdCur, formatted: formatINR(ytdCur), ly: ytdLy, formattedLy: formatINR(ytdLy), growthLY: Number(ytdGrowthLY.toFixed(1)) },
       };
     });

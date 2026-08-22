@@ -291,10 +291,13 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
     );
   }, [filteredData]);
 
-  const ftdTotalGrowth = totals.ftdLm > 0 ? ((totals.ftd - totals.ftdLm) / totals.ftdLm) * 100 : 0;
-  const mtdTotalGrowth = totals.mtdLm > 0 ? ((totals.mtd - totals.mtdLm) / totals.mtdLm) * 100 : 0;
-  const qtdTotalGrowth = totals.qtdLq > 0 ? ((totals.qtd - totals.qtdLq) / totals.qtdLq) * 100 : 0;
-  const ytdTotalGrowth = totals.ytdLy > 0 ? ((totals.ytd - totals.ytdLy) / totals.ytdLy) * 100 : 0;
+  const ftdTotalGrowthLM = totals.ftdLm > 0 ? ((totals.ftd - totals.ftdLm) / totals.ftdLm) * 100 : 0;
+  const ftdTotalGrowthLY = totals.ftdLy > 0 ? ((totals.ftd - totals.ftdLy) / totals.ftdLy) * 100 : 0;
+  const mtdTotalGrowthLM = totals.mtdLm > 0 ? ((totals.mtd - totals.mtdLm) / totals.mtdLm) * 100 : 0;
+  const mtdTotalGrowthLY = totals.mtdLy > 0 ? ((totals.mtd - totals.mtdLy) / totals.mtdLy) * 100 : 0;
+  const qtdTotalGrowthLQ = totals.qtdLq > 0 ? ((totals.qtd - totals.qtdLq) / totals.qtdLq) * 100 : 0;
+  const qtdTotalGrowthLY = totals.qtdLy > 0 ? ((totals.qtd - totals.qtdLy) / totals.qtdLy) * 100 : 0;
+  const ytdTotalGrowthLY = totals.ytdLy > 0 ? ((totals.ytd - totals.ytdLy) / totals.ytdLy) * 100 : 0;
 
   const formatVal = (val: number): string => {
     if (!val || isNaN(val)) return '0';
@@ -309,17 +312,17 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
     if (!filteredData || filteredData.length === 0) return;
     const headers = [
       'Loc Code', 'Branch Name',
-      'FTD', 'LM FTD', 'LY FTD', 'FTD Growth (%)',
-      'MTD', 'LM MTD', 'LY MTD', 'MTD Growth (%)',
-      'QTD', 'LQ QTD', 'LY QTD', 'QTD Growth (%)',
+      'FTD', 'LM FTD', 'LY FTD', 'FTD Growth vs LM (%)', 'FTD Growth vs LY (%)',
+      'MTD', 'LM MTD', 'LY MTD', 'MTD Growth vs LM (%)', 'MTD Growth vs LY (%)',
+      'QTD', 'LQ QTD', 'LY QTD', 'QTD Growth vs LQ (%)', 'QTD Growth vs LY (%)',
       'YTD', 'LY YTD', 'YTD YoY Growth (%)'
     ];
     const rows = filteredData.map(r => [
       r.loc,
       `"${r.branchName}"`,
-      r.ftd?.current || 0, r.ftd?.lm || 0, r.ftd?.ly || 0, r.ftd?.growthLM || 0,
-      r.mtd?.current || 0, r.mtd?.lm || 0, r.mtd?.ly || 0, r.mtd?.growthLM || 0,
-      r.qtd?.current || 0, r.qtd?.lq || 0, r.qtd?.ly || 0, r.qtd?.growthLQ || 0,
+      r.ftd?.current || 0, r.ftd?.lm || 0, r.ftd?.ly || 0, r.ftd?.growthLM || 0, r.ftd?.growthLY || 0,
+      r.mtd?.current || 0, r.mtd?.lm || 0, r.mtd?.ly || 0, r.mtd?.growthLM || 0, r.mtd?.growthLY || 0,
+      r.qtd?.current || 0, r.qtd?.lq || 0, r.qtd?.ly || 0, r.qtd?.growthLQ || 0, r.qtd?.growthLY || 0,
       r.ytd?.current || 0, r.ytd?.ly || 0, r.ytd?.growthLY || 0,
     ]);
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
@@ -345,7 +348,7 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
             </span>
           </h3>
           <p className="text-xs font-semibold text-slate-500 mt-0.5">
-            Distinct separate columns for FTD, LM FTD, LY FTD, MTD, QTD, YTD, and Growth % (As of {asOf?.day ? `Day ${asOf.day} ${asOf.month} ${asOf.fiscalYear}` : 'Latest DB Date'})
+            Distinct separate columns for FTD, LM FTD, LY FTD, MTD, QTD, YTD, and Dual Growth % (As of {asOf?.day ? `Day ${asOf.day} ${asOf.month} ${asOf.fiscalYear}` : 'Latest DB Date'})
           </p>
         </div>
 
@@ -382,13 +385,13 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
               <th colSpan={2} className="py-2.5 px-3 border-b-2 border-[#053D3A] border-r border-[#074B47] text-center align-middle bg-[#053D3A]">
                 Location Info
               </th>
-              <th colSpan={4} className="py-2.5 px-3 border-b-2 border-[#053D3A] border-r border-[#074B47] text-center align-middle bg-[#053D3A]">
+              <th colSpan={5} className="py-2.5 px-3 border-b-2 border-[#053D3A] border-r border-[#074B47] text-center align-middle bg-[#053D3A]">
                 FTD ({asOf?.day ? `${asOf.day}-${asOf.month}-${asOf.fiscalYear}` : 'Trading Date'})
               </th>
-              <th colSpan={4} className="py-2.5 px-3 border-b-2 border-[#2A716A] border-r border-[#1B5751] text-center align-middle bg-[#2A716A]">
+              <th colSpan={5} className="py-2.5 px-3 border-b-2 border-[#2A716A] border-r border-[#1B5751] text-center align-middle bg-[#2A716A]">
                 MTD (Month To Date)
               </th>
-              <th colSpan={4} className="py-2.5 px-3 border-b-2 border-[#3B3B6D] border-r border-[#2C2C57] text-center align-middle bg-[#3B3B6D]">
+              <th colSpan={5} className="py-2.5 px-3 border-b-2 border-[#3B3B6D] border-r border-[#2C2C57] text-center align-middle bg-[#3B3B6D]">
                 QTD (Quarter To Date)
               </th>
               <th colSpan={3} className="py-2.5 px-3 border-b-2 border-[#9A6500] text-center align-middle bg-[#9A6500]">
@@ -405,19 +408,22 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
               <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">FTD</th>
               <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LM FTD</th>
               <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LY FTD</th>
-              <th className="py-2.5 px-3 text-center align-middle border-r border-[#074B47]">Growth %</th>
+              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LM %</th>
+              <th className="py-2.5 px-3 text-center align-middle border-r border-[#074B47]">LY %</th>
 
               {/* MTD */}
               <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">MTD</th>
               <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LM MTD</th>
               <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LY MTD</th>
-              <th className="py-2.5 px-3 text-center align-middle border-r border-[#074B47]">Growth %</th>
+              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LM %</th>
+              <th className="py-2.5 px-3 text-center align-middle border-r border-[#074B47]">LY %</th>
 
               {/* QTD */}
               <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">QTD</th>
               <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LQ QTD</th>
               <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LY QTD</th>
-              <th className="py-2.5 px-3 text-center align-middle border-r border-[#074B47]">Growth %</th>
+              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LQ %</th>
+              <th className="py-2.5 px-3 text-center align-middle border-r border-[#074B47]">LY %</th>
 
               {/* YTD */}
               <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">YTD</th>
@@ -450,6 +456,13 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
                       </span>
                     )}
                   </td>
+                  <td className="py-2.5 px-3 text-center align-middle border-r border-slate-200">
+                    {row.ftd?.growthLY !== undefined && (
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${row.ftd.growthLY >= 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}>
+                        {row.ftd.growthLY >= 0 ? '+' : ''}{row.ftd.growthLY}%
+                      </span>
+                    )}
+                  </td>
 
                   {/* MTD */}
                   <td className="py-2.5 px-3 text-center align-middle font-mono font-medium text-slate-900 border-r border-slate-200">{formatVal(row.mtd?.current)}</td>
@@ -462,6 +475,13 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
                       </span>
                     )}
                   </td>
+                  <td className="py-2.5 px-3 text-center align-middle border-r border-slate-200">
+                    {row.mtd?.growthLY !== undefined && (
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${row.mtd.growthLY >= 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}>
+                        {row.mtd.growthLY >= 0 ? '+' : ''}{row.mtd.growthLY}%
+                      </span>
+                    )}
+                  </td>
 
                   {/* QTD */}
                   <td className="py-2.5 px-3 text-center align-middle font-mono font-medium text-slate-900 border-r border-slate-200">{formatVal(row.qtd?.current)}</td>
@@ -471,6 +491,13 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
                     {row.qtd?.growthLQ !== undefined && (
                       <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${row.qtd.growthLQ >= 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}>
                         {row.qtd.growthLQ >= 0 ? '+' : ''}{row.qtd.growthLQ}%
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-2.5 px-3 text-center align-middle border-r border-slate-200">
+                    {row.qtd?.growthLY !== undefined && (
+                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${row.qtd.growthLY >= 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}>
+                        {row.qtd.growthLY >= 0 ? '+' : ''}{row.qtd.growthLY}%
                       </span>
                     )}
                   </td>
@@ -489,7 +516,7 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
               ))
             ) : (
               <tr>
-                <td colSpan={17} className="py-8 text-center align-middle text-slate-400 font-medium border-b border-slate-200">
+                <td colSpan={20} className="py-8 text-center align-middle text-slate-400 font-medium border-b border-slate-200">
                   No matching locations found.
                 </td>
               </tr>
@@ -505,24 +532,27 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
               <td className="py-3 px-3 text-center align-middle font-mono text-white text-xs">{formatVal(totals.ftd)}</td>
               <td className="py-3 px-3 text-center align-middle font-mono text-slate-300 text-[11px]">{formatVal(totals.ftdLm)}</td>
               <td className="py-3 px-3 text-center align-middle font-mono text-slate-300 text-[11px]">{formatVal(totals.ftdLy)}</td>
-              <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs border-r border-slate-700">{ftdTotalGrowth.toFixed(1)}%</td>
+              <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs">{ftdTotalGrowthLM.toFixed(1)}%</td>
+              <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs border-r border-slate-700">{ftdTotalGrowthLY.toFixed(1)}%</td>
 
               {/* MTD Totals */}
               <td className="py-3 px-3 text-center align-middle font-mono text-white text-xs">{formatVal(totals.mtd)}</td>
               <td className="py-3 px-3 text-center align-middle font-mono text-slate-300 text-[11px]">{formatVal(totals.mtdLm)}</td>
               <td className="py-3 px-3 text-center align-middle font-mono text-slate-300 text-[11px]">{formatVal(totals.mtdLy)}</td>
-              <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs border-r border-slate-700">{mtdTotalGrowth.toFixed(1)}%</td>
+              <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs">{mtdTotalGrowthLM.toFixed(1)}%</td>
+              <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs border-r border-slate-700">{mtdTotalGrowthLY.toFixed(1)}%</td>
 
               {/* QTD Totals */}
               <td className="py-3 px-3 text-center align-middle font-mono text-white text-xs">{formatVal(totals.qtd)}</td>
               <td className="py-3 px-3 text-center align-middle font-mono text-slate-300 text-[11px]">{formatVal(totals.qtdLq)}</td>
               <td className="py-3 px-3 text-center align-middle font-mono text-slate-300 text-[11px]">{formatVal(totals.qtdLy)}</td>
-              <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs border-r border-slate-700">{qtdTotalGrowth.toFixed(1)}%</td>
+              <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs">{qtdTotalGrowthLQ.toFixed(1)}%</td>
+              <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs border-r border-slate-700">{qtdTotalGrowthLY.toFixed(1)}%</td>
 
               {/* YTD Totals */}
               <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs">{formatVal(totals.ytd)}</td>
               <td className="py-3 px-3 text-center align-middle font-mono text-slate-300 text-[11px]">{formatVal(totals.ytdLy)}</td>
-              <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs">{ytdTotalGrowth.toFixed(1)}%</td>
+              <td className="py-3 px-3 text-center align-middle font-mono text-amber-400 text-xs">{ytdTotalGrowthLY.toFixed(1)}%</td>
             </tr>
           </tfoot>
         </table>
