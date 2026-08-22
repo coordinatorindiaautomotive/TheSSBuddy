@@ -1046,8 +1046,8 @@ export class DashboardService {
       kpis: {
         ftd: {
           key: 'FTD',
-          name: 'FTD — Full Trading Day',
-          periodLabel: `Day ${targetDay} ${targetMonth}`,
+          name: `FTD (${targetDay}-${targetMonth}-${targetFY})`,
+          periodLabel: `${targetDay}-${targetMonth}-${targetFY}`,
           current: ftdCurrent,
           currentFormatted: formatINR(ftdCurrent),
           lm: ftdLM,

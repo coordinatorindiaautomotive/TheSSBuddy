@@ -22,10 +22,10 @@ const fetcher = (url: string) => api.get(url).then(r => r.data);
 // ─── POWER BI / DAX MEASURES SPECIFICATION ────────────────────────────────────
 const DAX_MEASURES = [
   {
-    name: '1. FTD (Full Trading Day)',
+    name: '1. FTD (Trading Date)',
     tag: 'FTD',
     color: 'from-blue-600 to-cyan-500',
-    dax: `// FTD — Full Trading Day (Last completed business day)
+    dax: `// FTD — Trading Date (Last completed business day)
 Sales FTD = 
 VAR MaxDate = MAX('Sales'[SalesDate])
 RETURN
@@ -383,7 +383,7 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
                 Location Info
               </th>
               <th colSpan={4} className="py-2.5 px-3 border-b-2 border-[#053D3A] border-r border-[#074B47] text-center align-middle bg-[#053D3A]">
-                FTD (Full Trading Day)
+                FTD ({asOf?.day ? `${asOf.day}-${asOf.month}-${asOf.fiscalYear}` : 'Trading Date'})
               </th>
               <th colSpan={4} className="py-2.5 px-3 border-b-2 border-[#2A716A] border-r border-[#1B5751] text-center align-middle bg-[#2A716A]">
                 MTD (Month To Date)
