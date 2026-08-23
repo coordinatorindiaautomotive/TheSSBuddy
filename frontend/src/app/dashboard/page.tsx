@@ -601,7 +601,7 @@ export default function DashboardPage() {
   
   // Default party type multi-selection: MASS, INDEPENDENT WORKSHOP, TRADER/RETAILER, WALK-IN CUSTOMER
   const [selectedPartyTypes, setSelectedPartyTypes] = useState<string[]>(DEFAULT_PARTY_TYPES);
-  const [partCategory, setPartCategory] = useState<string>('ALL');
+  const [partCategory, setPartCategory] = useState<string>('M');
   const [showPartyTypeDropdown, setShowPartyTypeDropdown] = useState<boolean>(false);
   const [showDaxPanel, setShowDaxPanel] = useState<boolean>(false);
   const [copiedDax, setCopiedDax] = useState<string | null>(null);
@@ -924,7 +924,7 @@ export default function DashboardPage() {
 
           {/* Active Filter Chips Banner */}
           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 flex-wrap text-xs">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ACTIVE CATEGORIES:</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ACTIVE PARTY TYPES:</span>
             {selectedPartyTypes.map((pt) => (
               <span
                 key={pt}
@@ -936,6 +936,11 @@ export default function DashboardPage() {
             {selectedPartyTypes.length === 0 && (
               <span className="text-[10px] text-amber-700 font-bold">All Party Types Unfiltered</span>
             )}
+            <span className="text-slate-300 mx-1">|</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">PART CATEGORY:</span>
+            <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-teal-50 text-[#053D3A] border border-teal-200 rounded-md text-[10px] font-extrabold uppercase shadow-2xs">
+              {partCategory === 'ALL' ? 'All Categories' : `Category: ${partCategory}`}
+            </span>
           </div>
         </div>
 

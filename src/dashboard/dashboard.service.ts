@@ -835,8 +835,9 @@ export class DashboardService {
         baseWhere.partyType = types[0];
       }
     }
-    if (params.partCategory && params.partCategory !== 'ALL') {
-      const cats = params.partCategory.split(',').map(s => s.trim()).filter(Boolean);
+    const effectivePartCategory = params.partCategory !== undefined ? params.partCategory : 'M';
+    if (effectivePartCategory && effectivePartCategory !== 'ALL') {
+      const cats = effectivePartCategory.split(',').map(s => s.trim()).filter(Boolean);
       if (cats.length > 1) {
         baseWhere.partCategoryCode = { in: cats };
       } else if (cats.length === 1) {
@@ -971,8 +972,8 @@ export class DashboardService {
         locFilters.push(`r.party_type IN (${types.join(', ')})`);
       }
     }
-    if (params.partCategory && params.partCategory !== 'ALL') {
-      const cats = params.partCategory.split(',').map(s => `'${s.trim().replace(/'/g, "''")}'`).filter(Boolean);
+    if (effectivePartCategory && effectivePartCategory !== 'ALL') {
+      const cats = effectivePartCategory.split(',').map(s => `'${s.trim().replace(/'/g, "''")}'`).filter(Boolean);
       if (cats.length > 0) {
         locFilters.push(`r.part_category_code IN (${cats.join(', ')})`);
       }
