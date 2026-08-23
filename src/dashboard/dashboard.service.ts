@@ -754,9 +754,14 @@ export class DashboardService {
     };
 
     // 1. Resolve Target FiscalYear, Month, and Day dynamically using SQL integer casting
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const yesterdayDay = yesterday.getDate();
+
     let targetFY: number = params.fiscalYear || 2026;
     let targetMonth: string = params.month || 'Aug';
-    let targetDay: number = params.day || 16;
+    let targetDay: number = params.day || yesterdayDay;
 
     if (!params.fiscalYear || !params.month || !params.day) {
       const maxDateRes = await this.prisma.$queryRawUnsafe<any[]>(`
@@ -790,7 +795,7 @@ export class DashboardService {
       if (maxDateRes && maxDateRes.length > 0) {
         targetFY = params.fiscalYear || Number(maxDateRes[0].fiscalYear) || 2026;
         targetMonth = params.month || maxDateRes[0].month || 'Aug';
-        targetDay = params.day || Number(maxDateRes[0].maxDay) || 18;
+        targetDay = params.day || Number(maxDateRes[0].maxDay) || yesterdayDay;
       }
     }
 

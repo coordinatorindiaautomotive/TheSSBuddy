@@ -579,12 +579,24 @@ const ALL_POSSIBLE_PARTY_TYPES = [
   'FINANCIER',
 ];
 
+const getYesterdayDate = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return {
+    day: d.getDate(),
+    month: months[d.getMonth()],
+    year: 2026,
+  };
+};
+
 // ─── MAIN EXECUTIVE DASHBOARD PAGE ────────────────────────────────────────────
 export default function DashboardPage() {
   const { isBranchUser, userBranch, isSuperAdmin, user } = useAuth();
+  const yesterday = useMemo(() => getYesterdayDate(), []);
   const [fiscalYear, setFiscalYear] = useState<number>(2026);
-  const [month, setMonth] = useState<string>('Aug');
-  const [day, setDay] = useState<number>(18);
+  const [month, setMonth] = useState<string>(yesterday.month || 'Aug');
+  const [day, setDay] = useState<number>(yesterday.day || 22);
   const [branchCode, setBranchCode] = useState<string>('ALL');
   
   // Default party type multi-selection: MASS, INDEPENDENT WORKSHOP, TRADER/RETAILER, WALK-IN CUSTOMER
@@ -761,13 +773,19 @@ export default function DashboardPage() {
                   onChange={(e) => {
                     const selectedM = e.target.value;
                     setMonth(selectedM);
-                    if (selectedM === 'Aug') setDay(18);
-                    else if (selectedM === 'Jul' || selectedM === 'May') setDay(31);
-                    else setDay(30);
+                    if (selectedM === yesterday.month) {
+                      setDay(yesterday.day);
+                    } else if (['Jul', 'May', 'Mar', 'Jan', 'Aug', 'Oct', 'Dec'].includes(selectedM)) {
+                      setDay(31);
+                    } else {
+                      setDay(30);
+                    }
                   }}
                   className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer"
                 >
-                  <option value="Aug" className="text-slate-900 bg-white">Aug 2026 (Latest As-Of 18 Aug)</option>
+                  <option value="Aug" className="text-slate-900 bg-white">
+                    Aug 2026 (Latest As-Of {month === 'Aug' ? `${day} Aug` : `${yesterday.day} Aug`})
+                  </option>
                   <option value="Jul" className="text-slate-900 bg-white">Jul 2026 (Full Month)</option>
                   <option value="Jun" className="text-slate-900 bg-white">Jun 2026 (Full Month)</option>
                   <option value="May" className="text-slate-900 bg-white">May 2026 (Full Month)</option>
