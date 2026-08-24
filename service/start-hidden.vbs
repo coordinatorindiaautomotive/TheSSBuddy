@@ -16,7 +16,7 @@ End If
 
 ' Launch node service-runner.js hidden (window style 0 = hidden)
 runnerPath = scriptDir & "\service-runner.js"
-cmd = "node """ & runnerPath & """"
+cmd = """C:\Program Files\nodejs\node.exe"" """ & runnerPath & """"
 
 WshShell.CurrentDirectory = rootDir
 WshShell.Run cmd, 0, False

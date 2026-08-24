@@ -101,13 +101,56 @@ function shutdown() {
   }, 2000);
 }
 
+// Auto Health-Check Watchdog (every 30 seconds)
+const http = require('http');
+
+function checkHealth(url, timeoutMs = 5000) {
+  return new Promise((resolve) => {
+    const req = http.get(url, { timeout: timeoutMs }, (res) => {
+      resolve(res.statusCode < 500);
+    });
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(false);
+    });
+  });
+}
+
+async function runWatchdog() {
+  if (isShuttingDown) return;
+  try {
+    const backendHealthy = await checkHealth('http://127.0.0.1:3000/api/branches');
+    if (!backendHealthy && backendProcess) {
+      log('WATCHDOG: Backend not responding on 3000. Restarting backend...');
+      try { backendProcess.kill('SIGTERM'); } catch (e) {}
+    }
+
+    const frontendHealthy = await checkHealth('http://127.0.0.1:3001');
+    if (!frontendHealthy && frontendProcess) {
+      log('WATCHDOG: Frontend not responding on 3001. Restarting frontend...');
+      try { frontendProcess.kill('SIGTERM'); } catch (e) {}
+    }
+  } catch (err) {
+    log(`WATCHDOG ERROR: ${err.message}`);
+  }
+}
+
+// Start watchdog after initial 15s grace period
+setTimeout(() => {
+  setInterval(runWatchdog, 30000);
+}, 15000);
+
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 process.on('uncaughtException', (err) => {
   log(`Uncaught exception in service runner: ${err.stack || err.message}`);
 });
+process.on('unhandledRejection', (reason) => {
+  log(`Unhandled rejection in service runner: ${reason}`);
+});
 
 // Start both
 startBackend();
 startFrontend();
-log('Both Backend (3000) and Frontend (3001) processes spawned.');
+log('Both Backend (3000) and Frontend (3001) processes spawned with Self-Healing Watchdog.');

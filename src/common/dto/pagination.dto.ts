@@ -18,6 +18,14 @@ export class PaginationDto {
   @Min(1)
   @Max(1000)
   pageSize?: number = 50;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 1000 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  limit?: number;
 }
 
 export type PaginationQueryDto = PaginationDto;
@@ -47,7 +55,8 @@ export function buildPaginatedResponse<T>(
 
 export function getPaginationParams(dto: PaginationDto) {
   const page = Number(dto.page) || 1;
-  const pageSize = Math.min(Number(dto.pageSize) || 50, 200);
+  const rawSize = dto.limit || dto.pageSize || 50;
+  const pageSize = Math.min(Number(rawSize) || 50, 1000);
   return {
     skip: (page - 1) * pageSize,
     take: pageSize,
