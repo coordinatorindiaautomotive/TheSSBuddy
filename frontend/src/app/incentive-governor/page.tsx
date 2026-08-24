@@ -51,7 +51,9 @@ interface IncentiveRecord {
   status: string;
 }
 
-// ─── MULTI-SELECT PERIOD DROPDOWN COMPONENT ───
+// ─── HIGH-END CORPORATE PERIOD PICKER COMPONENT ───
+const MONTH_SHORT_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 const PeriodMultiSelectDropdown = ({
   availablePeriods,
   selectedPeriodKeys,
@@ -66,6 +68,7 @@ const PeriodMultiSelectDropdown = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Close on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -76,137 +79,305 @@ const PeriodMultiSelectDropdown = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter and sort ascending (oldest → newest)
-  const visiblePeriods = (onlyWithData
-    ? availablePeriods.filter((p) => p.hasData)
-    : availablePeriods
-  ).slice().sort((a, b) => a.y !== b.y ? a.y - b.y : a.m - b.m);
+  // Filter periods
+  const visiblePeriods = useMemo(() => {
+    return (onlyWithData
+      ? availablePeriods.filter((p) => p.hasData)
+      : availablePeriods
+    ).slice().sort((a, b) => (a.y !== b.y ? b.y - a.y : b.m - a.m));
+  }, [availablePeriods, onlyWithData]);
 
-  const withData    = visiblePeriods.filter((p) =>  p.hasData);
-  const withoutData = onlyWithData ? [] : visiblePeriods.filter((p) => !p.hasData);
+  // Extract distinct available years (descending)
+  const distinctYears = useMemo(() => {
+    const years = Array.from(new Set(visiblePeriods.map((p) => p.y)));
+    return years.sort((a, b) => b - a);
+  }, [visiblePeriods]);
 
-  const allKeys = visiblePeriods.map((p) => `${p.m}-${p.y}`);
+  // Active year tab inside dropdown
+  const [activeYear, setActiveYear] = useState<number>(() => {
+    if (distinctYears.length > 0) return distinctYears[0];
+    return new Date().getFullYear();
+  });
+
+  // Keep active year in sync if years change
+  useEffect(() => {
+    if (distinctYears.length > 0 && !distinctYears.includes(activeYear)) {
+      setActiveYear(distinctYears[0]);
+    }
+  }, [distinctYears, activeYear]);
+
+  // Build lookup map: `${m}-${y}` => period
+  const periodMap = useMemo(() => {
+    const map = new Map<string, { m: number; y: number; label: string; hasData?: boolean }>();
+    visiblePeriods.forEach((p) => {
+      map.set(`${p.m}-${p.y}`, p);
+    });
+    return map;
+  }, [visiblePeriods]);
+
+  const allKeys = useMemo(() => visiblePeriods.map((p) => `${p.m}-${p.y}`), [visiblePeriods]);
   const allSelected = allKeys.length > 0 && allKeys.every((k) => selectedPeriodKeys.includes(k));
 
-  const selectedLabels = visiblePeriods
-    .filter((p) => selectedPeriodKeys.includes(`${p.m}-${p.y}`))
-    .map((p) => p.label);
+  // Determine button trigger label
+  const displayText = useMemo(() => {
+    if (selectedPeriodKeys.length === 0) return 'Select Periods';
+    if (allSelected) return `All Periods (${allKeys.length})`;
+    if (selectedPeriodKeys.length === 1) {
+      const [m, y] = selectedPeriodKeys[0].split('-').map(Number);
+      return `${MONTH_SHORT_LABELS[m - 1]} ${y}`;
+    }
 
-  const displayText =
-    selectedLabels.length === 0
-      ? 'Select Periods'
-      : allSelected
-      ? 'All Periods'
-      : selectedLabels.length === 1
-      ? selectedLabels[0]
-      : `${selectedLabels.length} Periods`;
+    // Check if all selected are in the same year
+    const selectedYears = Array.from(new Set(selectedPeriodKeys.map((k) => k.split('-')[1])));
+    if (selectedYears.length === 1) {
+      return `${selectedYears[0]} (${selectedPeriodKeys.length} Mos)`;
+    }
 
-  const toggleKey = (pKey: string, isChecked: boolean) => {
-    if (isChecked) {
-      if (selectedPeriodKeys.length > 1) {
-        setSelectedPeriodKeys(selectedPeriodKeys.filter((k) => k !== pKey));
-      }
-    } else {
-      setSelectedPeriodKeys([...selectedPeriodKeys, pKey]);
+    return `${selectedPeriodKeys.length} Periods Selected`;
+  }, [selectedPeriodKeys, allSelected, allKeys]);
+
+  // Quick Preset Handlers
+  const handleSelectLatest = () => {
+    const withData = visiblePeriods.filter((p) => p.hasData);
+    if (withData.length > 0) {
+      const latest = withData[0];
+      setSelectedPeriodKeys([`${latest.m}-${latest.y}`]);
+      setActiveYear(latest.y);
     }
   };
 
+  const handleSelectCurrentFY = () => {
+    const currentYear = new Date().getFullYear();
+    const fyKeys = allKeys.filter((k) => {
+      const [m, y] = k.split('-').map(Number);
+      // Indian Fiscal Year: Apr currentYear to Mar (currentYear + 1)
+      if (y === currentYear && m >= 4) return true;
+      if (y === currentYear + 1 && m <= 3) return true;
+      return false;
+    });
+    if (fyKeys.length > 0) {
+      setSelectedPeriodKeys(fyKeys);
+      setActiveYear(currentYear);
+    } else {
+      handleSelectLatest();
+    }
+  };
+
+  const handleSelectLast6Months = () => {
+    const withData = visiblePeriods.filter((p) => p.hasData);
+    const top6 = withData.slice(0, 6).map((p) => `${p.m}-${p.y}`);
+    if (top6.length > 0) {
+      setSelectedPeriodKeys(top6);
+      if (withData[0]) setActiveYear(withData[0].y);
+    }
+  };
+
+  const handleToggleMonth = (m: number, y: number) => {
+    const key = `${m}-${y}`;
+    if (selectedPeriodKeys.includes(key)) {
+      if (selectedPeriodKeys.length > 1) {
+        setSelectedPeriodKeys(selectedPeriodKeys.filter((k) => k !== key));
+      } else {
+        toast('At least one period must remain selected.', { icon: 'ℹ️' });
+      }
+    } else {
+      setSelectedPeriodKeys([...selectedPeriodKeys, key]);
+    }
+  };
+
+  const handleToggleYear = (year: number, selectAll: boolean) => {
+    const yearMonthKeys = Array.from({ length: 12 }, (_, idx) => `${idx + 1}-${year}`).filter((k) =>
+      periodMap.has(k)
+    );
+
+    if (selectAll) {
+      const newKeys = Array.from(new Set([...selectedPeriodKeys, ...yearMonthKeys]));
+      setSelectedPeriodKeys(newKeys);
+    } else {
+      const remaining = selectedPeriodKeys.filter((k) => !yearMonthKeys.includes(k));
+      if (remaining.length > 0) {
+        setSelectedPeriodKeys(remaining);
+      } else {
+        // Keep at least the first month of the year
+        if (yearMonthKeys[0]) setSelectedPeriodKeys([yearMonthKeys[0]]);
+      }
+    }
+  };
+
+  // Count how many months in a given year are selected
+  const getSelectedCountForYear = (year: number) => {
+    return selectedPeriodKeys.filter((k) => k.endsWith(`-${year}`)).length;
+  };
+
+  const yearMonths = Array.from({ length: 12 }, (_, i) => i + 1);
+  const activeYearSelectedCount = getSelectedCountForYear(activeYear);
+  const activeYearAvailableMonths = yearMonths.filter((m) => periodMap.has(`${m}-${activeYear}`));
+  const isAllActiveYearSelected =
+    activeYearAvailableMonths.length > 0 &&
+    activeYearAvailableMonths.every((m) => selectedPeriodKeys.includes(`${m}-${activeYear}`));
+
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
+      {/* Dropdown Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-white border border-slate-300 hover:border-[#053D3A] rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 shadow-2xs transition cursor-pointer"
+        className="flex items-center gap-2 bg-white border border-slate-300 hover:border-[#053D3A] rounded-xl px-3 py-1.5 text-xs font-extrabold text-slate-900 shadow-2xs transition cursor-pointer"
       >
-        <Calendar size={14} className="text-[#053D3A]" />
-        <span className="max-w-[200px] truncate">{displayText}</span>
-        <ChevronDown size={14} className={`text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <Calendar size={14} className="text-[#053D3A] shrink-0" />
+        <span className="max-w-[210px] truncate">{displayText}</span>
+        <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
+      {/* Flyout Modal */}
       {isOpen && (
-        <div className="absolute left-0 mt-1.5 w-60 rounded-2xl bg-white border border-slate-200 shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute left-0 mt-2 w-96 rounded-2xl bg-white border border-slate-200 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          {/* 1. Header: Quick Presets Bar */}
+          <div className="p-3 bg-slate-50 border-b border-slate-200 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar size={12} className="text-[#053D3A]" />
+                Period Filter
+              </span>
+              <span className="text-[10px] font-bold text-slate-600 font-mono bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                {selectedPeriodKeys.length} Selected
+              </span>
+            </div>
 
-          {/* Select All / Deselect All */}
-          <div className="px-2 pt-2 pb-1 border-b border-slate-100">
-            <button
-              type="button"
-              onClick={() => {
-                if (allSelected) {
-                  // Keep at least one selected — keep the first with data
-                  const firstWithData = withData[0];
-                  setSelectedPeriodKeys(firstWithData ? [`${firstWithData.m}-${firstWithData.y}`] : allKeys.slice(0, 1));
-                } else {
-                  setSelectedPeriodKeys(allKeys);
-                }
-              }}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-extrabold text-[#053D3A] hover:bg-[#053D3A]/5 transition cursor-pointer"
-            >
-              <span>{allSelected ? 'Deselect All' : 'Select All'}</span>
-              <span className="text-[10px] font-bold text-slate-400">{allKeys.length} periods</span>
-            </button>
+            {/* Preset Pills */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={handleSelectLatest}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 transition cursor-pointer"
+              >
+                Latest
+              </button>
+              <button
+                type="button"
+                onClick={handleSelectCurrentFY}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 transition cursor-pointer"
+              >
+                Current FY
+              </button>
+              <button
+                type="button"
+                onClick={handleSelectLast6Months}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 transition cursor-pointer"
+              >
+                Last 6 Mos
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedPeriodKeys(allKeys)}
+                className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 transition cursor-pointer ml-auto"
+              >
+                All ({allKeys.length})
+              </button>
+            </div>
           </div>
 
-          <div className="p-2 space-y-0.5 max-h-64 overflow-y-auto">
-            {/* Periods with data */}
-            {withData.length > 0 && (
-              <>
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase px-2.5 pt-1 pb-0.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                  Has Register Data
-                </div>
-                {withData.map((p) => {
-                  const pKey = `${p.m}-${p.y}`;
-                  const isChecked = selectedPeriodKeys.includes(pKey);
-                  return (
-                    <label
-                      key={pKey}
-                      className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer select-none ${
-                        isChecked ? 'bg-[#053D3A]/5 text-[#053D3A]' : 'hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleKey(pKey, isChecked)}
-                        className="w-4 h-4 rounded border-slate-300 text-[#053D3A] focus:ring-[#053D3A] cursor-pointer"
-                      />
-                      <span>{p.label}</span>
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                    </label>
-                  );
-                })}
-              </>
-            )}
+          {/* 2. Year Selector Horizontal Tabs */}
+          <div className="px-3 pt-3 pb-2 border-b border-slate-100">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {distinctYears.map((yr) => {
+                const count = getSelectedCountForYear(yr);
+                const isActive = yr === activeYear;
+                return (
+                  <button
+                    key={yr}
+                    type="button"
+                    onClick={() => setActiveYear(yr)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
+                      isActive
+                        ? 'bg-[#053D3A] text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <span>{yr}</span>
+                    {count > 0 && (
+                      <span
+                        className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-black ${
+                          isActive ? 'bg-[#FFE2B8] text-[#053D3A]' : 'bg-slate-300 text-slate-800'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-            {/* Periods without data */}
-            {withoutData.length > 0 && (
-              <>
-                <div className="text-[10px] font-extrabold text-slate-400 uppercase px-2.5 pt-2 pb-0.5 flex items-center gap-1.5 border-t border-slate-100 mt-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block" />
-                  No Data Yet
-                </div>
-                {withoutData.map((p) => {
-                  const pKey = `${p.m}-${p.y}`;
-                  const isChecked = selectedPeriodKeys.includes(pKey);
-                  return (
-                    <label
-                      key={pKey}
-                      className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer select-none ${
-                        isChecked ? 'bg-[#053D3A]/5 text-[#053D3A]' : 'hover:bg-slate-50 text-slate-400'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleKey(pKey, isChecked)}
-                        className="w-4 h-4 rounded border-slate-300 text-[#053D3A] focus:ring-[#053D3A] cursor-pointer"
+          {/* 3. Year Controls & Month Grid (4 columns x 3 rows) */}
+          <div className="p-3 space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-extrabold text-slate-800 flex items-center gap-1">
+                <span>FY / Year {activeYear}</span>
+                <span className="text-[10px] font-medium text-slate-400">
+                  ({activeYearSelectedCount} / {activeYearAvailableMonths.length} active)
+                </span>
+              </span>
+
+              <button
+                type="button"
+                onClick={() => handleToggleYear(activeYear, !isAllActiveYearSelected)}
+                className="text-[11px] font-bold text-[#053D3A] hover:underline cursor-pointer"
+              >
+                {isAllActiveYearSelected ? 'Clear Year' : `Select All ${activeYear}`}
+              </button>
+            </div>
+
+            {/* 4x3 Month Matrix Grid */}
+            <div className="grid grid-cols-4 gap-2">
+              {yearMonths.map((m) => {
+                const key = `${m}-${activeYear}`;
+                const period = periodMap.get(key);
+                const isSelected = selectedPeriodKeys.includes(key);
+                const hasData = period?.hasData;
+
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => handleToggleMonth(m, activeYear)}
+                    className={`h-11 rounded-xl flex flex-col items-center justify-center p-1 border transition-all cursor-pointer relative select-none ${
+                      isSelected
+                        ? 'bg-[#053D3A] text-white border-[#053D3A] shadow-xs scale-[1.02]'
+                        : hasData
+                        ? 'bg-white hover:bg-slate-50 text-slate-900 border-slate-200 hover:border-slate-300'
+                        : 'bg-slate-50/70 hover:bg-slate-100 text-slate-400 border-slate-200/60'
+                    }`}
+                  >
+                    <span className="text-xs font-black tracking-tight">{MONTH_SHORT_LABELS[m - 1]}</span>
+                    {hasData && (
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                          isSelected ? 'bg-emerald-400 ring-2 ring-[#053D3A]' : 'bg-emerald-500'
+                        }`}
+                        title="Register data available"
                       />
-                      <span>{p.label}</span>
-                    </label>
-                  );
-                })}
-              </>
-            )}
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 4. Bottom Footer Toolbar */}
+          <div className="px-3 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500">
+              <span className="font-mono text-slate-800">{selectedPeriodKeys.length}</span> mos selected
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="px-4 py-1.5 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold rounded-xl text-xs transition shadow-2xs cursor-pointer"
+            >
+              Done / Apply
+            </button>
           </div>
         </div>
       )}
