@@ -192,15 +192,17 @@ export default function Topbar({
 
             {/* Notifications Dropdown Panel */}
             {notifMenuOpen && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border-2 border-slate-200 py-2 z-[110] animate-in fade-in zoom-in-95 duration-150 overflow-hidden text-slate-800">
-                <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div className="absolute right-0 mt-2.5 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-[110] animate-in fade-in zoom-in-95 duration-150 overflow-hidden text-slate-800">
+                <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
                   <div className="flex items-center gap-2">
-                    <Bell size={15} className="text-amber-500" />
-                    <span className="font-extrabold text-xs text-slate-800">
+                    <div className="w-6 h-6 rounded-lg bg-[#053D3A]/10 text-[#053D3A] flex items-center justify-center">
+                      <Bell size={13} className="text-[#053D3A]" />
+                    </div>
+                    <span className="font-bold text-xs text-slate-900">
                       Notifications & Alerts
                     </span>
                     {unreadCount > 0 && (
-                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold">
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-bold">
                         {unreadCount} new
                       </span>
                     )}
@@ -211,16 +213,17 @@ export default function Topbar({
                       <button
                         onClick={handleClearAll}
                         disabled={isClearing}
-                        className="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-1 transition disabled:opacity-50"
+                        className="px-2 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-1 transition disabled:opacity-50"
                         title="Clear All Notifications"
                       >
                         <Trash2 size={12} />
-                        <span>Clear All</span>
+                        <span>Clear</span>
                       </button>
                     )}
                     <button
                       onClick={() => setNotifMenuOpen(false)}
-                      className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100"
+                      className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"
+                      title="Close"
                     >
                       <X size={14} />
                     </button>
@@ -230,33 +233,35 @@ export default function Topbar({
                 {/* Notification Items List */}
                 <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs">
                   {allNotifs.length === 0 ? (
-                    <div className="py-10 text-center text-slate-400">
-                      <CheckCheck size={28} className="mx-auto text-emerald-400 mb-1" />
-                      <p className="font-bold text-xs text-slate-700">All caught up!</p>
-                      <p className="text-[11px]">No unread alerts or notifications.</p>
+                    <div className="py-8 px-4 text-center">
+                      <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-2 border border-emerald-200">
+                        <CheckCheck size={18} />
+                      </div>
+                      <p className="font-bold text-xs text-slate-900">All Caught Up</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">No unread notifications or system alerts.</p>
                     </div>
                   ) : (
                     allNotifs.map((n: any, idx: number) => (
                       <div
                         key={n.id || idx}
-                        className={`p-3.5 hover:bg-blue-50/50 transition flex items-start gap-3 group relative ${
-                          !n.read ? 'bg-blue-50/25' : ''
+                        className={`p-3.5 hover:bg-slate-50 transition flex items-start gap-3 group relative ${
+                          !n.read ? 'bg-emerald-50/30' : ''
                         }`}
                       >
-                        <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5 border border-blue-200">
-                          {n.isAnnouncement ? <Sparkles size={14} className="text-amber-500" /> : <Bell size={14} className="text-blue-500" />}
+                        <div className="w-7 h-7 rounded-lg bg-[#053D3A]/10 text-[#053D3A] flex items-center justify-center shrink-0 mt-0.5 border border-[#053D3A]/20">
+                          {n.isAnnouncement ? <Sparkles size={13} className="text-amber-600" /> : <Bell size={13} className="text-[#053D3A]" />}
                         </div>
                         <div className="flex-1 min-w-0 pr-5">
                           {n.link ? (
                             <Link
                               href={n.link}
                               onClick={() => setNotifMenuOpen(false)}
-                              className="font-bold text-slate-800 hover:text-blue-600 text-xs block truncate"
+                              className="font-bold text-slate-900 hover:text-[#053D3A] text-xs block truncate transition"
                             >
                               {n.title || n.subject || 'System Notification'}
                             </Link>
                           ) : (
-                            <p className="font-bold text-slate-800 text-xs truncate">
+                            <p className="font-bold text-slate-900 text-xs truncate">
                               {n.title || n.subject || 'System Notification'}
                             </p>
                           )}
@@ -271,7 +276,7 @@ export default function Topbar({
                         {/* Individual Dismiss Button */}
                         <button
                           onClick={(e) => handleDismissSingle(n.id, Boolean(n.isAnnouncement), e)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-md transition absolute right-3 top-3.5"
+                          className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition absolute right-3 top-3.5"
                           title="Dismiss notification"
                         >
                           <X size={13} />

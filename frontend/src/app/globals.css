@@ -16,14 +16,14 @@
   --color-accent-light: #FFF3DE;
   --color-accent-soft: #FFF8EC;
 
-  /* Background - Razor Page MVC Crisp Contrast */
+  /* Background - Executive Crisp Contrast */
   --color-bg: #F4F6F9;
   --color-bg-secondary: #EBF0F5;
   --color-surface: #FFFFFF;
   --color-surface-hover: #F1F5F9;
   --color-selected: #FFF3DE;
 
-  /* Deep High-Contrast Razor Page Typography */
+  /* Deep High-Contrast Typography */
   --color-text: #111827;
   --color-heading: #111827;
   --color-text-secondary: #374151;
@@ -142,8 +142,8 @@ h1, h2, h3, h4, h5, h6 {
 /* Ensure modal and card headings inside dark containers have bright text */
 .bg-slate-900 h1, .bg-slate-900 h2, .bg-slate-900 h3, .bg-slate-900 h4, .bg-slate-900 h5, .bg-slate-900 h6,
 .bg-slate-800 h1, .bg-slate-800 h2, .bg-slate-800 h3, .bg-slate-800 h4, .bg-slate-800 h5, .bg-slate-800 h6,
-.bg-[#0A122C] h1, .bg-[#0A122C] h2, .bg-[#0A122C] h3, .bg-[#0A122C] h4, .bg-[#0A122C] h5, .bg-[#0A122C] h6,
-.bg-[#070D20] h1, .bg-[#070D20] h2, .bg-[#070D20] h3, .bg-[#070D20] h4, .bg-[#070D20] h5, .bg-[#070D20] h6 {
+.bg-[#032F2D] h1, .bg-[#032F2D] h2, .bg-[#032F2D] h3, .bg-[#032F2D] h4, .bg-[#032F2D] h5, .bg-[#032F2D] h6,
+.bg-[#053D3A] h1, .bg-[#053D3A] h2, .bg-[#053D3A] h3, .bg-[#053D3A] h4, .bg-[#053D3A] h5, .bg-[#053D3A] h6 {
   color: #ffffff;
 }
 
@@ -221,7 +221,7 @@ h1, h2, h3, h4, h5, h6 {
 .table-header-navy th p {
   color: #ffffff !important;
   opacity: 1 !important;
-  font-weight: 300 !important;
+  font-weight: 700 !important;
   letter-spacing: 0.02em !important;
   font-size: 11px !important;
   text-transform: uppercase !important;
@@ -304,8 +304,8 @@ table th {
   will-change: auto;
 }
 
-/* Universal Center-Middle Modal Alignment Pinned to Screen Viewport */
-.fixed.inset-0:not(.topbar-backdrop) {
+/* Dedicated Modal Overlay Class */
+.portal-modal-backdrop {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -315,8 +315,8 @@ table th {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: rgba(15, 23, 42, 0.65) !important;
-  backdrop-filter: blur(6px) !important;
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
   padding: 1.25rem !important;
   overflow-y: auto !important;
 }
