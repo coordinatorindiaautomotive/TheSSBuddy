@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Roboto:wght@300;400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Poppins:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -16,25 +16,25 @@
   --color-accent-light: #FFF3DE;
   --color-accent-soft: #FFF8EC;
 
-  /* Background */
-  --color-bg: #F7F7F3;
-  --color-bg-secondary: #F2F4F1;
+  /* Background - Eye-comfort soft slate */
+  --color-bg: #F8FAFC;
+  --color-bg-secondary: #F1F5F9;
   --color-surface: #FFFFFF;
-  --color-surface-hover: #F0F5F3;
+  --color-surface-hover: #F8FAFC;
   --color-selected: #FFF3DE;
 
-  /* Text */
-  --color-text: #102F2C;
-  --color-heading: #082F2C;
-  --color-text-secondary: #52635F;
-  --color-text-muted: #7B8985;
-  --color-text-placeholder: #9AA6A3;
-  --color-text-disabled: #B8C0BE;
+  /* High Contrast Eye-Pleasing Text (WCAG AAA) */
+  --color-text: #0F172A;
+  --color-heading: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748B;
+  --color-text-placeholder: #94A3B8;
+  --color-text-disabled: #CBD5E1;
 
   /* Border */
-  --color-border: #E2E7E4;
-  --color-border-light: #EDF0EE;
-  --color-border-strong: #CDD6D2;
+  --color-border: #E2E8F0;
+  --color-border-light: #F1F5F9;
+  --color-border-strong: #CBD5E1;
 
   /* Status */
   --color-success: #087443;
@@ -64,9 +64,9 @@
 }
 
 @theme {
-  --font-sans: 'Poppins', var(--font-poppins), 'Roboto', var(--font-roboto), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Poppins', var(--font-poppins), 'Roboto', var(--font-roboto), sans-serif;
-  --font-mono: 'Roboto', var(--font-roboto), 'Poppins', var(--font-poppins), sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', var(--font-poppins), sans-serif;
+  --font-mono: 'Roboto', 'Inter', var(--font-roboto), monospace;
 
   /* Brand Palette Utilities */
   --color-primary: #053D3A;
@@ -82,24 +82,24 @@
   --color-accent-soft: #FFF8EC;
 
   /* Background & Surface Utilities */
-  --color-bg-main: #F7F7F3;
-  --color-bg-sub: #F2F4F1;
+  --color-bg-main: #F8FAFC;
+  --color-bg-sub: #F1F5F9;
   --color-surface: #FFFFFF;
-  --color-surface-hover: #F0F5F3;
+  --color-surface-hover: #F8FAFC;
   --color-selected: #FFF3DE;
 
   /* Text & Heading Utilities */
-  --color-txt: #102F2C;
-  --color-heading: #082F2C;
-  --color-txt-secondary: #52635F;
-  --color-txt-muted: #7B8985;
-  --color-txt-placeholder: #9AA6A3;
-  --color-txt-disabled: #B8C0BE;
+  --color-txt: #0F172A;
+  --color-heading: #0F172A;
+  --color-txt-secondary: #475569;
+  --color-txt-muted: #64748B;
+  --color-txt-placeholder: #94A3B8;
+  --color-txt-disabled: #CBD5E1;
 
   /* Border Utilities */
-  --color-bdr: #E2E7E4;
-  --color-bdr-light: #EDF0EE;
-  --color-bdr-strong: #CDD6D2;
+  --color-bdr: #E2E8F0;
+  --color-bdr-light: #F1F5F9;
+  --color-bdr-strong: #CBD5E1;
 
   /* Status Palette Utilities */
   --color-status-success: #087443;
@@ -115,23 +115,23 @@
 }
 
 html {
-  font-family: 'Poppins', var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Inter', var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   scroll-behavior: smooth;
-  text-rendering: geometricPrecision;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   -webkit-text-size-adjust: 100%;
 }
 
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-family: 'Poppins', var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  letter-spacing: 0;
+  font-family: 'Plus Jakarta Sans', 'Inter', var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: geometricPrecision;
+  text-rendering: optimizeLegibility;
 }
 
 /* Crisp Typography & Legibility */
