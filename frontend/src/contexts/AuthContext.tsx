@@ -39,17 +39,17 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 const ROLE_MODULE_PERMISSIONS: Record<string, string[]> = {
   SuperAdmin: ['*'],
   Admin: ['*'],
-  HO_Finance: ['/dashboard', '/parties', '/incentive-schemes', '/sales-upload', '/cash-management', '/workflow', '/target-vs-achievement', '/outstanding', '/ledger', '/branches', '/assets', '/helpdesk'],
-  BranchManager: ['/dashboard', '/parties', '/target-vs-achievement', '/outstanding', '/cash-management', '/assets', '/helpdesk'],
-  'Branch Manager': ['/dashboard', '/parties', '/target-vs-achievement', '/outstanding', '/cash-management', '/assets', '/helpdesk'],
-  BRANCH_MANAGER: ['/dashboard', '/parties', '/target-vs-achievement', '/outstanding', '/cash-management', '/assets', '/helpdesk'],
+  HO_Finance: ['/dashboard', '/parties', '/incentive-governor', '/incentive-schemes', '/sales-upload', '/cash-management', '/workflow', '/target-vs-achievement', '/outstanding', '/ledger', '/branches', '/assets', '/helpdesk'],
+  BranchManager: ['/dashboard', '/parties', '/incentive-governor', '/target-vs-achievement', '/outstanding', '/cash-management', '/assets', '/helpdesk'],
+  'Branch Manager': ['/dashboard', '/parties', '/incentive-governor', '/target-vs-achievement', '/outstanding', '/cash-management', '/assets', '/helpdesk'],
+  BRANCH_MANAGER: ['/dashboard', '/parties', '/incentive-governor', '/target-vs-achievement', '/outstanding', '/cash-management', '/assets', '/helpdesk'],
   SalesExecutive: ['/dashboard', '/parties', '/target-vs-achievement', '/outstanding', '/helpdesk'],
   'Sales Executive': ['/dashboard', '/parties', '/target-vs-achievement', '/outstanding', '/helpdesk'],
   SALES_EXECUTIVE: ['/dashboard', '/parties', '/target-vs-achievement', '/outstanding', '/helpdesk'],
   Dealer: ['/dashboard', '/target-vs-achievement', '/outstanding', '/helpdesk'],
   DEALER: ['/dashboard', '/target-vs-achievement', '/outstanding', '/helpdesk'],
-  Auditor: ['/dashboard', '/parties', '/target-vs-achievement', '/outstanding', '/ledger'],
-  AUDITOR: ['/dashboard', '/parties', '/target-vs-achievement', '/outstanding', '/ledger'],
+  Auditor: ['/dashboard', '/parties', '/incentive-governor', '/target-vs-achievement', '/outstanding', '/ledger'],
+  AUDITOR: ['/dashboard', '/parties', '/incentive-governor', '/target-vs-achievement', '/outstanding', '/ledger'],
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {

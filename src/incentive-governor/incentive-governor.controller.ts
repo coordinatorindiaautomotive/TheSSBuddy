@@ -19,9 +19,10 @@ import {
   ReopenPeriodDto,
 } from './incentive-governor.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../rbac/permissions.guard';
 
 @Controller('incentive-governor')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class IncentiveGovernorController {
   constructor(
     private readonly incentiveGovernorService: IncentiveGovernorService

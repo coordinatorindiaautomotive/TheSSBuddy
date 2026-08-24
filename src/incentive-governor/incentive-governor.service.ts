@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { BranchIsolationService } from '../branch-isolation/branch-isolation.service';
 
 export interface GovernorRule {
   branch: string;
@@ -31,7 +32,10 @@ export interface ReopenPeriodDto {
 
 @Injectable()
 export class IncentiveGovernorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly branchIsolation: BranchIsolationService,
+  ) {}
 
   // Fast Dynamic Master Lists for Governor Builder (Branches, Part Categories, Party Types)
   async getGovernorMasters() {
@@ -59,7 +63,12 @@ export class IncentiveGovernorService {
     const branchSet = new Set<string>();
     dbBranches.forEach((b) => b.code && branchSet.add(b.code.trim()));
     partyBaseLocs.forEach((p) => p.baseLoc && branchSet.add(p.baseLoc.trim()));
-    const branches = Array.from(branchSet).filter(Boolean).sort();
+    
+    const isSuper = this.branchIsolation.isSuperAdmin();
+    const userBranches = this.branchIsolation.getContext()?.branchCodes || [];
+    const branches = !isSuper && userBranches.length > 0
+      ? userBranches
+      : Array.from(branchSet).filter(Boolean).sort();
 
     const catSet = new Set<string>();
     retailCategories.forEach((c) => c.partCategoryCode && catSet.add(c.partCategoryCode.trim()));
@@ -582,8 +591,12 @@ export class IncentiveGovernorService {
   // 3. Get Preview Records for Period
   async getPreviewRecords(year: number, month: number) {
     const periodControl = await this.getPeriodStatus(year, month);
+    
+    const where: any = { year, month };
+    this.branchIsolation.mergeBranchFilter(where, 'baseBranch');
+
     const records = await this.prisma.incentiveRegisterRecord.findMany({
-      where: { year, month },
+      where,
       orderBy: [{ finalIncentive: 'desc' }, { partyName: 'asc' }],
     });
 
