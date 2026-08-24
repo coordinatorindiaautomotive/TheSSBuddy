@@ -15,6 +15,7 @@ export default function AppShell({ children, title, breadcrumb }: AppShellProps)
   const { user, loading } = useAuth();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState<boolean>(false);
+  const [mobileOpen, setMobileOpen] = useState<boolean>(false);
 
   useEffect(() => {
     try {
@@ -45,6 +46,10 @@ export default function AppShell({ children, title, breadcrumb }: AppShellProps)
     });
   };
 
+  const toggleMobileSidebar = () => {
+    setMobileOpen((prev) => !prev);
+  };
+
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F7F7F3]">
@@ -58,16 +63,22 @@ export default function AppShell({ children, title, breadcrumb }: AppShellProps)
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)]">
-      <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
+      <Sidebar
+        collapsed={collapsed}
+        onToggle={toggleSidebar}
+        mobileOpen={mobileOpen}
+        onCloseMobile={() => setMobileOpen(false)}
+      />
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-all duration-300">
         <Topbar
           title={title}
           breadcrumb={breadcrumb}
           onToggleSidebar={toggleSidebar}
+          onToggleMobileSidebar={toggleMobileSidebar}
           isSidebarCollapsed={collapsed}
         />
-        <main className="flex-1 p-3 sm:p-4 lg:p-4 overflow-x-hidden overflow-y-auto">
-          <div className="w-full space-y-5 fade-in">
+        <main className="flex-1 p-2 sm:p-4 lg:p-5 overflow-x-hidden overflow-y-auto scrollbar-thin">
+          <div className="w-full space-y-4 sm:space-y-5 fade-in">
             {children}
           </div>
         </main>

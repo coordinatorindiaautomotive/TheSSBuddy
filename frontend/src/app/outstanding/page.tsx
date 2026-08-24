@@ -504,13 +504,13 @@ export default function AdvancedOutstandingRegistryPage() {
             )}
 
             {/* Search Input */}
-            <div className="relative">
+            <div className="relative w-full sm:w-56">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search Dealer or Code..."
-                className="px-3.5 py-2 bg-white border border-slate-200 text-slate-900 font-extrabold placeholder-slate-400 rounded-2xl text-xs w-56 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-md"
+                className="px-3.5 py-2 bg-white border border-slate-200 text-slate-900 font-extrabold placeholder-slate-400 rounded-2xl text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-md"
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">

@@ -253,16 +253,18 @@ const PeriodMultiSelectDropdown = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-white border border-slate-300 hover:border-[#053D3A] rounded-xl px-3 py-1.5 text-xs font-extrabold text-slate-900 shadow-2xs transition cursor-pointer"
+        className="flex items-center justify-between gap-2 bg-white border border-slate-300 hover:border-[#053D3A] rounded-xl px-3 py-1.5 text-xs font-extrabold text-slate-900 shadow-2xs transition cursor-pointer w-full sm:w-auto"
       >
-        <Calendar size={14} className="text-[#053D3A] shrink-0" />
-        <span className="max-w-[210px] truncate">{displayText}</span>
-        <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <div className="flex items-center gap-2 min-w-0">
+          <Calendar size={14} className="text-[#053D3A] shrink-0" />
+          <span className="max-w-[140px] sm:max-w-[210px] truncate">{displayText}</span>
+        </div>
+        <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Flyout Modal */}
       {isOpen && (
-        <div className="absolute left-0 mt-2 w-96 rounded-2xl bg-white border border-slate-200 shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute left-0 sm:left-auto sm:right-auto mt-2 w-[calc(100vw-32px)] sm:w-96 max-w-[380px] rounded-2xl bg-white border border-slate-200 shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
           {/* 1. Header: Quick Presets Bar */}
           <div className="p-3 bg-slate-50 border-b border-slate-200 space-y-2">
             <div className="flex items-center justify-between">

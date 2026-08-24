@@ -156,138 +156,180 @@ const nav = [
   },
 ];
 
-export default function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
+interface SidebarProps {
+  collapsed?: boolean;
+  onToggle?: () => void;
+  mobileOpen?: boolean;
+  onCloseMobile?: () => void;
+}
+
+export default function Sidebar({
+  collapsed = false,
+  onToggle,
+  mobileOpen = false,
+  onCloseMobile,
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { canAccessModule, isBranchUser, userBranch, user, isSuperAdmin, displayName } = useAuth();
 
   return (
-    <aside
-      className={`h-screen sticky top-0 shrink-0 flex flex-col transition-all duration-300 ease-in-out select-none relative z-40 border-r border-[#074B47] shadow-2xl overflow-hidden ${
-        collapsed ? 'w-20' : 'w-64'
-      } bg-[#032F2D] text-slate-100`}
-    >
-      {/* Subtle Ambient Radial Glow */}
-      <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-[#053D3A]/50 via-transparent to-transparent pointer-events-none" />
+    <>
+      {/* ─── MOBILE BACKDROP OVERLAY ─── */}
+      {mobileOpen && (
+        <div
+          onClick={onCloseMobile}
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden transition-opacity duration-300 animate-in fade-in"
+          aria-hidden="true"
+        />
+      )}
 
-      {/* ─── 1. PREMIUM LOGO & BRANDING HEADER ─── */}
-      <div className="h-16 flex items-center border-b border-[#074B47] bg-[#032F2D] px-3.5 relative z-10 shrink-0 justify-between">
-        {collapsed ? (
-          /* COLLAPSED LOGO — GLOWING MONOGRAM */
-          <div className="w-full flex items-center justify-center">
-            <div className="relative p-1.5 rounded-xl bg-[#053D3A] border border-[#074B47] shadow-sm group">
-              <img
-                src="/images/logo-icon-light.png"
-                alt="TheSSBuddy Monogram"
-                className="h-8 w-8 object-contain transition-transform group-hover:scale-105"
-              />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#032F2D]" />
-            </div>
-          </div>
-        ) : (
-          /* EXPANDED LOGO — PREMIUM ENTERPRISE BRANDING */
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="relative p-1.5 rounded-xl bg-[#053D3A] border border-[#074B47] shadow-xs shrink-0">
+      {/* ─── MAIN SIDEBAR / MOBILE DRAWER ─── */}
+      <aside
+        className={`h-screen fixed lg:sticky top-0 left-0 shrink-0 flex flex-col transition-all duration-300 ease-in-out select-none z-50 border-r border-[#074B47] shadow-2xl overflow-hidden bg-[#032F2D] text-slate-100 ${
+          // Mobile Drawer State
+          mobileOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'
+        } ${
+          // Desktop Collapsed State
+          collapsed ? 'lg:w-20' : 'lg:w-64'
+        }`}
+      >
+        {/* Subtle Ambient Radial Glow */}
+        <div className="absolute top-0 left-0 right-0 h-48 bg-gradient-to-b from-[#053D3A]/50 via-transparent to-transparent pointer-events-none" />
+
+        {/* ─── 1. PREMIUM LOGO & BRANDING HEADER ─── */}
+        <div className="h-16 flex items-center border-b border-[#074B47] bg-[#032F2D] px-3.5 relative z-10 shrink-0 justify-between">
+          {collapsed ? (
+            /* COLLAPSED LOGO — GLOWING MONOGRAM (Desktop Only) */
+            <div className="w-full flex items-center justify-center">
+              <div className="relative p-1.5 rounded-xl bg-[#053D3A] border border-[#074B47] shadow-sm group">
                 <img
                   src="/images/logo-icon-light.png"
-                  alt="TheSSBuddy Logo Icon"
-                  className="h-8 w-8 object-contain"
+                  alt="TheSSBuddy Monogram"
+                  className="h-8 w-8 object-contain transition-transform group-hover:scale-105"
                 />
-              </div>
-              <div className="flex flex-col justify-center min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-white font-bold text-sm tracking-tight leading-tight font-sans">
-                    The<span className="text-[#FFE2B8]">SS</span>Buddy
-                  </span>
-                  <span className="px-1.5 py-0.2 rounded bg-[#FFE2B8]/20 text-[#FFE2B8] border border-[#FFE2B8]/30 text-[9px] font-mono font-bold uppercase">
-                    PRO
-                  </span>
-                </div>
-                <p className="text-[#DCEDEA] text-[10px] font-medium tracking-normal leading-tight whitespace-nowrap mt-0.5">
-                  Business Intelligence Portal
-                </p>
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#032F2D]" />
               </div>
             </div>
-
-            {/* Collapse Toggle Button */}
-            {onToggle && (
-              <button
-                onClick={onToggle}
-                className="p-1.5 rounded-lg text-[#DCEDEA] hover:bg-[#074B47] hover:text-white border border-transparent transition cursor-pointer shrink-0 ml-1"
-                title="Collapse Sidebar"
-              >
-                <ChevronLeft size={16} />
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ─── 2. NAVIGATION LINKS WITH ROLE ACCESS FILTERING ─── */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-[#074B47] relative z-10">
-        {nav.map((section) => {
-          const visibleItems = section.items.filter((item) => canAccessModule(item.href));
-          if (visibleItems.length === 0) return null;
-
-          return (
-            <div key={section.label}>
-              {!collapsed && (
-                <div className="flex items-center gap-2 px-2 mb-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#FFE2B8] shadow-xs" />
-                  <p className="text-[#7B8985] text-[10px] font-bold uppercase tracking-wider">
-                    {section.label}
+          ) : (
+            /* EXPANDED LOGO — PREMIUM ENTERPRISE BRANDING */
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="relative p-1.5 rounded-xl bg-[#053D3A] border border-[#074B47] shadow-xs shrink-0">
+                  <img
+                    src="/images/logo-icon-light.png"
+                    alt="TheSSBuddy Logo Icon"
+                    className="h-8 w-8 object-contain"
+                  />
+                </div>
+                <div className="flex flex-col justify-center min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-white font-bold text-sm tracking-tight leading-tight font-sans">
+                      The<span className="text-[#FFE2B8]">SS</span>Buddy
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded bg-[#FFE2B8]/20 text-[#FFE2B8] border border-[#FFE2B8]/30 text-[9px] font-mono font-bold uppercase">
+                      PRO
+                    </span>
+                  </div>
+                  <p className="text-[#DCEDEA] text-[10px] font-medium tracking-normal leading-tight whitespace-nowrap mt-0.5">
+                    Business Intelligence Portal
                   </p>
                 </div>
-              )}
-              <ul className="space-y-1.5">
-                {visibleItems.map(
-                  ({ href, icon: Icon, label }) => {
-                    const searchStr = typeof window !== 'undefined' ? window.location.search : '';
-                    const active = href.includes('?')
-                      ? pathname === href.split('?')[0] && searchStr.includes('tab=register')
-                      : (pathname === href || pathname.startsWith(href + '/')) && !searchStr.includes('tab=register');
+              </div>
 
-                    return (
-                      <li key={href} className="relative group">
-                        <Link
-                          href={href}
-                          prefetch={true}
-                          onMouseEnter={() => {
-                            try { router.prefetch(href); } catch {}
-                          }}
-                          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all duration-200 relative overflow-hidden ${
-                            active
-                              ? 'bg-[#FFE2B8] text-[#053D3A] font-extrabold shadow-md border border-[#FFD49A]'
-                              : 'text-[#DCEDEA] hover:bg-[#074B47] hover:text-white border border-transparent font-medium'
-                          } ${collapsed ? 'justify-center px-2' : ''}`}
-                        >
-                          <Icon
-                            size={17}
-                            className={`shrink-0 transition-transform group-hover:scale-110 ${
-                              active ? 'text-[#053D3A]' : 'text-[#DCEDEA]'
-                            }`}
-                          />
+              {/* Close Button on Mobile, Collapse Toggle on Desktop */}
+              <div className="flex items-center gap-1 shrink-0 ml-1">
+                {/* Mobile Close Button */}
+                <button
+                  onClick={onCloseMobile}
+                  className="p-1.5 rounded-lg text-[#DCEDEA] hover:bg-[#074B47] hover:text-white border border-transparent transition cursor-pointer lg:hidden"
+                  title="Close Menu"
+                >
+                  <ChevronLeft size={18} />
+                </button>
 
-                          {!collapsed && (
-                            <span className="truncate font-semibold tracking-tight">
-                              {label}
-                            </span>
-                          )}
-
-                          {active && !collapsed && (
-                            <ChevronRight size={14} className="text-[#053D3A] shrink-0 ml-auto font-extrabold" />
-                          )}
-                        </Link>
-                      </li>
-                    );
-                  }
+                {/* Desktop Collapse Toggle */}
+                {onToggle && (
+                  <button
+                    onClick={onToggle}
+                    className="hidden lg:flex p-1.5 rounded-lg text-[#DCEDEA] hover:bg-[#074B47] hover:text-white border border-transparent transition cursor-pointer"
+                    title="Collapse Sidebar"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
                 )}
-              </ul>
+              </div>
             </div>
-          );
-        })}
-      </nav>
+          )}
+        </div>
+
+        {/* ─── 2. NAVIGATION LINKS WITH ROLE ACCESS FILTERING ─── */}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-[#074B47] relative z-10">
+          {nav.map((section) => {
+            const visibleItems = section.items.filter((item) => canAccessModule(item.href));
+            if (visibleItems.length === 0) return null;
+
+            return (
+              <div key={section.label}>
+                {(!collapsed || mobileOpen) && (
+                  <div className="flex items-center gap-2 px-2 mb-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FFE2B8] shadow-xs" />
+                    <p className="text-[#7B8985] text-[10px] font-bold uppercase tracking-wider">
+                      {section.label}
+                    </p>
+                  </div>
+                )}
+                <ul className="space-y-1.5">
+                  {visibleItems.map(
+                    ({ href, icon: Icon, label }) => {
+                      const searchStr = typeof window !== 'undefined' ? window.location.search : '';
+                      const active = href.includes('?')
+                        ? pathname === href.split('?')[0] && searchStr.includes('tab=register')
+                        : (pathname === href || pathname.startsWith(href + '/')) && !searchStr.includes('tab=register');
+
+                      return (
+                        <li key={href} className="relative group">
+                          <Link
+                            href={href}
+                            prefetch={true}
+                            onClick={() => {
+                              onCloseMobile?.();
+                            }}
+                            onMouseEnter={() => {
+                              try { router.prefetch(href); } catch {}
+                            }}
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs transition-all duration-200 relative overflow-hidden ${
+                              active
+                                ? 'bg-[#FFE2B8] text-[#053D3A] font-extrabold shadow-md border border-[#FFD49A]'
+                                : 'text-[#DCEDEA] hover:bg-[#074B47] hover:text-white border border-transparent font-medium'
+                            } ${collapsed && !mobileOpen ? 'justify-center px-2' : ''}`}
+                          >
+                            <Icon
+                              size={17}
+                              className={`shrink-0 transition-transform group-hover:scale-110 ${
+                                active ? 'text-[#053D3A]' : 'text-[#DCEDEA]'
+                              }`}
+                            />
+
+                            {(!collapsed || mobileOpen) && (
+                              <span className="truncate font-semibold tracking-tight">
+                                {label}
+                              </span>
+                            )}
+
+                            {active && (!collapsed || mobileOpen) && (
+                              <ChevronRight size={14} className="text-[#053D3A] shrink-0 ml-auto font-extrabold" />
+                            )}
+                          </Link>
+                        </li>
+                      );
+                    }
+                  )}
+                </ul>
+              </div>
+            );
+          })}
+        </nav>
 
       {/* ─── 3. USER PROFILE & LIVE CLOUD STATUS FOOTER ─── */}
       <div className="p-3 border-t border-[#074B47] bg-[#032F2D] relative z-10">
@@ -325,5 +367,6 @@ export default function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
         </button>
       </div>
     </aside>
+    </>
   );
 }

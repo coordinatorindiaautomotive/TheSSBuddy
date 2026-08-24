@@ -15,6 +15,7 @@ interface TopbarProps {
   title: string;
   breadcrumb?: string;
   onToggleSidebar?: () => void;
+  onToggleMobileSidebar?: () => void;
   isSidebarCollapsed?: boolean;
 }
 
@@ -28,6 +29,7 @@ export default function Topbar({
   title,
   breadcrumb,
   onToggleSidebar,
+  onToggleMobileSidebar,
   isSidebarCollapsed = false,
 }: TopbarProps) {
   const { user, logout, isSuperAdmin, userBranch, userBranchName, displayName } = useAuth();
@@ -125,52 +127,62 @@ export default function Topbar({
 
       {/* ─── CORPORATE TOPBAR WITH DARK FOREST GREEN BRANDING ─── */}
       <header
-        className="h-16 flex items-center justify-between px-6 sticky top-0 z-[100] shadow-md select-none text-white border-b border-[#074B47] bg-[#032F2D]"
+        className="h-16 flex items-center justify-between px-3 sm:px-6 sticky top-0 z-[100] shadow-md select-none text-white border-b border-[#074B47] bg-[#032F2D]"
       >
-        {/* Left: Sidebar Toggle + Breadcrumb & Title */}
-        <div className="flex items-center gap-3">
+        {/* Left: Sidebar Toggle (Mobile Hamburger / Desktop Collapse) + Title */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Mobile Drawer Hamburger */}
+          {onToggleMobileSidebar && (
+            <button
+              onClick={onToggleMobileSidebar}
+              className="lg:hidden p-2 rounded-xl text-[#FFE2B8] hover:text-white hover:bg-[#074B47] transition border border-[#074B47] bg-[#053D3A] shrink-0"
+              title="Open Navigation Menu"
+              aria-label="Open Navigation Menu"
+            >
+              <Menu size={18} />
+            </button>
+          )}
+
+          {/* Desktop Collapse Button */}
           {onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
-              className="p-1.5 rounded-xl text-[#DCEDEA] hover:text-white hover:bg-[#074B47] transition border border-[#074B47] bg-[#053D3A]"
+              className="hidden lg:flex p-1.5 rounded-xl text-[#DCEDEA] hover:text-white hover:bg-[#074B47] transition border border-[#074B47] bg-[#053D3A] shrink-0"
               title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
             >
               <PanelLeft size={18} className="text-[#FFE2B8]" />
             </button>
           )}
 
-          <div className="flex items-center gap-2">
-            <span className="text-[#DCEDEA] font-medium text-sm">TheSSBuddy ›</span>
-            <h1 className="text-base font-bold text-white tracking-tight">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-[#DCEDEA] font-medium text-xs sm:text-sm hidden sm:inline shrink-0">TheSSBuddy ›</span>
+            <h1 className="text-sm sm:text-base font-bold text-white tracking-tight truncate max-w-[140px] sm:max-w-[240px] md:max-w-none">
               {title}
             </h1>
           </div>
         </div>
 
         {/* Right Controls with Live Date/Time Badge & User Pill */}
-        <div className="flex items-center gap-3">
-          {/* Live Date / Time Badge — Interactive Button */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Live Date / Time Badge — Interactive Button (Desktop) */}
           <button
             type="button"
             onClick={() => setDatePickerOpen(true)}
             title="Click to open Global Date & Period Selector"
-            className="hidden lg:flex items-center gap-2 bg-[#053D3A] hover:bg-[#074B47] border border-[#074B47] text-white text-xs font-mono font-medium px-3.5 py-1.5 rounded-xl shadow-2xs cursor-pointer transition active:scale-95 group"
+            className="hidden xl:flex items-center gap-2 bg-[#053D3A] hover:bg-[#074B47] border border-[#074B47] text-white text-xs font-mono font-medium px-3 py-1.5 rounded-xl shadow-2xs cursor-pointer transition active:scale-95 group"
           >
-            <Calendar size={14} className="text-[#FFE2B8] group-hover:scale-105 transition-transform" />
-            <span className="tracking-wide text-white">{currentTime || '19 Aug 2026 09:59:05 AM'}</span>
+            <Calendar size={13} className="text-[#FFE2B8] group-hover:scale-105 transition-transform" />
+            <span className="tracking-wide text-white text-[11px]">{currentTime || '19 Aug 2026 09:59:05 AM'}</span>
           </button>
 
-          {/* Search Input */}
-          <div className="relative hidden md:block w-56">
+          {/* Search Input (Tablet & Desktop) */}
+          <div className="relative hidden md:block w-44 lg:w-56">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#FFE2B8]" />
             <input
               type="text"
               placeholder="Search anything..."
-              className="w-full pl-8 pr-10 py-1.5 bg-[#053D3A] border border-[#074B47] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#FFE2B8] text-white placeholder-slate-300 font-medium transition"
+              className="w-full pl-8 pr-3 py-1.5 bg-[#053D3A] border border-[#074B47] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#FFE2B8] text-white placeholder-slate-300 font-medium transition"
             />
-            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-mono text-[#DCEDEA] bg-white/10 px-1.5 py-0.5 rounded border border-white/15">
-              Ctrl+K
-            </span>
           </div>
 
           {/* Notification Bell */}
@@ -180,9 +192,9 @@ export default function Topbar({
                 setNotifMenuOpen(!notifMenuOpen);
                 setUserMenuOpen(false);
               }}
-              className="relative w-9 h-9 flex items-center justify-center rounded-xl text-white bg-[#053D3A] hover:bg-[#074B47] transition-colors border border-[#074B47] shadow-2xs"
+              className="relative w-8.5 h-8.5 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-white bg-[#053D3A] hover:bg-[#074B47] transition-colors border border-[#074B47] shadow-2xs"
             >
-              <Bell size={16} className="text-[#DCEDEA]" />
+              <Bell size={15} className="text-[#DCEDEA]" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-[#B42335] text-white rounded-full text-[9px] font-black flex items-center justify-center shadow animate-pulse">
                   {unreadCount > 9 ? '9+' : unreadCount}
@@ -192,7 +204,7 @@ export default function Topbar({
 
             {/* Notifications Dropdown Panel */}
             {notifMenuOpen && (
-              <div className="absolute right-0 mt-2.5 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-[110] animate-in fade-in zoom-in-95 duration-150 overflow-hidden text-slate-800">
+              <div className="absolute right-0 mt-2.5 w-[calc(100vw-24px)] sm:w-96 max-w-[380px] bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-[110] animate-in fade-in zoom-in-95 duration-150 overflow-hidden text-slate-800">
                 <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-lg bg-[#053D3A]/10 text-[#053D3A] flex items-center justify-center">
