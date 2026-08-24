@@ -980,6 +980,34 @@ function IncentiveGovernorContent() {
   const totalFinalIncentive = useMemo(() => filteredRecords.reduce((a, r) => a + r.finalIncentive, 0), [filteredRecords]);
   const totalWarnings       = useMemo(() => filteredRecords.filter((r) => r.validationStatus === 'WARNING').length, [filteredRecords]);
 
+  // ── Live Settlement & Payout Status Breakdown for Filtered Selection (Party / Branch / Periods) ──
+  const payoutPaidSummary = useMemo(() => {
+    const list = filteredRecords.filter((r) =>
+      ['Success', 'Paid', 'Credit Party'].includes(r.payoutStatus || '')
+    );
+    const amount = list.reduce(
+      (sum, r) => sum + (Number(r.transferredAmount) || Number(r.finalIncentive) || 0),
+      0
+    );
+    return { count: list.length, amount };
+  }, [filteredRecords]);
+
+  const payoutPendingSummary = useMemo(() => {
+    const list = filteredRecords.filter(
+      (r) => !r.payoutStatus || r.payoutStatus === 'Pending' || r.payoutStatus === 'DRAFT'
+    );
+    const amount = list.reduce((sum, r) => sum + (Number(r.finalIncentive) || 0), 0);
+    return { count: list.length, amount };
+  }, [filteredRecords]);
+
+  const payoutFailedSummary = useMemo(() => {
+    const list = filteredRecords.filter((r) =>
+      ['Failed', 'Reversed'].includes(r.payoutStatus || '')
+    );
+    const amount = list.reduce((sum, r) => sum + (Number(r.finalIncentive) || 0), 0);
+    return { count: list.length, amount };
+  }, [filteredRecords]);
+
   const totalPages = useMemo(() => {
     if (pageSize === 0) return 1;
     return Math.ceil(filteredRecords.length / pageSize) || 1;
@@ -1821,32 +1849,96 @@ function IncentiveGovernorContent() {
         {/* ─── TAB 2: COMMITTED INCENTIVE REGISTER VIEW ─── */}
         {activeTab === 'REGISTER' && (
           <div className="space-y-6">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Transacting Parties</span>
-                <p className="text-lg font-black text-[#053D3A] mt-1 font-mono">{filteredRecords.length.toLocaleString()}</p>
-                <p className="text-[10px] font-semibold text-slate-400 mt-0.5">out of {records.length.toLocaleString()} Master Parties</p>
+            {/* ─── 2-TIER EXECUTIVE SUMMARY KPI CARDS ─── */}
+            <div className="space-y-3">
+              {/* Row 1: Core Financials */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Transacting Parties</span>
+                  <p className="text-lg font-black text-[#053D3A] mt-1 font-mono">{filteredRecords.length.toLocaleString()}</p>
+                  <p className="text-[10px] font-semibold text-slate-400 mt-0.5">out of {records.length.toLocaleString()} Master Parties</p>
+                </div>
+
+                <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Sales NRS</span>
+                  <p className="text-lg font-black text-slate-900 mt-1 font-mono">₹{Math.round(totalNrs).toLocaleString()}</p>
+                  <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Selected turnover</p>
+                </div>
+
+                <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Discount</span>
+                  <p className="text-lg font-black text-slate-700 mt-1 font-mono">₹{Math.round(totalDiscount).toLocaleString()}</p>
+                  <p className="text-[10px] font-semibold text-slate-400 mt-0.5">On-bill discounts</p>
+                </div>
+
+                <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gross Incentive</span>
+                  <p className="text-lg font-black text-blue-700 mt-1 font-mono">₹{Math.round(totalGrossIncentive).toLocaleString()}</p>
+                  <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Pre-discount slab</p>
+                </div>
+
+                <div className="bg-[#FFF8EC] rounded-2xl p-3.5 border border-[#FFE2B8] shadow-2xs">
+                  <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">Final Net Payable</span>
+                  <p className="text-lg font-black text-[#053D3A] mt-1 font-mono">₹{Math.round(totalFinalIncentive).toLocaleString()}</p>
+                  <p className="text-[10px] font-semibold text-amber-700 mt-0.5">Net payable incentive</p>
+                </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Sales NRS</span>
-                <p className="text-lg font-black text-slate-900 mt-1 font-mono">₹{Math.round(totalNrs).toLocaleString()}</p>
-              </div>
+              {/* Row 2: Live Settlement & Payout Status Breakdown */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-emerald-50/70 rounded-2xl p-3.5 border border-emerald-200/80 shadow-2xs flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                      Transferred & Settled
+                    </span>
+                    <p className="text-lg font-black text-emerald-900 mt-1 font-mono">
+                      ₹{Math.round(payoutPaidSummary.amount).toLocaleString()}
+                    </p>
+                    <p className="text-[10px] font-bold text-emerald-700 mt-0.5">
+                      {payoutPaidSummary.count.toLocaleString()} Parties Paid / Credited
+                    </p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center border border-emerald-300 shrink-0 font-black">
+                    ✓
+                  </div>
+                </div>
 
-              <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Discount</span>
-                <p className="text-lg font-black text-slate-700 mt-1 font-mono">₹{Math.round(totalDiscount).toLocaleString()}</p>
-              </div>
+                <div className="bg-amber-50/70 rounded-2xl p-3.5 border border-amber-200/80 shadow-2xs flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                      Pending Payout
+                    </span>
+                    <p className="text-lg font-black text-amber-900 mt-1 font-mono">
+                      ₹{Math.round(payoutPendingSummary.amount).toLocaleString()}
+                    </p>
+                    <p className="text-[10px] font-bold text-amber-700 mt-0.5">
+                      {payoutPendingSummary.count.toLocaleString()} Parties Pending Settlement
+                    </p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center border border-amber-300 shrink-0 font-black">
+                    ⏳
+                  </div>
+                </div>
 
-              <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gross Incentive</span>
-                <p className="text-lg font-black text-blue-700 mt-1 font-mono">₹{Math.round(totalGrossIncentive).toLocaleString()}</p>
-              </div>
-
-              <div className="bg-[#FFF8EC] rounded-2xl p-3.5 border border-[#FFE2B8] shadow-2xs">
-                <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">Final Net Payable</span>
-                <p className="text-lg font-black text-[#053D3A] mt-1 font-mono">₹{Math.round(totalFinalIncentive).toLocaleString()}</p>
+                <div className="bg-rose-50/70 rounded-2xl p-3.5 border border-rose-200/80 shadow-2xs flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
+                      Failed / Reversed
+                    </span>
+                    <p className="text-lg font-black text-rose-900 mt-1 font-mono">
+                      ₹{Math.round(payoutFailedSummary.amount).toLocaleString()}
+                    </p>
+                    <p className="text-[10px] font-bold text-rose-700 mt-0.5">
+                      {payoutFailedSummary.count.toLocaleString()} Parties Failed / Rejected
+                    </p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center border border-rose-300 shrink-0 font-black">
+                    ✕
+                  </div>
+                </div>
               </div>
             </div>
 
