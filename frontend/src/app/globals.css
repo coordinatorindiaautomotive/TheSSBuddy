@@ -251,26 +251,55 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Clean, crisp font weight mapping without synthetic blur */
 .font-black {
-  font-weight: 300;
+  font-weight: 800;
 }
 .font-extrabold {
-  font-weight: 300;
+  font-weight: 700;
 }
 b, strong {
-  font-weight: 300;
+  font-weight: 700;
   color: inherit;
 }
 
-/* Datagrid Table Cells */
-table td {
-  font-weight: 300;
+/* World-Class Enterprise Form Controls */
+input, select, textarea {
+  font-family: 'Poppins', var(--font-poppins), sans-serif;
+  color: #0f172a;
 }
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #053D3A !important;
+  box-shadow: 0 0 0 3px rgba(5, 61, 58, 0.12) !important;
+}
+
+/* Datagrid Table Cells */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+table td {
+  font-weight: 500;
+  color: #0f172a;
+}
+
 table th {
-  font-weight: 300;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Card Surfaces with Bespoke Micro-Borders */
+.executive-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  border-radius: 1rem;
 }
 
 .gpu-accelerate {
-  /* Disabled transform: translateZ(0) to prevent font subpixel blurring on Windows */
+  /* Disabled transform to prevent font subpixel blurring on Windows ClearType */
   transform: none;
   will-change: auto;
 }
@@ -282,10 +311,12 @@ table th {
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
+  z-index: 999 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  overflow: hidden !important;
+  background-color: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(6px) !important;
+  padding: 1.25rem !important;
+  overflow-y: auto !important;
 }
