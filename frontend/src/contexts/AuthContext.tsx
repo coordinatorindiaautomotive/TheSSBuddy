@@ -198,6 +198,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
     if (isSuperAdmin) return true;
 
+    // Incentive Governor policy engine is strictly SuperAdmin / Admin only!
+    if (modulePath === '/incentive-governor') {
+      return false;
+    }
+
     const userRoles = [user.role, ...(user.roles || [])].filter(Boolean) as string[];
     if (userRoles.length === 0) userRoles.push('Dealer');
 

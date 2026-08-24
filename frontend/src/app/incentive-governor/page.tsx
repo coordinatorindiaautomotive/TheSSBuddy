@@ -323,7 +323,14 @@ function IncentiveGovernorContent() {
   const [committing, setCommitting] = useState<boolean>(false);
 
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'GOVERNOR' | 'REGISTER'>('GOVERNOR');
+  const [activeTab, setActiveTab] = useState<'GOVERNOR' | 'REGISTER'>(isSuperAdmin ? 'GOVERNOR' : 'REGISTER');
+
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      setActiveTab('REGISTER');
+    }
+  }, [isSuperAdmin]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filterBranch, setFilterBranch] = useState('ALL');
   const [filterCategory, setFilterCategory] = useState('ALL');
