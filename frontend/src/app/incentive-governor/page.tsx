@@ -51,6 +51,37 @@ interface IncentiveRecord {
   status: string;
 }
 
+// ─── HELPER: RENDER INCENTIVE RULE BADGE (NO EMPTY BOXES) ───
+const renderIncentiveRuleBadge = (rec: IncentiveRecord) => {
+  const slab = (rec.applicableSlab || '').trim();
+  const rate = rec.applicableRate;
+
+  let label = '0.0%';
+  if (slab && slab !== '' && slab !== 'N/A' && slab !== 'null' && slab !== 'undefined') {
+    label = slab;
+  } else if (rate !== undefined && rate !== null && rate > 0) {
+    label = `${Number(rate).toFixed(1)}%`;
+  } else if (rec.incentiveType && rec.incentiveType.includes('%')) {
+    label = rec.incentiveType;
+  }
+
+  const isZero = label === '0%' || label === '0.0%' || label === '0.00%' || label === '0';
+
+  if (isZero) {
+    return (
+      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded select-none">
+        0.0%
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-[11px] font-bold text-blue-800 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded shadow-2xs select-none">
+      {label}
+    </span>
+  );
+};
+
 // ─── HIGH-END CORPORATE PERIOD PICKER COMPONENT ───
 const MONTH_SHORT_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -1752,9 +1783,7 @@ function IncentiveGovernorContent() {
                         ₹{Math.round(rec.totalDiscount).toLocaleString()}
                       </td>
                       <td className="px-3.5 py-2.5 text-center align-middle border-r border-slate-200">
-                        <span className="text-[11px] font-bold text-blue-800 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
-                          {rec.applicableSlab}
-                        </span>
+                        {renderIncentiveRuleBadge(rec)}
                       </td>
                       <td className="px-3.5 py-2.5 text-center align-middle font-mono font-black text-[#053D3A] border-r border-slate-200">
                         ₹{Math.round(rec.finalIncentive).toLocaleString()}
@@ -1952,7 +1981,7 @@ function IncentiveGovernorContent() {
                         <td className="px-3.5 py-2.5 text-center align-middle font-mono font-bold text-slate-900 border-r border-slate-200">₹{Math.round(rec.nrs).toLocaleString()}</td>
                         <td className="px-3.5 py-2.5 text-center align-middle font-mono text-slate-600 border-r border-slate-200">₹{Math.round(rec.totalDiscount).toLocaleString()}</td>
                         <td className="px-3.5 py-2.5 text-center align-middle border-r border-slate-200">
-                          <span className="text-[11px] font-bold text-blue-800 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">{rec.applicableSlab}</span>
+                          {renderIncentiveRuleBadge(rec)}
                         </td>
                         <td className="px-3.5 py-2.5 text-center align-middle font-mono font-black text-[#053D3A] border-r border-slate-200">₹{Math.round(rec.finalIncentive).toLocaleString()}</td>
                         <td className="px-3.5 py-2.5 text-center align-middle border-r border-slate-200">
