@@ -26,8 +26,16 @@ let backendProcess = null;
 let frontendProcess = null;
 let isShuttingDown = false;
 
-function startBackend() {
+async function startBackend() {
   if (isShuttingDown) return;
+  
+  // Check if already active
+  const alreadyHealthy = await checkHealth('http://127.0.0.1:3000/api/branches', 1500);
+  if (alreadyHealthy) {
+    log('NestJS Backend is already running and responding on port 3000.');
+    return;
+  }
+
   log('Starting NestJS Backend on port 3000...');
 
   // Run compiled production main
@@ -51,15 +59,24 @@ function startBackend() {
 
   backendProcess.on('exit', (code, signal) => {
     log(`Backend exited with code ${code} signal ${signal}`);
+    backendProcess = null;
     if (!isShuttingDown) {
-      log('Restarting Backend in 3 seconds...');
-      setTimeout(startBackend, 3000);
+      log('Restarting Backend in 5 seconds...');
+      setTimeout(startBackend, 5000);
     }
   });
 }
 
-function startFrontend() {
+async function startFrontend() {
   if (isShuttingDown) return;
+
+  // Check if already active
+  const alreadyHealthy = await checkHealth('http://127.0.0.1:3001', 1500);
+  if (alreadyHealthy) {
+    log('Next.js Frontend is already running and responding on port 3001.');
+    return;
+  }
+
   log('Starting Next.js Frontend on port 3001...');
 
   const nextBin = path.join(frontendDir, 'node_modules', 'next', 'dist', 'bin', 'next');
@@ -80,9 +97,10 @@ function startFrontend() {
 
   frontendProcess.on('exit', (code, signal) => {
     log(`Frontend exited with code ${code} signal ${signal}`);
+    frontendProcess = null;
     if (!isShuttingDown) {
-      log('Restarting Frontend in 3 seconds...');
-      setTimeout(startFrontend, 3000);
+      log('Restarting Frontend in 5 seconds...');
+      setTimeout(startFrontend, 5000);
     }
   });
 }
