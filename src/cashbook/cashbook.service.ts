@@ -416,6 +416,11 @@ export class CashbookService {
     const tDate = new Date(dto.paymentDate || new Date());
     await this.checkPeriodOpen(tDate.getFullYear(), tDate.getMonth() + 1);
 
+    // Enforce branch isolation for branch manager users
+    const userBranches = this.branchIsolation.getContext()?.branchCodes || [];
+    const isSuper = this.branchIsolation.isSuperAdmin();
+    const effectiveBranch = isSuper ? (dto.branchCode || 'ALW') : (userBranches[0] || dto.branchCode || 'ALW');
+
     const baseCount = await this.prisma.cashOutTransaction.count();
     const createdList = [];
 
@@ -427,7 +432,7 @@ export class CashbookService {
       const created = await this.prisma.cashOutTransaction.create({
         data: {
           transactionNo,
-          branchCode: dto.branchCode || 'ALW',
+          branchCode: effectiveBranch,
           transactionDate: tDate,
           expenseCategory: entry.expenseCategory || 'Office Expense',
           vendorName: entry.expenseCategory || 'General',
@@ -468,6 +473,11 @@ export class CashbookService {
     const tDate = new Date(dto.receiptDate || new Date());
     await this.checkPeriodOpen(tDate.getFullYear(), tDate.getMonth() + 1);
 
+    // Enforce branch isolation for branch manager users
+    const userBranches = this.branchIsolation.getContext()?.branchCodes || [];
+    const isSuper = this.branchIsolation.isSuperAdmin();
+    const effectiveBranch = isSuper ? (dto.branchCode || 'ALW') : (userBranches[0] || dto.branchCode || 'ALW');
+
     const baseCount = await this.prisma.cashInTransaction.count();
     const createdList = [];
 
@@ -479,7 +489,7 @@ export class CashbookService {
       const created = await this.prisma.cashInTransaction.create({
         data: {
           transactionNo,
-          branchCode: dto.branchCode || 'ALW',
+          branchCode: effectiveBranch,
           transactionDate: tDate,
           receiptType: entry.receiptType || 'Customer Cash Collection',
           customerName: entry.receiptType || 'Customer',

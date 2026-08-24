@@ -36,6 +36,9 @@ function CashMultiEntryModal({
   branches,
   categories,
   paymentModes,
+  isSuperAdmin,
+  userBranch,
+  userBranchName,
 }: {
   type: 'in' | 'out';
   onClose: () => void;
@@ -43,12 +46,17 @@ function CashMultiEntryModal({
   branches: Array<{ code: string; name: string }>;
   categories: string[];
   paymentModes: string[];
+  isSuperAdmin: boolean;
+  userBranch: string | null;
+  userBranchName: string | null;
 }) {
   const isOut = type === 'out';
   const todayStr = new Date().toISOString().split('T')[0];
 
   const [paymentDate, setPaymentDate] = useState<string>(todayStr);
-  const [selectedBranch, setSelectedBranch] = useState<string>(branches[0]?.code || 'ALW');
+  const [selectedBranch, setSelectedBranch] = useState<string>(
+    !isSuperAdmin && userBranch ? userBranch : branches[0]?.code || 'ALW'
+  );
   const [attachmentName, setAttachmentName] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -102,7 +110,8 @@ function CashMultiEntryModal({
   };
 
   const handleSubmitBatch = async (status: 'Draft' | 'Pending') => {
-    if (!selectedBranch) {
+    const effectiveBranch = !isSuperAdmin && userBranch ? userBranch : selectedBranch;
+    if (!effectiveBranch) {
       toast.error('Please select a Branch.');
       return;
     }
@@ -118,7 +127,7 @@ function CashMultiEntryModal({
       const payload = {
         paymentDate: paymentDate,
         receiptDate: paymentDate,
-        branchCode: selectedBranch,
+        branchCode: effectiveBranch,
         attachmentPath: attachmentName || null,
         status: status,
         entries: entries.map((e) => ({
@@ -197,17 +206,29 @@ function CashMultiEntryModal({
               <label className="block text-xs font-bold text-slate-800 mb-1">
                 Branch <span className="text-rose-500">*</span>
               </label>
-              <select
-                value={selectedBranch}
-                onChange={(e) => setSelectedBranch(e.target.value)}
-                className="w-full px-3 py-2 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A] transition"
-              >
-                {branches.map((b) => (
-                  <option key={b.code} value={b.code}>
-                    {b.code} — {b.name}
-                  </option>
-                ))}
-              </select>
+              {isSuperAdmin ? (
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  className="w-full px-3 py-2 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A] transition"
+                >
+                  {branches.map((b) => (
+                    <option key={b.code} value={b.code}>
+                      {b.code} — {b.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg border border-slate-300 text-xs font-bold text-slate-900 select-none">
+                  <Building2 size={15} className="text-[#053D3A]" />
+                  <span>
+                    {userBranchName || userBranch || selectedBranch} ({userBranch || selectedBranch})
+                  </span>
+                  <span className="ml-auto text-[10px] px-2 py-0.5 bg-slate-200 text-slate-600 rounded font-mono font-medium">
+                    Locked to Assigned Branch
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -660,20 +681,33 @@ function TxTable({
 }
 
 export default function CashManagementPage() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, userBranch, userBranchName } = useAuth();
   const [modal, setModal] = useState<'in' | 'out' | null>(null);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
 
-  // SWR queries
-  const { data: cashIn, mutate: mutateIn } = useSWR('/cashbook/cash-in', fetcher, swrOptions);
-  const { data: cashOut, mutate: mutateOut } = useSWR('/cashbook/cash-out', fetcher, swrOptions);
+  // SWR queries with branch isolation
+  const { data: cashIn, mutate: mutateIn } = useSWR(
+    `/cashbook/cash-in${!isSuperAdmin && userBranch ? `?branchCode=${userBranch}` : ''}`,
+    fetcher,
+    swrOptions
+  );
+  const { data: cashOut, mutate: mutateOut } = useSWR(
+    `/cashbook/cash-out${!isSuperAdmin && userBranch ? `?branchCode=${userBranch}` : ''}`,
+    fetcher,
+    swrOptions
+  );
   const { data: branchesData } = useSWR('/branches?pageSize=100', fetcher, swrOptions);
   const { data: categoryData, mutate: mutateCategories } = useSWR('/cashbook/categories', fetcher, swrOptions);
 
   const branches = useMemo(() => {
     const list = branchesData?.items || branchesData || [];
-    return Array.isArray(list) ? list : [];
-  }, [branchesData]);
+    const rawList = Array.isArray(list) ? list : [];
+    if (!isSuperAdmin && userBranch) {
+      const matched = rawList.filter((b: any) => b.code?.toUpperCase() === userBranch.toUpperCase());
+      return matched.length > 0 ? matched : [{ code: userBranch, name: userBranchName || userBranch }];
+    }
+    return rawList;
+  }, [branchesData, isSuperAdmin, userBranch, userBranchName]);
 
   const expenseCategories = categoryData?.expenseCategories || [
     'Office Expense', 'Tea & Refreshments', 'Fuel & Conveyance', 'Courier & Postage',
@@ -727,9 +761,12 @@ export default function CashManagementPage() {
             mutateIn();
             mutateOut();
           }}
-          branches={branches.length > 0 ? branches : [{ code: 'ALW', name: 'ALWAR-SPR' }]}
+          branches={branches.length > 0 ? branches : [{ code: userBranch || 'ALW', name: userBranchName || 'ALWAR-SPR' }]}
           categories={modal === 'out' ? expenseCategories : receiptTypes}
           paymentModes={paymentModes}
+          isSuperAdmin={isSuperAdmin}
+          userBranch={userBranch}
+          userBranchName={userBranchName}
         />
       )}
 
@@ -784,14 +821,18 @@ export default function CashManagementPage() {
 
         <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Configured Categories</span>
-            <span className="text-xl font-black text-slate-900 font-mono mt-1 block">
-              {expenseCategories.length + receiptTypes.length}
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+              {isSuperAdmin ? 'Configured Categories' : 'Assigned Location'}
             </span>
-            <span className="text-[10px] text-slate-400 font-medium">Dynamic dropdown options</span>
+            <span className="text-xl font-black text-slate-900 font-mono mt-1 block">
+              {isSuperAdmin ? expenseCategories.length + receiptTypes.length : (userBranchName || userBranch || 'BSE')}
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium">
+              {isSuperAdmin ? 'Dynamic dropdown options' : `Branch Code: ${userBranch || 'BSE'}`}
+            </span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
-            <Settings size={20} />
+            {isSuperAdmin ? <Settings size={20} /> : <Building2 size={20} />}
           </div>
         </div>
       </div>
@@ -815,13 +856,15 @@ export default function CashManagementPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => setCategoryModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold rounded-xl text-xs transition shadow-2xs cursor-pointer"
-          >
-            <Settings size={15} className="text-[#053D3A]" />
-            <span>Manage Dropdowns</span>
-          </button>
+          {isSuperAdmin && (
+            <button
+              onClick={() => setCategoryModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold rounded-xl text-xs transition shadow-2xs cursor-pointer"
+            >
+              <Settings size={15} className="text-[#053D3A]" />
+              <span>Manage Dropdowns</span>
+            </button>
+          )}
 
           <button
             onClick={() => {

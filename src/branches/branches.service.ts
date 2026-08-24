@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { BranchIsolationService } from '../branch-isolation/branch-isolation.service';
 import { CreateBranchDto } from './dto/create-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
 import { BranchFilterDto } from './dto/branch-filter.dto';
@@ -16,6 +17,7 @@ export class BranchesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly branchIsolation: BranchIsolationService,
   ) {}
 
   async create(dto: CreateBranchDto, createdBy: string) {
@@ -59,6 +61,9 @@ export class BranchesService {
   async findAll(filter: BranchFilterDto): Promise<PaginatedResponse<any>> {
     const { skip, take } = getPaginationParams(filter);
     const where: any = {};
+
+    // Strict branch isolation: branch user can only see their assigned branches
+    this.branchIsolation.mergeBranchFilter(where, 'code');
 
     if (filter.search) {
       where.OR = [
