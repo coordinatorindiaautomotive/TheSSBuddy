@@ -341,9 +341,9 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
         <div>
           <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
-            <Building2 size={20} className="text-blue-600" />
+            <Building2 size={20} className="text-[#053D3A]" />
             Location-Wise Executive Performance DataGrid
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-slate-100 text-slate-900 border border-slate-200">
               {filteredData.length} Locations
             </span>
           </h3>
@@ -361,7 +361,7 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
               placeholder="Search location code or name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 text-slate-900 text-xs font-bold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 text-slate-900 text-xs font-bold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A] transition"
             />
           </div>
 
@@ -434,10 +434,10 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
           <tbody className="bg-white font-normal text-slate-800 align-middle">
             {filteredData.length > 0 ? (
               filteredData.map((row: any, idx: number) => (
-                <tr key={row.loc} className={`hover:bg-blue-50/60 transition border-b border-slate-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}`}>
+                <tr key={row.loc} className={`hover:bg-slate-100/80 transition border-b border-slate-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}`}>
                   {/* Location Info */}
                   <td className="py-2.5 px-3 font-mono font-medium text-slate-900 border-r border-slate-200 text-center align-middle">
-                    <span className="px-2.5 py-0.5 bg-blue-50 text-blue-700 rounded-md border border-blue-200 font-medium text-[11px]">
+                    <span className="px-2.5 py-0.5 bg-slate-100 text-slate-900 rounded-md border border-slate-200 font-bold text-[11px]">
                       {row.loc}
                     </span>
                   </td>
@@ -503,7 +503,7 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
                   </td>
 
                   {/* YTD */}
-                  <td className="py-2.5 px-3 text-center align-middle font-mono font-medium text-blue-700 text-xs border-r border-slate-200">{formatVal(row.ytd?.current)}</td>
+                  <td className="py-2.5 px-3 text-center align-middle font-mono font-bold text-slate-900 text-xs border-r border-slate-200">{formatVal(row.ytd?.current)}</td>
                   <td className="py-2.5 px-3 text-center align-middle font-mono text-slate-700 font-normal text-[11px] border-r border-slate-200">{formatVal(row.ytd?.ly)}</td>
                   <td className="py-2.5 px-3 text-center align-middle border-r border-slate-200">
                     {row.ytd?.growthLY !== undefined && (
