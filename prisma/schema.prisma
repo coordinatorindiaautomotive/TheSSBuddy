@@ -1416,3 +1416,17 @@ model CashPeriodControl {
   @@unique([controlYear, controlMonth])
   @@map("cash_period_controls")
 }
+
+model CashCategoryMaster {
+  id        String   @id @default(uuid()) @db.Uuid
+  type      String   @db.VarChar(50) // 'EXPENSE_CATEGORY', 'RECEIPT_TYPE', 'PAYMENT_MODE'
+  name      String   @db.VarChar(150)
+  code      String?  @db.VarChar(50)
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by")
+
+  @@unique([type, name])
+  @@map("cash_category_masters")
+}

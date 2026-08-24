@@ -3,6 +3,8 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
   Body,
   Query,
   Param,
@@ -119,6 +121,56 @@ export class CashbookController {
       year ? Number(year) : undefined,
       month ? Number(month) : undefined,
     );
+  }
+
+  @Post('cash-out/batch')
+  @RequirePermissions('cashbook:create')
+  @ApiOperation({ summary: 'Create multi-row CashOut payment batch' })
+  async createCashOutBatch(@Body() dto: any, @Req() req: any) {
+    return this.cashbookService.createCashOutBatch(dto, req.user?.id || 'system');
+  }
+
+  @Post('cash-in/batch')
+  @RequirePermissions('cashbook:create')
+  @ApiOperation({ summary: 'Create multi-row CashIn receipt batch' })
+  async createCashInBatch(@Body() dto: any, @Req() req: any) {
+    return this.cashbookService.createCashInBatch(dto, req.user?.id || 'system');
+  }
+
+  // ─── CATEGORY & DROPDOWN MASTERS (Admin Configurable) ───────────────────
+  @Get('categories')
+  @RequirePermissions('cashbook:view')
+  @ApiOperation({ summary: 'Get active category dropdown options' })
+  async getCategories() {
+    return this.cashbookService.getCategories();
+  }
+
+  @Get('categories/admin')
+  @RequirePermissions('cashbook:view')
+  @ApiOperation({ summary: 'Get all categories for Admin management' })
+  async getAllCategoriesAdmin() {
+    return this.cashbookService.getAllCategoriesAdmin();
+  }
+
+  @Post('categories')
+  @RequirePermissions('cashbook:create')
+  @ApiOperation({ summary: 'Admin create a new category/dropdown option' })
+  async createCategory(@Body() dto: any, @Req() req: any) {
+    return this.cashbookService.createCategory(dto, req.user?.id || 'system');
+  }
+
+  @Put('categories/:id')
+  @RequirePermissions('cashbook:create')
+  @ApiOperation({ summary: 'Admin update category/dropdown option' })
+  async updateCategory(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
+    return this.cashbookService.updateCategory(id, dto, req.user?.id || 'system');
+  }
+
+  @Delete('categories/:id')
+  @RequirePermissions('cashbook:create')
+  @ApiOperation({ summary: 'Admin delete category/dropdown option' })
+  async deleteCategory(@Param('id') id: string) {
+    return this.cashbookService.deleteCategory(id);
   }
 
   @Get('period-controls')
