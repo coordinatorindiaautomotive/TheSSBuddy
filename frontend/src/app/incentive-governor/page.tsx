@@ -248,7 +248,7 @@ const PeriodMultiSelectDropdown = ({
     activeYearAvailableMonths.every((m) => selectedPeriodKeys.includes(`${m}-${activeYear}`));
 
   return (
-    <div className="relative inline-block text-left" ref={dropdownRef}>
+    <div className="relative inline-block text-left z-30" ref={dropdownRef}>
       {/* Dropdown Trigger Button */}
       <button
         type="button"
@@ -262,7 +262,7 @@ const PeriodMultiSelectDropdown = ({
 
       {/* Flyout Modal */}
       {isOpen && (
-        <div className="absolute left-0 mt-2 w-96 rounded-2xl bg-white border border-slate-200 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute left-0 mt-2 w-96 rounded-2xl bg-white border border-slate-200 shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in-95 duration-150">
           {/* 1. Header: Quick Presets Bar */}
           <div className="p-3 bg-slate-50 border-b border-slate-200 space-y-2">
             <div className="flex items-center justify-between">
@@ -1631,9 +1631,9 @@ function IncentiveGovernorContent() {
         </div>
 
         {/* ─── 6. INCENTIVE PREVIEW DATAGRID MATRIX ─── */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
           {/* Datagrid Controls Header */}
-          <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="p-4 bg-slate-50 border-b border-slate-200 rounded-t-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div className="flex items-center gap-3 flex-wrap">
               {/* Search Bar */}
               <div className="relative w-60">
@@ -1943,8 +1943,8 @@ function IncentiveGovernorContent() {
             </div>
 
             {/* Datagrid Table */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
-              <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
+              <div className="p-4 bg-slate-50 border-b border-slate-200 rounded-t-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   {/* Search Input */}
                   <div className="relative w-52">
