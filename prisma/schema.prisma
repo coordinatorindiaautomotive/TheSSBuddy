@@ -1244,26 +1244,88 @@ model IncentiveGovernorAuditLog {
 
 // ─── THESSBUDDY: ASSET MANAGEMENT ──────────────────────────────────────────
 
+model AssetCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(100)
+  name        String   @db.VarChar(200)
+  description String?  @db.Text
+  icon        String?  @default("Boxes") @db.VarChar(50)
+  color       String?  @default("#053D3A") @db.VarChar(50)
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("asset_categories")
+}
+
 model Asset {
-  id               String   @id @default(uuid()) @db.Uuid
-  name             String   @db.VarChar(200)
-  code             String   @unique @db.VarChar(100)
-  category         String   @db.VarChar(100)
-  allocatedToUser  String?  @map("allocated_to_user") @db.Uuid
-  allocatedToBranch String? @map("allocated_to_branch") @db.VarChar(20)
-  status           String   @default("AVAILABLE") @db.VarChar(50) // AVAILABLE, ALLOCATED, MAINTENANCE, DISPOSED
-  warrantyExpiry   DateTime? @map("warranty_expiry")
-  amcExpiry        DateTime? @map("amc_expiry")
-  insuranceExpiry  DateTime? @map("insurance_expiry")
-  barcode          String?  @db.VarChar(100)
-  qrCode           String?  @map("qr_code") @db.VarChar(255)
-  depreciationRate Float    @default(0.0) @map("depreciation_rate")
-  disposalDate     DateTime? @map("disposal_date")
-  vendorName       String?  @map("vendor_name") @db.VarChar(200)
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String    @db.VarChar(200)
+  code              String    @unique @db.VarChar(100)
+  category          String    @db.VarChar(100)
+  allocatedToUser   String?   @map("allocated_to_user") @db.Uuid
+  allocatedToUserName String? @map("allocated_to_user_name") @db.VarChar(200)
+  allocatedToBranch String?   @map("allocated_to_branch") @db.VarChar(50)
+  status            String    @default("AVAILABLE") @db.VarChar(50) // AVAILABLE, ALLOCATED, MAINTENANCE, DISPOSED
+  serialNumber      String?   @map("serial_number") @db.VarChar(150)
+  modelNumber       String?   @map("model_number") @db.VarChar(150)
+  specifications    String?   @db.Text
+  purchaseDate      DateTime? @map("purchase_date")
+  purchaseCost      Float?    @default(0.0) @map("purchase_cost")
+  currentValue      Float?    @default(0.0) @map("current_value")
+  billNumber        String?   @map("bill_number") @db.VarChar(100)
+  vendorName        String?   @map("vendor_name") @db.VarChar(200)
+  warrantyExpiry    DateTime? @map("warranty_expiry")
+  amcExpiry         DateTime? @map("amc_expiry")
+  insuranceExpiry   DateTime? @map("insurance_expiry")
+  barcode           String?   @db.VarChar(100)
+  qrCode            String?   @map("qr_code") @db.VarChar(255)
+  depreciationRate  Float     @default(0.0) @map("depreciation_rate")
+  disposalDate      DateTime? @map("disposal_date")
+  disposalReason    String?   @map("disposal_reason") @db.Text
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  allocations       AssetAllocation[]
+  maintenanceLogs   AssetMaintenanceLog[]
 
   @@map("assets")
+}
+
+model AssetAllocation {
+  id          String    @id @default(uuid()) @db.Uuid
+  assetId     String    @map("asset_id") @db.Uuid
+  branchCode  String?   @map("branch_code") @db.VarChar(50)
+  userId      String?   @map("user_id") @db.Uuid
+  userName    String?   @map("user_name") @db.VarChar(200)
+  allocatedAt DateTime  @default(now()) @map("allocated_at")
+  returnedAt  DateTime? @map("returned_at")
+  remarks     String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  asset       Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("asset_allocations")
+}
+
+model AssetMaintenanceLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  assetId     String   @map("asset_id") @db.Uuid
+  type        String   @default("REPAIR") @db.VarChar(50) // REPAIR, SERVICE, INSPECTION, UPGRADE
+  description String   @db.Text
+  cost        Float    @default(0.0)
+  serviceDate DateTime @default(now()) @map("service_date")
+  vendorName  String?  @map("vendor_name") @db.VarChar(200)
+  performedBy String?  @map("performed_by") @db.VarChar(200)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  asset       Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("asset_maintenance_logs")
 }
 
 // ─── THESSBUDDY: IT HELP DESK ────────────────────────────────────────────────

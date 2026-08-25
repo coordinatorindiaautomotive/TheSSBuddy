@@ -9,69 +9,120 @@ import {
   Boxes, Laptop, Monitor, Printer, Wifi, Car, Armchair, Code,
   Plus, Search, Filter, Settings, Trash2, Edit3, CheckCircle2,
   AlertTriangle, Wrench, UserCheck, ShieldCheck, RefreshCw, X,
-  Building2, Calendar, Tag, ArrowRight, DollarSign, Layers
+  Building2, Calendar, Tag, ArrowRight, DollarSign, Layers,
+  FileSpreadsheet, QrCode, Clock, Shield, Check, History,
+  RotateCcw, Sparkles, ChevronRight, User, Eye, Smartphone,
+  HardDrive, Server, Camera
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const fetcher = (url: string) => api.get(url).then((r) => r.data);
 
+// Dynamic Category Icon Resolver
+const getCategoryIcon = (iconName?: string) => {
+  switch ((iconName || '').toLowerCase()) {
+    case 'laptop': return Laptop;
+    case 'printer': return Printer;
+    case 'wifi':
+    case 'network': return Wifi;
+    case 'server': return Server;
+    case 'smartphone':
+    case 'mobile': return Smartphone;
+    case 'armchair':
+    case 'furniture': return Armchair;
+    case 'car':
+    case 'vehicle': return Car;
+    case 'code':
+    case 'software': return Code;
+    case 'shield':
+    case 'cctv':
+    case 'camera': return Camera;
+    default: return Boxes;
+  }
+};
+
+const CATEGORY_COLORS = [
+  '#2563eb', '#087443', '#7c3aed', '#053D3A',
+  '#d97706', '#4b5563', '#0284c7', '#dc2626',
+  '#0d9488', '#e11d48'
+];
+
 export default function AssetManagerPage() {
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, isBranchUser, userBranch, userBranchName } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [search, setSearch] = useState<string>('');
 
   // Modals & Drawers State
   const [categoryModal, setCategoryModal] = useState<boolean>(false);
   const [assetModal, setAssetModal] = useState<{ open: boolean; isEdit: boolean; asset?: any }>({ open: false, isEdit: false });
+  const [detailsDrawer, setDetailsDrawer] = useState<{ open: boolean; asset?: any; activeTab: 'OVERVIEW' | 'HISTORY' | 'MAINTENANCE' }>({
+    open: false,
+    activeTab: 'OVERVIEW',
+  });
   const [allocateModal, setAllocateModal] = useState<{ open: boolean; asset?: any }>({ open: false });
+  const [returnModal, setReturnModal] = useState<{ open: boolean; asset?: any }>({ open: false });
   const [maintenanceModal, setMaintenanceModal] = useState<{ open: boolean; asset?: any }>({ open: false });
-
-  // Keyboard shortcut (Escape to close any modal)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setCategoryModal(false);
-        setAssetModal({ open: false, isEdit: false });
-        setAllocateModal({ open: false });
-        setMaintenanceModal({ open: false });
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   // Category Form State
   const [catCode, setCatCode] = useState('');
   const [catName, setCatName] = useState('');
   const [catDesc, setCatDesc] = useState('');
   const [catColor, setCatColor] = useState('#2563eb');
+  const [catIcon, setCatIcon] = useState('Boxes');
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [savingCategory, setSavingCategory] = useState(false);
 
   // Asset Form State
   const [formData, setFormData] = useState({
     code: '',
     name: '',
     category: '',
-    allocatedToBranch: 'MUMBAI-01',
+    allocatedToBranch: '',
     allocatedToUser: '',
+    allocatedToUserName: '',
     status: 'AVAILABLE',
+    serialNumber: '',
+    modelNumber: '',
+    specifications: '',
+    purchaseDate: '',
+    purchaseCost: 0,
+    currentValue: 0,
+    billNumber: '',
     vendorName: '',
     warrantyExpiry: '',
     amcExpiry: '',
+    insuranceExpiry: '',
     depreciationRate: 0,
+    notes: '',
   });
 
-  // Allocation / Maintenance Form State
-  const [allocBranch, setAllocBranch] = useState('MUMBAI-01');
+  // Allocation Form State
+  const [allocBranch, setAllocBranch] = useState('');
   const [allocUser, setAllocUser] = useState('');
+  const [allocUserName, setAllocUserName] = useState('');
   const [allocRemarks, setAllocRemarks] = useState('');
+
+  // Return Form State
+  const [returnRemarks, setReturnRemarks] = useState('');
+
+  // Maintenance Form State
   const [maintType, setMaintType] = useState('REPAIR');
   const [maintDesc, setMaintDesc] = useState('');
   const [maintCost, setMaintCost] = useState(0);
+  const [maintVendor, setMaintVendor] = useState('');
+  const [maintTech, setMaintTech] = useState('');
 
+  // Fetch branches for branch assignment
+  const { data: branchesData } = useSWR('/branches', fetcher);
+  const branches: any[] = Array.isArray(branchesData) ? branchesData : [];
+
+  // Query parameters
   const queryParams = new URLSearchParams({
     category: selectedCategory,
     status: selectedStatus,
+    branchCode: isBranchUser && userBranch ? userBranch : selectedBranch,
     search,
   }).toString();
 
@@ -84,77 +135,139 @@ export default function AssetManagerPage() {
     availableCount: 0,
     allocatedCount: 0,
     maintenanceCount: 0,
-    totalCost: 0,
+    disposedCount: 0,
+    totalPurchaseCost: 0,
+    totalCurrentValuation: 0,
   };
 
-  // Category CRUD Handlers
+  // Keyboard shortcut (Escape to close any modal/drawer)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setCategoryModal(false);
+        setAssetModal({ open: false, isEdit: false });
+        setDetailsDrawer({ open: false, activeTab: 'OVERVIEW' });
+        setAllocateModal({ open: false });
+        setReturnModal({ open: false });
+        setMaintenanceModal({ open: false });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // ─── CATEGORY CRUD HANDLERS ────────────────────────────────────────────────
+  const handleOpenEditCategory = (cat: any) => {
+    setEditingCatId(cat.id);
+    setCatCode(cat.code);
+    setCatName(cat.name);
+    setCatDesc(cat.description || '');
+    setCatColor(cat.color || '#2563eb');
+    setCatIcon(cat.icon || 'Boxes');
+  };
+
+  const handleResetCategoryForm = () => {
+    setEditingCatId(null);
+    setCatCode('');
+    setCatName('');
+    setCatDesc('');
+    setCatColor('#2563eb');
+    setCatIcon('Boxes');
+  };
+
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!catCode || !catName) {
+    if (!catCode.trim() || !catName.trim()) {
       toast.error('Category Code and Name are required');
       return;
     }
 
+    setSavingCategory(true);
     try {
       await api.post('/assets/categories', {
         id: editingCatId || undefined,
-        code: catCode,
-        name: catName,
-        description: catDesc,
+        code: catCode.trim().toUpperCase(),
+        name: catName.trim(),
+        description: catDesc.trim(),
         color: catColor,
+        icon: catIcon,
       });
 
-      toast.success(editingCatId ? 'Category updated successfully!' : 'Category created successfully!');
-      setEditingCatId(null);
-      setCatCode('');
-      setCatName('');
-      setCatDesc('');
-      mutate();
+      toast.success(editingCatId ? 'Category updated successfully!' : 'Category created successfully!', {
+        icon: '🏷️',
+      });
+      handleResetCategoryForm();
+      await mutate();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Failed to save category');
+    } finally {
+      setSavingCategory(false);
     }
   };
 
   const handleDeleteCategory = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
+    if (!confirm(`Are you sure you want to delete or deactivate category "${name}"?`)) return;
 
     try {
-      await api.delete(`/assets/categories/${id}`);
-      toast.success(`Category "${name}" deleted`);
-      mutate();
+      const res = await api.delete(`/assets/categories/${id}`);
+      toast.success(res.data?.message || `Category "${name}" processed successfully`);
+      if (editingCatId === id) handleResetCategoryForm();
+      await mutate();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Failed to delete category');
     }
   };
 
-  // Asset CRUD Handlers
+  // ─── ASSET CRUD HANDLERS ───────────────────────────────────────────────────
   const handleOpenAssetModal = (asset?: any) => {
     if (asset) {
       setFormData({
         code: asset.code,
         name: asset.name,
         category: asset.category,
-        allocatedToBranch: asset.allocatedToBranch || 'MUMBAI-01',
+        allocatedToBranch: asset.allocatedToBranch || (branches[0]?.code || 'BSE'),
         allocatedToUser: asset.allocatedToUser || '',
+        allocatedToUserName: asset.allocatedToUserName || '',
         status: asset.status,
+        serialNumber: asset.serialNumber || '',
+        modelNumber: asset.modelNumber || '',
+        specifications: asset.specifications || '',
+        purchaseDate: asset.purchaseDate ? asset.purchaseDate.split('T')[0] : '',
+        purchaseCost: asset.purchaseCost || 0,
+        currentValue: asset.currentValue || asset.purchaseCost || 0,
+        billNumber: asset.billNumber || '',
         vendorName: asset.vendorName || '',
         warrantyExpiry: asset.warrantyExpiry ? asset.warrantyExpiry.split('T')[0] : '',
         amcExpiry: asset.amcExpiry ? asset.amcExpiry.split('T')[0] : '',
+        insuranceExpiry: asset.insuranceExpiry ? asset.insuranceExpiry.split('T')[0] : '',
         depreciationRate: asset.depreciationRate || 0,
+        notes: asset.notes || '',
       });
       setAssetModal({ open: true, isEdit: true, asset });
     } else {
+      const defaultBranch = isBranchUser && userBranch ? userBranch : (branches[0]?.code || 'BSE');
+      const defaultCat = selectedCategory !== 'ALL' ? selectedCategory : (categories[0]?.code || 'LAPTOP');
       setFormData({
-        code: `AST-${Math.floor(1000 + Math.random() * 9000)}`,
+        code: `AST-${Math.floor(100000 + Math.random() * 900000)}`,
         name: '',
-        category: categories[0]?.code || 'LAPTOP',
-        allocatedToBranch: 'MUMBAI-01',
+        category: defaultCat,
+        allocatedToBranch: defaultBranch,
         allocatedToUser: '',
+        allocatedToUserName: '',
         status: 'AVAILABLE',
+        serialNumber: '',
+        modelNumber: '',
+        specifications: '',
+        purchaseDate: new Date().toISOString().split('T')[0],
+        purchaseCost: 0,
+        currentValue: 0,
+        billNumber: '',
         vendorName: '',
         warrantyExpiry: '',
         amcExpiry: '',
-        depreciationRate: 0,
+        insuranceExpiry: '',
+        depreciationRate: 15,
+        notes: '',
       });
       setAssetModal({ open: true, isEdit: false });
     }
@@ -162,339 +275,570 @@ export default function AssetManagerPage() {
 
   const handleSaveAsset = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await api.post('/assets', {
-        id: assetModal.isEdit ? assetModal.asset?.id : undefined,
-        ...formData,
-      });
+    if (!formData.code.trim() || !formData.name.trim() || !formData.category) {
+      toast.error('Asset Code, Name, and Category are required');
+      return;
+    }
 
-      toast.success(assetModal.isEdit ? 'Asset updated successfully!' : 'Asset registered successfully!');
+    try {
+      if (assetModal.isEdit && assetModal.asset?.id) {
+        await api.put(`/assets/${assetModal.asset.id}`, formData);
+        toast.success('Asset updated successfully!', { icon: '✅' });
+      } else {
+        await api.post('/assets', formData);
+        toast.success('New asset registered successfully!', { icon: '📦' });
+      }
+
       setAssetModal({ open: false, isEdit: false });
-      mutate();
+      await mutate();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Failed to save asset');
     }
   };
 
   const handleDeleteAsset = async (id: string, name: string) => {
-    if (!confirm(`Delete asset "${name}"?`)) return;
+    if (!confirm(`Are you sure you want to permanently delete asset "${name}"?`)) return;
     try {
       await api.delete(`/assets/${id}`);
-      toast.success('Asset deleted successfully');
-      mutate();
+      toast.success('Asset deleted successfully', { icon: '🗑️' });
+      if (detailsDrawer.open && detailsDrawer.asset?.id === id) {
+        setDetailsDrawer({ open: false, activeTab: 'OVERVIEW' });
+      }
+      await mutate();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Failed to delete asset');
     }
   };
 
-  const handleAllocate = async (e: React.FormEvent) => {
+  // ─── ALLOCATION & RETURN HANDLERS ──────────────────────────────────────────
+  const handleOpenAllocate = (asset: any) => {
+    setAllocBranch(asset.allocatedToBranch || (isBranchUser && userBranch ? userBranch : branches[0]?.code || 'BSE'));
+    setAllocUser(asset.allocatedToUser || '');
+    setAllocUserName(asset.allocatedToUserName || '');
+    setAllocRemarks('');
+    setAllocateModal({ open: true, asset });
+  };
+
+  const handleAllocateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!allocateModal.asset) return;
 
     try {
       await api.post(`/assets/${allocateModal.asset.id}/allocate`, {
         branchCode: allocBranch,
-        targetUserId: allocUser || undefined,
+        userId: allocUser || undefined,
+        userName: allocUserName || undefined,
         remarks: allocRemarks,
       });
 
-      toast.success(`Asset allocated to ${allocUser || allocBranch}`);
+      toast.success(`Asset allocated to ${allocUserName || allocBranch}!`, { icon: '📍' });
       setAllocateModal({ open: false });
-      mutate();
+      await mutate();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Failed to allocate asset');
     }
   };
 
-  const handleMaintenance = async (e: React.FormEvent) => {
+  const handleOpenReturn = (asset: any) => {
+    setReturnRemarks('');
+    setReturnModal({ open: true, asset });
+  };
+
+  const handleReturnSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!returnModal.asset) return;
+
+    try {
+      await api.post(`/assets/${returnModal.asset.id}/return`, {
+        remarks: returnRemarks,
+      });
+
+      toast.success('Asset returned to available stock!', { icon: '↩️' });
+      setReturnModal({ open: false });
+      await mutate();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to return asset');
+    }
+  };
+
+  // ─── MAINTENANCE HANDLERS ──────────────────────────────────────────────────
+  const handleOpenMaintenance = (asset: any) => {
+    setMaintType('REPAIR');
+    setMaintDesc('');
+    setMaintCost(0);
+    setMaintVendor(asset.vendorName || '');
+    setMaintTech('');
+    setMaintenanceModal({ open: true, asset });
+  };
+
+  const handleMaintenanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!maintenanceModal.asset) return;
+    if (!maintDesc.trim()) {
+      toast.error('Please enter a service/maintenance description');
+      return;
+    }
 
     try {
       await api.post(`/assets/${maintenanceModal.asset.id}/maintenance`, {
         type: maintType,
         description: maintDesc,
-        cost: Number(maintCost),
+        cost: Number(maintCost) || 0,
+        vendorName: maintVendor || undefined,
+        performedBy: maintTech || undefined,
       });
 
-      toast.success('Maintenance log recorded');
+      toast.success('Service log recorded successfully!', { icon: '🔧' });
       setMaintenanceModal({ open: false });
-      mutate();
+      await mutate();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Failed to log maintenance');
     }
   };
 
+  // ─── EXCEL EXPORT ─────────────────────────────────────────────────────────
+  const handleExportExcel = () => {
+    if (assets.length === 0) {
+      toast.error('No assets to export in the current view');
+      return;
+    }
+
+    const rows = assets.map((a, idx) => ({
+      '#': idx + 1,
+      'Asset Code / Tag': a.code,
+      'Asset Name': a.name,
+      'Category': a.category,
+      'Status': a.status,
+      'Assigned Branch': a.allocatedToBranch || 'Unassigned',
+      'Assigned Custodian': a.allocatedToUserName || 'In Storage',
+      'Serial Number': a.serialNumber || '-',
+      'Model Number': a.modelNumber || '-',
+      'Purchase Date': a.purchaseDate ? a.purchaseDate.split('T')[0] : '-',
+      'Purchase Cost (₹)': a.purchaseCost || 0,
+      'Current Book Value (₹)': a.currentValue || a.purchaseCost || 0,
+      'Vendor': a.vendorName || '-',
+      'Warranty Expiry': a.warrantyExpiry ? a.warrantyExpiry.split('T')[0] : '-',
+      'AMC Expiry': a.amcExpiry ? a.amcExpiry.split('T')[0] : '-',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Asset Inventory');
+    XLSX.writeFile(wb, `TheSSBuddy_Asset_Inventory_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Asset Inventory exported to Excel!', { icon: '📊' });
+  };
+
   return (
-    <AppShell title="Asset Management & Inventory" breadcrumb="Enterprise Operations">
-      <div className="space-y-6 max-w-full">
-        {/* ─── 1. TOP CONTROL TOOLBAR ─── */}
-        <div
-          className="bg-white text-slate-800 rounded-2xl p-4 shadow-sm relative z-30 border border-slate-200/90"
-        >
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-            {/* Left: Filters & Search */}
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Dynamic Category Selector */}
-              <div className="flex items-center gap-1.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3.5 py-2 shadow-2xs">
-                <Tag size={15} className="text-[#053D3A] shrink-0" />
-                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Category:</span>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer"
-                >
-                  <option value="ALL">All Categories ({categories.length})</option>
-                  {categories.map((c: any) => (
-                    <option key={c.id || c.code} value={c.code}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+    <AppShell title="Asset Inventory & Lifecycle Management" breadcrumb="Enterprise Infrastructure">
+      <div className="space-y-5 max-w-full">
+        {/* ─── 1. DYNAMIC CATEGORY NAVIGATION TABS ─── */}
+        <div className="bg-white rounded-2xl p-2.5 shadow-2xs border border-slate-200/90 overflow-x-auto scrollbar-thin">
+          <div className="flex items-center gap-1.5 min-w-max">
+            <button
+              onClick={() => setSelectedCategory('ALL')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition cursor-pointer ${
+                selectedCategory === 'ALL'
+                  ? 'bg-[#053D3A] text-white shadow-sm'
+                  : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/70'
+              }`}
+            >
+              <Boxes size={14} className={selectedCategory === 'ALL' ? 'text-[#FFE2B8]' : 'text-slate-500'} />
+              <span>All Categories</span>
+              <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+              }`}>
+                {metrics.totalCount}
+              </span>
+            </button>
 
-              {/* Status Filter */}
-              <div className="flex items-center gap-1.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3.5 py-2 shadow-2xs">
-                <Filter size={15} className="text-[#053D3A] shrink-0" />
-                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Status:</span>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer"
+            {categories.map((cat: any) => {
+              const IconComp = getCategoryIcon(cat.icon);
+              const isSelected = selectedCategory === cat.code;
+              return (
+                <button
+                  key={cat.id || cat.code}
+                  onClick={() => setSelectedCategory(cat.code)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#053D3A] text-white shadow-sm'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/70'
+                  }`}
                 >
-                  <option value="ALL">All Statuses</option>
-                  <option value="AVAILABLE">Available</option>
-                  <option value="ALLOCATED">Allocated</option>
-                  <option value="MAINTENANCE">Under Maintenance</option>
-                </select>
-              </div>
+                  <IconComp size={14} style={{ color: isSelected ? '#FFE2B8' : cat.color || '#2563eb' }} />
+                  <span>{cat.name}</span>
+                  <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {cat.assetCount || 0}
+                  </span>
+                </button>
+              );
+            })}
 
+            {isSuperAdmin && (
+              <button
+                onClick={() => setCategoryModal(true)}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold text-blue-700 bg-blue-50/80 hover:bg-blue-100 border border-blue-200/80 flex items-center gap-1.5 transition ml-auto cursor-pointer"
+                title="Add or Edit Categories"
+              >
+                <Settings size={13} />
+                <span>Manage Categories ({categories.length})</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ─── 2. EXECUTIVE 5-CARD VALUATION & LIFECYCLE COCKPIT ─── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* Card 1: TOTAL INVENTORY & VALUATION */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Inventory</span>
+              <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200">
+                <Boxes size={14} />
+              </div>
+            </div>
+            <p className="text-xl font-black text-slate-900 mt-1 font-mono">{metrics.totalCount.toLocaleString()}</p>
+            <p className="text-[10px] font-bold text-[#053D3A] mt-0.5 font-mono">
+              ₹{Math.round(metrics.totalCurrentValuation || metrics.totalPurchaseCost || 0).toLocaleString('en-IN')} CapVal
+            </p>
+          </div>
+
+          {/* Card 2: ALLOCATED / IN ACTIVE SERVICE */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">In Active Service</span>
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-200">
+                <UserCheck size={14} />
+              </div>
+            </div>
+            <p className="text-xl font-black text-indigo-900 mt-1 font-mono">{metrics.allocatedCount.toLocaleString()}</p>
+            <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
+              {metrics.totalCount > 0 ? Math.round((metrics.allocatedCount / metrics.totalCount) * 100) : 0}% fleet deployed
+            </p>
+          </div>
+
+          {/* Card 3: AVAILABLE IN STOCK */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Available in Stock</span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
+                <CheckCircle2 size={14} />
+              </div>
+            </div>
+            <p className="text-xl font-black text-emerald-700 mt-1 font-mono">{metrics.availableCount.toLocaleString()}</p>
+            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Ready for allocation</p>
+          </div>
+
+          {/* Card 4: UNDER MAINTENANCE */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">In Maintenance</span>
+              <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200">
+                <Wrench size={14} />
+              </div>
+            </div>
+            <p className="text-xl font-black text-amber-800 mt-1 font-mono">{metrics.maintenanceCount.toLocaleString()}</p>
+            <p className="text-[10px] font-semibold text-amber-600 mt-0.5">Repair & service queue</p>
+          </div>
+
+          {/* Card 5: RETIRED / SALVAGE */}
+          <div className="bg-[#FFF8EC] rounded-2xl p-4 border border-[#FFE2B8] shadow-2xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">Retired / Disposed</span>
+              <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center border border-amber-300">
+                <ShieldCheck size={14} />
+              </div>
+            </div>
+            <p className="text-xl font-black text-[#053D3A] mt-1 font-mono">{(metrics.disposedCount || 0).toLocaleString()}</p>
+            <p className="text-[10px] font-semibold text-amber-800 mt-0.5">Off-book salvage</p>
+          </div>
+        </div>
+
+        {/* ─── 3. ADVANCED TOOLBAR & SEARCH ─── */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5 flex-wrap flex-1">
               {/* Search Bar */}
-              <div className="relative min-w-[240px]">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <div className="relative w-full sm:w-64">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search code, name, user, vendor..."
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-bold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#053D3A] shadow-2xs"
+                  placeholder="Search code, name, serial, user..."
+                  className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
                 />
+                {search && (
+                  <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter */}
+              <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2.5 py-1 text-xs">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Status:</span>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="AVAILABLE">Available in Stock</option>
+                  <option value="ALLOCATED">Allocated / In Use</option>
+                  <option value="MAINTENANCE">Under Maintenance</option>
+                  <option value="DISPOSED">Disposed / Retired</option>
+                </select>
+              </div>
+
+              {/* Branch Filter */}
+              <div className="flex items-center gap-1.5 bg-white border border-slate-300 rounded-xl px-2.5 py-1 text-xs">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Branch:</span>
+                <select
+                  value={isBranchUser && userBranch ? userBranch : selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  disabled={Boolean(isBranchUser && userBranch)}
+                  className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer disabled:opacity-75"
+                >
+                  {isBranchUser && userBranch ? (
+                    <option value={userBranch}>{userBranchName || userBranch}</option>
+                  ) : (
+                    <>
+                      <option value="ALL">All Branches ({branches.length})</option>
+                      {branches.map((b) => (
+                        <option key={b.code} value={b.code}>
+                          {b.code} — {b.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
               </div>
             </div>
 
-            {/* Right: Action Buttons */}
-            <div className="flex items-center gap-2.5 flex-wrap">
-              {/* Dynamic Category Manager Button — SuperAdmin Only */}
-              {isSuperAdmin && (
-                <button
-                  onClick={() => setCategoryModal(true)}
-                  className="px-4 py-2 bg-white hover:bg-slate-100 text-blue-700 font-extrabold rounded-2xl text-xs flex items-center gap-2 transition border border-slate-200 shadow-md cursor-pointer"
-                >
-                  <Settings size={14} className="text-blue-600" />
-                  <span>Manage Categories ({categories.length})</span>
-                </button>
-              )}
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={handleExportExcel}
+                className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition border border-slate-300 shadow-2xs cursor-pointer"
+              >
+                <FileSpreadsheet size={14} className="text-emerald-700" />
+                <span>Export Excel</span>
+              </button>
 
-              {/* Add Asset Button */}
               <button
                 onClick={() => handleOpenAssetModal()}
-                className="px-4 py-2 bg-[#ed1c24] hover:bg-[#c71017] text-white font-extrabold rounded-2xl text-xs flex items-center gap-1.5 transition shadow-lg active:scale-95"
+                className="px-4 py-1.5 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition shadow-2xs cursor-pointer border border-[#053D3A]"
               >
-                <Plus size={15} />
-                <span>Register New Asset</span>
+                <Plus size={14} className="text-[#FFE2B8]" />
+                <span>Register Asset</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* ─── 2. BENTO METRICS CARDS ─── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 to-indigo-500" />
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-blue-700 tracking-wider">Total Inventory</span>
-              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                <Boxes size={17} />
-              </div>
-            </div>
-            <p className="text-3xl font-black font-mono text-slate-900 tracking-tight tabular-nums">
-              {metrics.totalCount}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-2 font-medium">Assets tracked across all company branches</p>
-          </div>
-
-          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500" />
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-emerald-700 tracking-wider">Available Stock</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <CheckCircle2 size={17} />
-              </div>
-            </div>
-            <p className="text-3xl font-black font-mono text-emerald-600 tracking-tight tabular-nums">
-              {metrics.availableCount}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-2 font-medium">Ready for instant branch or user allocation</p>
-          </div>
-
-          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 to-pink-500" />
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-purple-700 tracking-wider">Allocated Assets</span>
-              <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-                <UserCheck size={17} />
-              </div>
-            </div>
-            <p className="text-3xl font-black font-mono text-purple-600 tracking-tight tabular-nums">
-              {metrics.allocatedCount}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-2 font-medium">Actively deployed with staff and branches</p>
-          </div>
-
-          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/80 relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 to-red-500" />
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-black uppercase text-amber-700 tracking-wider">Under Maintenance</span>
-              <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                <Wrench size={17} />
-              </div>
-            </div>
-            <p className="text-3xl font-black font-mono text-amber-600 tracking-tight tabular-nums">
-              {metrics.maintenanceCount}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-2 font-medium">In service, warranty repair, or calibration</p>
-          </div>
-        </div>
-
-        {/* ─── 3. ASSETS TABLE VIEW ─── */}
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200/80 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        {/* ─── 4. ASSET INVENTORY DATAGRID MATRIX ─── */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+          <div className="p-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Boxes size={16} className="text-blue-600" />
-              <h2 className="font-extrabold text-sm text-slate-800">
-                Asset Inventory Registry ({assets.length})
-              </h2>
+              <Boxes size={15} className="text-[#053D3A]" />
+              <span className="font-extrabold text-xs text-slate-900">
+                Asset Inventory Records ({assets.length})
+              </span>
             </div>
-            <span className="text-xs text-slate-400 font-medium">
-              Click actions to Allocate, Log Maintenance, Edit, or Delete
+            <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
+              Manage complete lifecycle, maintenance logs, and custodian allocations
             </span>
           </div>
 
           <div className="overflow-x-auto max-h-[65vh]">
             <table className="w-full text-xs text-left border-collapse">
-              <thead
-                className="sticky top-0 z-20 text-white uppercase text-[10px] tracking-wider select-none shadow-sm border-b border-[#074B47] bg-[#053D3A]"
-              >
+              <thead className="sticky top-0 z-20 table-header-navy select-none">
                 <tr>
-                  <th className="px-4 py-3 border-r border-white/10">Asset Code</th>
-                  <th className="px-4 py-3 border-r border-white/10 min-w-[180px]">Asset Name</th>
-                  <th className="px-4 py-3 border-r border-white/10">Category</th>
-                  <th className="px-4 py-3 border-r border-white/10">Status</th>
-                  <th className="px-4 py-3 border-r border-white/10">Location / User</th>
-                  <th className="px-4 py-3 border-r border-white/10">Vendor</th>
-                  <th className="px-4 py-3 border-r border-white/10">Warranty / AMC</th>
-                  <th className="px-4 py-3 text-center">Actions</th>
+                  <th className="px-3.5 py-2.5 border-r border-white/10 w-12 text-center">#</th>
+                  <th className="px-3.5 py-2.5 border-r border-white/10 min-w-[140px]">Asset Code & Tag</th>
+                  <th className="px-3.5 py-2.5 border-r border-white/10 min-w-[200px]">Asset Details</th>
+                  <th className="px-3.5 py-2.5 border-r border-white/10 text-center">Category</th>
+                  <th className="px-3.5 py-2.5 border-r border-white/10 text-center">Location & Custodian</th>
+                  <th className="px-3.5 py-2.5 border-r border-white/10 text-center">Status</th>
+                  <th className="px-3.5 py-2.5 border-r border-white/10 text-right">Valuation (₹)</th>
+                  <th className="px-3.5 py-2.5 border-r border-white/10 text-center">Warranty</th>
+                  <th className="px-3.5 py-2.5 text-center min-w-[160px]">Actions</th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-slate-200 font-medium">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="py-16 text-center text-slate-400">
-                      <RefreshCw size={26} className="animate-spin text-blue-600 mx-auto mb-2" />
-                      <span className="font-bold">Loading assets inventory...</span>
+                    <td colSpan={9} className="py-16 text-center text-slate-400">
+                      <RefreshCw size={24} className="animate-spin text-[#053D3A] mx-auto mb-2" />
+                      <span className="font-bold">Loading enterprise asset records...</span>
                     </td>
                   </tr>
                 ) : assets.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-16 text-center text-slate-400">
+                    <td colSpan={9} className="py-16 text-center text-slate-400">
                       <Boxes size={36} className="mx-auto mb-2 text-slate-300" />
                       <p className="font-bold text-slate-700">No assets found</p>
-                      <p className="text-xs text-slate-400 mt-1">Register new assets or adjust filter criteria</p>
+                      <p className="text-xs text-slate-400 mt-1">Register new assets or adjust filter criteria above.</p>
                     </td>
                   </tr>
                 ) : (
                   assets.map((a: any, idx: number) => {
-                    const statusBg =
-                      a.status === 'AVAILABLE'
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                        : a.status === 'ALLOCATED'
-                        ? 'bg-purple-100 text-purple-800 border-purple-300'
-                        : 'bg-amber-100 text-amber-800 border-amber-300';
+                    const catObj = categories.find((c: any) => c.code.toUpperCase() === a.category.toUpperCase());
+                    const CatIcon = getCategoryIcon(catObj?.icon);
 
-                    const catObj = categories.find((c: any) => c.code === a.category);
+                    const isAllocated = a.status === 'ALLOCATED';
+                    const isAvailable = a.status === 'AVAILABLE';
+                    const isMaintenance = a.status === 'MAINTENANCE';
 
                     return (
-                      <tr key={a.id || idx} className="even:bg-slate-50/60 hover:bg-blue-50/80 transition group">
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-mono font-black text-[11px] border border-slate-200">
+                      <tr key={a.id || idx} className="hover:bg-slate-50/80 transition">
+                        <td className="px-3.5 py-2.5 text-center font-mono font-bold text-slate-400 border-r border-slate-200">
+                          {idx + 1}
+                        </td>
+
+                        {/* Code & Tag */}
+                        <td className="px-3.5 py-2.5 border-r border-slate-200">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[#053D3A] font-mono font-black text-xs border border-slate-200 shadow-2xs">
                             {a.code}
                           </span>
+                          {a.serialNumber && (
+                            <p className="text-[10px] text-slate-500 font-mono mt-0.5 truncate">
+                              S/N: {a.serialNumber}
+                            </p>
+                          )}
                         </td>
-                        <td className="px-4 py-3 font-extrabold text-slate-900 text-xs">
-                          {a.name}
+
+                        {/* Name & Model */}
+                        <td className="px-3.5 py-2.5 border-r border-slate-200">
+                          <p className="font-extrabold text-slate-900 text-xs leading-snug">{a.name}</p>
+                          {a.modelNumber && (
+                            <p className="text-[10px] text-slate-500 font-medium">{a.modelNumber}</p>
+                          )}
                         </td>
-                        <td className="px-4 py-3">
+
+                        {/* Category Badge */}
+                        <td className="px-3.5 py-2.5 text-center border-r border-slate-200">
                           <span
-                            className="px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border"
                             style={{
-                              backgroundColor: `${catObj?.color || '#2563eb'}15`,
-                              color: catObj?.color || '#2563eb',
-                              borderColor: `${catObj?.color || '#2563eb'}40`,
+                              backgroundColor: `${catObj?.color || '#053D3A'}15`,
+                              color: catObj?.color || '#053D3A',
+                              borderColor: `${catObj?.color || '#053D3A'}30`,
                             }}
                           >
-                            {catObj?.name || a.category}
+                            <CatIcon size={11} />
+                            <span>{catObj?.name || a.category}</span>
                           </span>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${statusBg}`}>
+
+                        {/* Location & Custodian */}
+                        <td className="px-3.5 py-2.5 text-center border-r border-slate-200">
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono font-bold text-[10px] text-slate-800">
+                              {a.allocatedToBranch || 'Storage'}
+                            </span>
+                            <span className="text-[10px] font-semibold text-slate-600 truncate max-w-[120px]">
+                              {a.allocatedToUserName || (isAvailable ? 'In Storage' : '-')}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-3.5 py-2.5 text-center border-r border-slate-200">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                              isAvailable
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                : isAllocated
+                                ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
+                                : isMaintenance
+                                ? 'bg-amber-50 text-amber-700 border-amber-300'
+                                : 'bg-rose-50 text-rose-700 border-rose-300'
+                            }`}
+                          >
                             {a.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-slate-700 font-medium">
-                          <div>
-                            <span className="font-bold text-slate-900">{a.allocatedToBranch || 'HQ'}</span>
-                            {a.allocatedToUser && (
-                              <p className="text-[10.5px] text-slate-500 font-mono">User: {a.allocatedToUser}</p>
-                            )}
-                          </div>
+
+                        {/* Valuation */}
+                        <td className="px-3.5 py-2.5 text-right font-mono font-bold text-slate-900 border-r border-slate-200">
+                          ₹{Math.round(a.currentValue || a.purchaseCost || 0).toLocaleString('en-IN')}
                         </td>
-                        <td className="px-4 py-3 text-slate-600 font-medium">
-                          {a.vendorName || '—'}
+
+                        {/* Warranty / AMC */}
+                        <td className="px-3.5 py-2.5 text-center border-r border-slate-200">
+                          {a.warrantyExpiry ? (
+                            <span className="text-[10px] font-mono font-semibold text-slate-600">
+                              {new Date(a.warrantyExpiry).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-[10px]">-</span>
+                          )}
                         </td>
-                        <td className="px-4 py-3 font-mono text-[11px] text-slate-600">
-                          {a.warrantyExpiry ? new Date(a.warrantyExpiry).toLocaleDateString() : '—'}
-                        </td>
-                        <td className="px-4 py-3 text-center">
+
+                        {/* Actions */}
+                        <td className="px-3.5 py-2.5 text-center">
                           <div className="flex items-center justify-center gap-1.5">
+                            {/* View Details / Timeline Drawer */}
                             <button
-                              onClick={() => setAllocateModal({ open: true, asset: a })}
-                              className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
-                              title="Allocate Asset"
+                              onClick={() => setDetailsDrawer({ open: true, asset: a, activeTab: 'OVERVIEW' })}
+                              className="p-1 text-slate-600 hover:text-[#053D3A] hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                              title="View Details & History Timeline"
                             >
-                              <UserCheck size={13} />
+                              <Eye size={14} />
                             </button>
+
+                            {/* Allocate / Reassign */}
                             <button
-                              onClick={() => setMaintenanceModal({ open: true, asset: a })}
-                              className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition"
-                              title="Log Maintenance"
+                              onClick={() => handleOpenAllocate(a)}
+                              className="p-1 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                              title="Allocate / Reassign Asset"
                             >
-                              <Wrench size={13} />
+                              <UserCheck size={14} />
                             </button>
+
+                            {/* Return (if allocated) */}
+                            {isAllocated && (
+                              <button
+                                onClick={() => handleOpenReturn(a)}
+                                className="p-1 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
+                                title="Return to Storage"
+                              >
+                                <RotateCcw size={14} />
+                              </button>
+                            )}
+
+                            {/* Log Maintenance */}
+                            <button
+                              onClick={() => handleOpenMaintenance(a)}
+                              className="p-1 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition cursor-pointer"
+                              title="Log Service / Repair"
+                            >
+                              <Wrench size={14} />
+                            </button>
+
+                            {/* Edit */}
                             <button
                               onClick={() => handleOpenAssetModal(a)}
-                              className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition"
-                              title="Edit Asset"
+                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition cursor-pointer"
+                              title="Edit Asset Details"
                             >
-                              <Edit3 size={13} />
+                              <Edit3 size={14} />
                             </button>
-                            <button
-                              onClick={() => handleDeleteAsset(a.id, a.name)}
-                              className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition"
-                              title="Delete Asset"
-                            >
-                              <Trash2 size={13} />
-                            </button>
+
+                            {/* Delete (SuperAdmin Only) */}
+                            {isSuperAdmin && (
+                              <button
+                                onClick={() => handleDeleteAsset(a.id, a.name)}
+                                className="p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                title="Delete Asset"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -506,270 +850,383 @@ export default function AssetManagerPage() {
           </div>
         </div>
 
-        {/* ─── 4. DYNAMIC CATEGORY MANAGER MODAL ─── */}
+        {/* ─── 5. CATEGORY MANAGEMENT MODAL ─── */}
         {categoryModal && (
-          <div
-            onClick={() => setCategoryModal(false)}
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-[200] p-4"
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
-            >
-              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D]">
+          <div className="portal-modal-backdrop">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47]">
                 <div className="flex items-center gap-2.5">
-                  <Settings size={20} className="text-cyan-400" />
-                  <h3 className="font-extrabold text-sm text-white">Dynamic Asset Category Studio</h3>
+                  <Tag size={17} className="text-[#FFE2B8]" />
+                  <div>
+                    <h2 className="font-extrabold text-sm text-white">Dynamic Asset Categories</h2>
+                    <p className="text-[11px] text-[#DCEDEA]">Manage company-wide infrastructure categories</p>
+                  </div>
                 </div>
-                <button onClick={() => setCategoryModal(false)} className="p-1.5 text-slate-300 hover:text-white rounded-xl hover:bg-white/10 transition">
-                  <X size={20} />
+                <button
+                  onClick={() => setCategoryModal(false)}
+                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition cursor-pointer"
+                >
+                  <X size={16} />
                 </button>
               </div>
 
-              <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+              <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
                 {/* Form to Add / Edit Category */}
-                <form onSubmit={handleSaveCategory} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
-                  <p className="font-extrabold text-xs text-slate-800 uppercase tracking-wider">
-                    {editingCatId ? 'Edit Category' : 'Create New Category'}
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <form onSubmit={handleSaveCategory} className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+                    <span className="text-xs font-black text-slate-800">
+                      {editingCatId ? 'Edit Category' : '+ Add New Category'}
+                    </span>
+                    {editingCatId && (
+                      <button
+                        type="button"
+                        onClick={handleResetCategoryForm}
+                        className="text-[11px] font-bold text-rose-600 hover:underline"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Code (Key)</label>
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                        Category Code <span className="text-rose-500">*</span>
+                      </label>
                       <input
                         type="text"
+                        placeholder="e.g. CCTV, SERVER"
                         value={catCode}
-                        onChange={(e) => setCatCode(e.target.value)}
-                        placeholder="e.g. SERVER, TABLET, SCANNER"
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                        required
+                        onChange={(e) => setCatCode(e.target.value.toUpperCase())}
+                        className="w-full px-3 py-1.5 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
                       />
                     </div>
+
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Category Name</label>
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                        Category Name <span className="text-rose-500">*</span>
+                      </label>
                       <input
                         type="text"
+                        placeholder="e.g. Security & Surveillance"
                         value={catName}
                         onChange={(e) => setCatName(e.target.value)}
-                        placeholder="e.g. Enterprise Servers"
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                        required
+                        className="w-full px-3 py-1.5 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Description</label>
+                    <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                      Description
+                    </label>
                     <input
                       type="text"
+                      placeholder="Brief details about items in this category"
                       value={catDesc}
                       onChange={(e) => setCatDesc(e.target.value)}
-                      placeholder="Brief summary of items in this category"
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none"
+                      className="w-full px-3 py-1.5 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="flex items-center gap-2">
-                      <label className="text-[11px] font-bold text-slate-700">Badge Color:</label>
-                      <input
-                        type="color"
-                        value={catColor}
-                        onChange={(e) => setCatColor(e.target.value)}
-                        className="w-8 h-8 rounded-lg cursor-pointer border-0"
-                      />
+                  {/* Color & Icon Palette */}
+                  <div className="flex items-center gap-3 pt-1">
+                    <div className="flex-1">
+                      <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Theme Color</label>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {CATEGORY_COLORS.map((col) => (
+                          <button
+                            key={col}
+                            type="button"
+                            onClick={() => setCatColor(col)}
+                            className={`w-6 h-6 rounded-full transition-transform cursor-pointer ${
+                              catColor === col ? 'scale-125 ring-2 ring-[#053D3A]' : 'hover:scale-110'
+                            }`}
+                            style={{ backgroundColor: col }}
+                          />
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {editingCatId && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingCatId(null);
-                            setCatCode('');
-                            setCatName('');
-                            setCatDesc('');
-                          }}
-                          className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200 rounded-xl font-bold"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                      <button
-                        type="submit"
-                        className="px-4 py-1.5 bg-[#0052cc] hover:bg-[#0041a3] text-white font-bold text-xs rounded-xl shadow-sm"
-                      >
-                        {editingCatId ? 'Save Changes' : 'Add Category'}
-                      </button>
-                    </div>
+                    <button
+                      type="submit"
+                      disabled={savingCategory || !catCode.trim() || !catName.trim()}
+                      className="px-4 py-2 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold text-xs rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer shrink-0 mt-3"
+                    >
+                      {savingCategory ? 'Saving...' : editingCatId ? 'Update Category' : '+ Add Category'}
+                    </button>
                   </div>
                 </form>
 
                 {/* Existing Categories List */}
-                <div>
-                  <h4 className="font-extrabold text-xs text-slate-800 mb-3 uppercase tracking-wider">
-                    Active Categories ({categories.length})
-                  </h4>
-                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
-                    {categories.map((c: any) => (
-                      <div key={c.id || c.code} className="p-3 bg-white flex items-center justify-between hover:bg-slate-50 transition">
-                        <div className="flex items-center gap-3">
-                          <span
-                            className="w-3.5 h-3.5 rounded-full shrink-0"
-                            style={{ backgroundColor: c.color || '#2563eb' }}
-                          />
-                          <div>
-                            <p className="font-bold text-xs text-slate-900">{c.name}</p>
-                            <p className="text-[10.5px] text-slate-500 font-mono">Code: {c.code}</p>
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Existing Categories ({categories.length})
+                  </span>
+
+                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                    {categories.map((cat: any) => {
+                      const IconComp = getCategoryIcon(cat.icon);
+                      return (
+                        <div key={cat.id || cat.code} className="p-3 flex items-center justify-between hover:bg-slate-50 transition">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                              style={{ backgroundColor: `${cat.color || '#2563eb'}20`, color: cat.color || '#2563eb' }}
+                            >
+                              <IconComp size={14} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-extrabold text-xs text-slate-900">{cat.name}</span>
+                                <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-mono text-[9px] font-bold">
+                                  {cat.code}
+                                </span>
+                              </div>
+                              {cat.description && (
+                                <p className="text-[10px] text-slate-400 truncate">{cat.description}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-mono font-bold">
+                              {cat.assetCount || 0} Assets
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditCategory(cat)}
+                              className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                              title="Edit Category"
+                            >
+                              <Edit3 size={13} />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                              className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                              title="Delete Category"
+                            >
+                              <Trash2 size={13} />
+                            </button>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => {
-                              setEditingCatId(c.id);
-                              setCatCode(c.code);
-                              setCatName(c.name);
-                              setCatDesc(c.description || '');
-                              setCatColor(c.color || '#2563eb');
-                            }}
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                            title="Edit"
-                          >
-                            <Edit3 size={13} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteCategory(c.id, c.name)}
-                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                            title="Delete"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
+              </div>
+
+              <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button
+                  onClick={() => setCategoryModal(false)}
+                  className="px-4 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-100"
+                >
+                  Done
+                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* ─── 5. ASSET REGISTER / EDIT MODAL ─── */}
+        {/* ─── 6. ASSET REGISTRATION & EDIT MODAL ─── */}
         {assetModal.open && (
-          <div
-            onClick={() => setAssetModal({ open: false, isEdit: false })}
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-[200] p-4"
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
-            >
-              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D]">
-                <h3 className="font-extrabold text-sm text-white">
-                  {assetModal.isEdit ? 'Edit Asset Details' : 'Register New Asset'}
-                </h3>
-                <button onClick={() => setAssetModal({ open: false, isEdit: false })} className="p-1.5 text-slate-300 hover:text-white rounded-xl hover:bg-white/10 transition">
-                  <X size={20} />
+          <div className="portal-modal-backdrop">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47]">
+                <div className="flex items-center gap-2.5">
+                  <Boxes size={17} className="text-[#FFE2B8]" />
+                  <div>
+                    <h2 className="font-extrabold text-sm text-white">
+                      {assetModal.isEdit ? 'Edit Asset Record' : 'Register New Enterprise Asset'}
+                    </h2>
+                    <p className="text-[11px] text-[#DCEDEA]">Track specifications, financial valuation, and warranty</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setAssetModal({ open: false, isEdit: false })}
+                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition cursor-pointer"
+                >
+                  <X size={16} />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveAsset} className="p-6 space-y-4 text-xs">
-                <div className="grid grid-cols-2 gap-3">
+              <form onSubmit={handleSaveAsset}>
+                <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+                  {/* Row 1: Code & Category */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Asset Code / Tag <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.code}
+                        onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                        placeholder="AST-100234"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Category <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A]"
+                      >
+                        {categories.map((c: any) => (
+                          <option key={c.id || c.code} value={c.code}>
+                            {c.name} ({c.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Asset Name */}
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Asset Code</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Asset Name & Model <span className="text-rose-500">*</span>
+                    </label>
                     <input
                       type="text"
-                      value={formData.code}
-                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold"
-                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="e.g. Dell Latitude 5420 i7 16GB"
+                      className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A]"
                     />
                   </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Category</label>
-                    <select
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
-                      required
-                    >
-                      {categories.map((c: any) => (
-                        <option key={c.id || c.code} value={c.code}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
+
+                  {/* Row 3: Serial & Model */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Serial Number</label>
+                      <input
+                        type="text"
+                        value={formData.serialNumber}
+                        onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
+                        placeholder="e.g. SN-98234872"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Model Number</label>
+                      <input
+                        type="text"
+                        value={formData.modelNumber}
+                        onChange={(e) => setFormData({ ...formData, modelNumber: e.target.value })}
+                        placeholder="e.g. Latitude-5420"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 4: Branch & Custodian */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Assigned Branch</label>
+                      <select
+                        value={formData.allocatedToBranch}
+                        onChange={(e) => setFormData({ ...formData, allocatedToBranch: e.target.value })}
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      >
+                        {branches.map((b) => (
+                          <option key={b.code} value={b.code}>
+                            {b.code} — {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Custodian / Employee Name</label>
+                      <input
+                        type="text"
+                        value={formData.allocatedToUserName}
+                        onChange={(e) => setFormData({ ...formData, allocatedToUserName: e.target.value })}
+                        placeholder="e.g. Rajesh Kumar"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 5: Financials (Purchase Date & Cost) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Purchase Date</label>
+                      <input
+                        type="date"
+                        value={formData.purchaseDate}
+                        onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Purchase Cost (₹)</label>
+                      <input
+                        type="number"
+                        value={formData.purchaseCost}
+                        onChange={(e) => setFormData({ ...formData, purchaseCost: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Depreciation % / yr</label>
+                      <input
+                        type="number"
+                        value={formData.depreciationRate}
+                        onChange={(e) => setFormData({ ...formData, depreciationRate: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 6: Vendor & Warranty */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Vendor / Supplier</label>
+                      <input
+                        type="text"
+                        value={formData.vendorName}
+                        onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })}
+                        placeholder="e.g. Infotech Solutions Pvt Ltd"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Warranty Expiry</label>
+                      <input
+                        type="date"
+                        value={formData.warrantyExpiry}
+                        onChange={(e) => setFormData({ ...formData, warrantyExpiry: e.target.value })}
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Asset Name / Model</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g. Dell Latitude 5440 i7 16GB"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Branch</label>
-                    <input
-                      type="text"
-                      value={formData.allocatedToBranch}
-                      onChange={(e) => setFormData({ ...formData, allocatedToBranch: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Allocated User</label>
-                    <input
-                      type="text"
-                      value={formData.allocatedToUser}
-                      onChange={(e) => setFormData({ ...formData, allocatedToUser: e.target.value })}
-                      placeholder="Username or Staff ID"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Vendor Name</label>
-                    <input
-                      type="text"
-                      value={formData.vendorName}
-                      onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">Warranty Expiry</label>
-                    <input
-                      type="date"
-                      value={formData.warrantyExpiry}
-                      onChange={(e) => setFormData({ ...formData, warrantyExpiry: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 flex items-center justify-end gap-2 border-t border-slate-100">
+                <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end gap-2.5">
                   <button
                     type="button"
                     onClick={() => setAssetModal({ open: false, isEdit: false })}
-                    className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold"
+                    className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-100 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-[#0052cc] hover:bg-[#0041a3] text-white font-bold rounded-xl shadow-md"
+                    className="px-5 py-2 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold rounded-xl text-xs shadow-sm transition cursor-pointer"
                   >
-                    {assetModal.isEdit ? 'Update Asset' : 'Register Asset'}
+                    {assetModal.isEdit ? 'Save Changes' : 'Register Asset'}
                   </button>
                 </div>
               </form>
@@ -777,66 +1234,77 @@ export default function AssetManagerPage() {
           </div>
         )}
 
-        {/* ─── 6. ALLOCATE MODAL ─── */}
+        {/* ─── 7. ASSET ALLOCATION MODAL ─── */}
         {allocateModal.open && (
-          <div
-            onClick={() => setAllocateModal({ open: false })}
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-[200] p-4"
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
-            >
-              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D]">
-                <h3 className="font-extrabold text-sm text-white">Allocate Asset: {allocateModal.asset?.name}</h3>
-                <button onClick={() => setAllocateModal({ open: false })} className="p-1.5 text-slate-300 hover:text-white rounded-xl hover:bg-white/10 transition">
-                  <X size={20} />
+          <div className="portal-modal-backdrop">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47]">
+                <div className="flex items-center gap-2">
+                  <UserCheck size={16} className="text-[#FFE2B8]" />
+                  <h2 className="font-extrabold text-sm text-white">Allocate / Reassign Asset</h2>
+                </div>
+                <button
+                  onClick={() => setAllocateModal({ open: false })}
+                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition"
+                >
+                  <X size={16} />
                 </button>
               </div>
 
-              <form onSubmit={handleAllocate} className="p-6 space-y-4 text-xs">
+              <form onSubmit={handleAllocateSubmit} className="p-5 space-y-4">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <p className="font-extrabold text-xs text-slate-900">{allocateModal.asset?.name}</p>
+                  <p className="font-mono text-[10px] text-[#053D3A] font-bold mt-0.5">{allocateModal.asset?.code}</p>
+                </div>
+
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Target Branch</label>
-                  <input
-                    type="text"
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Target Branch</label>
+                  <select
                     value={allocBranch}
                     onChange={(e) => setAllocBranch(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
-                    required
-                  />
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                  >
+                    {branches.map((b) => (
+                      <option key={b.code} value={b.code}>
+                        {b.code} — {b.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Assign to User (Username/ID)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Custodian / Employee Name</label>
                   <input
                     type="text"
-                    value={allocUser}
-                    onChange={(e) => setAllocUser(e.target.value)}
-                    placeholder="e.g. admin or staff-101"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Handover Remarks</label>
-                  <textarea
-                    value={allocRemarks}
-                    onChange={(e) => setAllocRemarks(e.target.value)}
-                    rows={3}
-                    placeholder="Asset serial, condition, or accessories issued"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
+                    value={allocUserName}
+                    onChange={(e) => setAllocUserName(e.target.value)}
+                    placeholder="e.g. Ramesh Sharma"
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
                   />
                 </div>
 
-                <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Allocation Remarks</label>
+                  <input
+                    type="text"
+                    value={allocRemarks}
+                    onChange={(e) => setAllocRemarks(e.target.value)}
+                    placeholder="e.g. Issued for Regional Sales visit"
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setAllocateModal({ open: false })}
-                    className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold"
+                    className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl text-xs font-bold"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md"
+                    className="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 text-white font-extrabold text-xs rounded-xl shadow-sm"
                   >
                     Confirm Allocation
                   </button>
@@ -846,74 +1314,343 @@ export default function AssetManagerPage() {
           </div>
         )}
 
-        {/* ─── 7. MAINTENANCE MODAL ─── */}
-        {maintenanceModal.open && (
-          <div
-            onClick={() => setMaintenanceModal({ open: false })}
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-[200] p-4"
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
-            >
-              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D]">
-                <h3 className="font-extrabold text-sm text-white">Log Maintenance: {maintenanceModal.asset?.name}</h3>
-                <button onClick={() => setMaintenanceModal({ open: false })} className="p-1.5 text-slate-300 hover:text-white rounded-xl hover:bg-white/10 transition">
-                  <X size={20} />
+        {/* ─── 8. ASSET RETURN MODAL ─── */}
+        {returnModal.open && (
+          <div className="portal-modal-backdrop">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47]">
+                <div className="flex items-center gap-2">
+                  <RotateCcw size={16} className="text-[#FFE2B8]" />
+                  <h2 className="font-extrabold text-sm text-white">Return Asset to Storage</h2>
+                </div>
+                <button
+                  onClick={() => setReturnModal({ open: false })}
+                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition"
+                >
+                  <X size={16} />
                 </button>
               </div>
 
-              <form onSubmit={handleMaintenance} className="p-6 space-y-4 text-xs">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Service Type</label>
-                  <select
-                    value={maintType}
-                    onChange={(e) => setMaintType(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold"
-                  >
-                    <option value="REPAIR">Repair / Component Replacement</option>
-                    <option value="AMC">Annual Maintenance Contract (AMC)</option>
-                    <option value="WARRANTY">Warranty Claim</option>
-                    <option value="CALIBRATION">Routine Calibration / Cleaning</option>
-                  </select>
+              <form onSubmit={handleReturnSubmit} className="p-5 space-y-4">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <p className="font-extrabold text-xs text-slate-900">{returnModal.asset?.name}</p>
+                  <p className="font-mono text-[10px] text-[#053D3A] font-bold mt-0.5">{returnModal.asset?.code}</p>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Current Holder: <strong>{returnModal.asset?.allocatedToUserName || 'Branch'}</strong>
+                  </p>
                 </div>
+
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Estimated / Actual Cost (₹)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Return Condition & Remarks</label>
                   <input
-                    type="number"
-                    value={maintCost}
-                    onChange={(e) => setMaintCost(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Issue Description & Remarks</label>
-                  <textarea
-                    value={maintDesc}
-                    onChange={(e) => setMaintDesc(e.target.value)}
-                    rows={3}
-                    placeholder="Details of fault, replacement parts, or service center info"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl"
-                    required
+                    type="text"
+                    value={returnRemarks}
+                    onChange={(e) => setReturnRemarks(e.target.value)}
+                    placeholder="e.g. Returned in good working condition"
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
                   />
                 </div>
 
-                <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+                <div className="pt-2 flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => setMaintenanceModal({ open: false })}
-                    className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl font-bold"
+                    onClick={() => setReturnModal({ open: false })}
+                    className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl text-xs font-bold"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md"
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl shadow-sm"
                   >
-                    Record Maintenance
+                    Confirm Return
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* ─── 9. MAINTENANCE & SERVICE MODAL ─── */}
+        {maintenanceModal.open && (
+          <div className="portal-modal-backdrop">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47]">
+                <div className="flex items-center gap-2">
+                  <Wrench size={16} className="text-[#FFE2B8]" />
+                  <h2 className="font-extrabold text-sm text-white">Log Asset Maintenance</h2>
+                </div>
+                <button
+                  onClick={() => setMaintenanceModal({ open: false })}
+                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleMaintenanceSubmit} className="p-5 space-y-4">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <p className="font-extrabold text-xs text-slate-900">{maintenanceModal.asset?.name}</p>
+                  <p className="font-mono text-[10px] text-[#053D3A] font-bold mt-0.5">{maintenanceModal.asset?.code}</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Service Type</label>
+                  <select
+                    value={maintType}
+                    onChange={(e) => setMaintType(e.target.value)}
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                  >
+                    <option value="REPAIR">Hardware Repair</option>
+                    <option value="SERVICE">Preventive Service / Calibration</option>
+                    <option value="UPGRADE">Part / RAM / SSD Upgrade</option>
+                    <option value="INSPECTION">Physical Inspection</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Issue Description / Action Taken <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={maintDesc}
+                    onChange={(e) => setMaintDesc(e.target.value)}
+                    placeholder="Describe the issue, parts replaced, or service details..."
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Service Cost (₹)</label>
+                    <input
+                      type="number"
+                      value={maintCost}
+                      onChange={(e) => setMaintCost(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Technician / Vendor</label>
+                    <input
+                      type="text"
+                      value={maintTech}
+                      onChange={(e) => setMaintTech(e.target.value)}
+                      placeholder="e.g. Dell Authorized Tech"
+                      className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMaintenanceModal({ open: false })}
+                    className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl text-xs font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white font-extrabold text-xs rounded-xl shadow-sm"
+                  >
+                    Save Service Record
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ─── 10. ASSET 360° DETAILS & TIMELINE DRAWER ─── */}
+        {detailsDrawer.open && detailsDrawer.asset && (
+          <div className="portal-modal-backdrop">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[85vh]">
+              {/* Header */}
+              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47] shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-[#053D3A] border border-[#074B47] flex items-center justify-center text-[#FFE2B8]">
+                    <QrCode size={18} />
+                  </div>
+                  <div>
+                    <h2 className="font-extrabold text-sm text-white">{detailsDrawer.asset.name}</h2>
+                    <p className="font-mono text-xs text-[#FFE2B8] font-bold">{detailsDrawer.asset.code}</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setDetailsDrawer({ open: false, activeTab: 'OVERVIEW' })}
+                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Sub-Nav Tabs */}
+              <div className="px-5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => setDetailsDrawer({ ...detailsDrawer, activeTab: 'OVERVIEW' })}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition ${
+                    detailsDrawer.activeTab === 'OVERVIEW' ? 'bg-[#053D3A] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Overview & Specs
+                </button>
+
+                <button
+                  onClick={() => setDetailsDrawer({ ...detailsDrawer, activeTab: 'HISTORY' })}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 ${
+                    detailsDrawer.activeTab === 'HISTORY' ? 'bg-[#053D3A] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <History size={13} />
+                  <span>Allocation History ({detailsDrawer.asset.allocations?.length || 0})</span>
+                </button>
+
+                <button
+                  onClick={() => setDetailsDrawer({ ...detailsDrawer, activeTab: 'MAINTENANCE' })}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 ${
+                    detailsDrawer.activeTab === 'MAINTENANCE' ? 'bg-[#053D3A] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  <Wrench size={13} />
+                  <span>Service Logs ({detailsDrawer.asset.maintenanceLogs?.length || 0})</span>
+                </button>
+              </div>
+
+              {/* Content Area */}
+              <div className="p-5 overflow-y-auto flex-1 space-y-4">
+                {detailsDrawer.activeTab === 'OVERVIEW' && (
+                  <div className="space-y-4 text-xs">
+                    {/* Key Stats Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Status</span>
+                        <span className="font-extrabold text-sm text-slate-900 mt-1 block">{detailsDrawer.asset.status}</span>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Category</span>
+                        <span className="font-extrabold text-sm text-slate-900 mt-1 block">{detailsDrawer.asset.category}</span>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Branch</span>
+                        <span className="font-extrabold text-sm text-slate-900 mt-1 block">{detailsDrawer.asset.allocatedToBranch || 'Storage'}</span>
+                      </div>
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Custodian</span>
+                        <span className="font-extrabold text-sm text-slate-900 mt-1 block">{detailsDrawer.asset.allocatedToUserName || 'In Stock'}</span>
+                      </div>
+                    </div>
+
+                    {/* Detailed Specifications */}
+                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2">
+                      <span className="font-black text-xs text-slate-900 uppercase tracking-wider block">Financial & Warranty Details</span>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                        <div>
+                          <span className="text-slate-500 block text-[10px] font-semibold">Purchase Cost:</span>
+                          <span className="font-mono font-bold text-slate-900 text-xs">
+                            ₹{Math.round(detailsDrawer.asset.purchaseCost || 0).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[10px] font-semibold">Book Value:</span>
+                          <span className="font-mono font-bold text-[#053D3A] text-xs">
+                            ₹{Math.round(detailsDrawer.asset.currentValue || detailsDrawer.asset.purchaseCost || 0).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[10px] font-semibold">Serial Number:</span>
+                          <span className="font-mono font-bold text-slate-900 text-xs">{detailsDrawer.asset.serialNumber || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[10px] font-semibold">Model:</span>
+                          <span className="font-bold text-slate-900 text-xs">{detailsDrawer.asset.modelNumber || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[10px] font-semibold">Vendor:</span>
+                          <span className="font-bold text-slate-900 text-xs">{detailsDrawer.asset.vendorName || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[10px] font-semibold">Warranty Expiry:</span>
+                          <span className="font-mono font-bold text-slate-900 text-xs">
+                            {detailsDrawer.asset.warrantyExpiry ? detailsDrawer.asset.warrantyExpiry.split('T')[0] : '-'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {detailsDrawer.activeTab === 'HISTORY' && (
+                  <div className="space-y-3">
+                    {(!detailsDrawer.asset.allocations || detailsDrawer.asset.allocations.length === 0) ? (
+                      <div className="py-8 text-center text-slate-400 text-xs">No previous allocation logs found.</div>
+                    ) : (
+                      detailsDrawer.asset.allocations.map((al: any, i: number) => (
+                        <div key={al.id || i} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-start gap-3">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0 mt-0.5">
+                            <UserCheck size={14} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p className="font-extrabold text-xs text-slate-900">{al.userName || 'Assigned User'}</p>
+                              <span className="text-[10px] font-mono text-slate-500">
+                                {new Date(al.allocatedAt).toLocaleDateString('en-GB')}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 font-semibold mt-0.5">Branch: {al.branchCode}</p>
+                            {al.remarks && <p className="text-[10px] text-slate-500 mt-1 italic">"{al.remarks}"</p>}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {detailsDrawer.activeTab === 'MAINTENANCE' && (
+                  <div className="space-y-3">
+                    {(!detailsDrawer.asset.maintenanceLogs || detailsDrawer.asset.maintenanceLogs.length === 0) ? (
+                      <div className="py-8 text-center text-slate-400 text-xs">No maintenance or repair logs found.</div>
+                    ) : (
+                      detailsDrawer.asset.maintenanceLogs.map((ml: any, i: number) => (
+                        <div key={ml.id || i} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-start gap-3">
+                          <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                            <Wrench size={14} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">
+                                {ml.type}
+                              </span>
+                              <span className="font-mono font-bold text-xs text-slate-900">
+                                ₹{Math.round(ml.cost || 0).toLocaleString('en-IN')}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-800 font-bold mt-1.5">{ml.description}</p>
+                            <div className="flex items-center gap-3 text-[10px] text-slate-500 mt-1">
+                              <span>Date: {new Date(ml.serviceDate).toLocaleDateString('en-GB')}</span>
+                              {ml.performedBy && <span>Tech: {ml.performedBy}</span>}
+                              {ml.vendorName && <span>Vendor: {ml.vendorName}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2 shrink-0">
+                <button
+                  onClick={() => setDetailsDrawer({ open: false, activeTab: 'OVERVIEW' })}
+                  className="px-4 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-xl text-xs font-bold"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
