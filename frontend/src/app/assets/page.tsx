@@ -114,10 +114,6 @@ export default function AssetManagerPage() {
   const [maintVendor, setMaintVendor] = useState('');
   const [maintTech, setMaintTech] = useState('');
 
-  // Fetch branches for branch assignment
-  const { data: branchesData } = useSWR('/branches', fetcher);
-  const branches: any[] = Array.isArray(branchesData) ? branchesData : [];
-
   // Query parameters
   const queryParams = new URLSearchParams({
     category: selectedCategory,
@@ -127,6 +123,15 @@ export default function AssetManagerPage() {
   }).toString();
 
   const { data, mutate, isLoading } = useSWR(`/assets?${queryParams}`, fetcher);
+
+  // Fetch branches for branch assignment
+  const { data: branchesData } = useSWR('/branches?pageSize=100', fetcher);
+  const branches: any[] = useMemo(() => {
+    if (Array.isArray(branchesData?.data)) return branchesData.data;
+    if (Array.isArray(branchesData)) return branchesData;
+    if (Array.isArray(data?.branches)) return data.branches;
+    return [];
+  }, [branchesData, data?.branches]);
 
   const assets: any[] = data?.assets || [];
   const categories: any[] = data?.categories || [];
@@ -1130,12 +1135,15 @@ export default function AssetManagerPage() {
                   {/* Row 4: Branch & Custodian */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Assigned Branch</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Assigned Branch <span className="text-rose-500">*</span>
+                      </label>
                       <select
                         value={formData.allocatedToBranch}
                         onChange={(e) => setFormData({ ...formData, allocatedToBranch: e.target.value })}
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A]"
                       >
+                        <option value="">Select Branch ({branches.length} available)</option>
                         {branches.map((b) => (
                           <option key={b.code} value={b.code}>
                             {b.code} — {b.name}
@@ -1258,12 +1266,15 @@ export default function AssetManagerPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Target Branch</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Target Branch <span className="text-rose-500">*</span>
+                  </label>
                   <select
                     value={allocBranch}
                     onChange={(e) => setAllocBranch(e.target.value)}
                     className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
                   >
+                    <option value="">Select Branch ({branches.length} available)</option>
                     {branches.map((b) => (
                       <option key={b.code} value={b.code}>
                         {b.code} — {b.name}

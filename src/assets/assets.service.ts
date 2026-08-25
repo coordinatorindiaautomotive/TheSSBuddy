@@ -198,7 +198,7 @@ export class AssetsService {
       ];
     }
 
-    const [assets, categories] = await Promise.all([
+    const [assets, categories, branches] = await Promise.all([
       this.prisma.asset.findMany({
         where,
         include: {
@@ -214,6 +214,10 @@ export class AssetsService {
         orderBy: [{ createdAt: 'desc' }],
       }),
       this.getCategories(),
+      this.prisma.branch.findMany({
+        select: { code: true, name: true, region: true },
+        orderBy: { code: 'asc' },
+      }),
     ]);
 
     // Financial & Operational Metrics
@@ -232,6 +236,7 @@ export class AssetsService {
     return {
       assets,
       categories,
+      branches,
       metrics: {
         totalCount,
         availableCount,
