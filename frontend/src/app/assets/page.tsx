@@ -286,11 +286,28 @@ export default function AssetManagerPage() {
     }
 
     try {
+      const payload = {
+        ...formData,
+        code: formData.code.trim().toUpperCase(),
+        name: formData.name.trim(),
+        category: formData.category.trim().toUpperCase(),
+        allocatedToBranch: formData.allocatedToBranch?.trim() || null,
+        allocatedToUser: formData.allocatedToUser?.trim() || null,
+        allocatedToUserName: formData.allocatedToUserName?.trim() || null,
+        purchaseCost: Number(formData.purchaseCost) || 0,
+        currentValue: Number(formData.currentValue) || Number(formData.purchaseCost) || 0,
+        depreciationRate: Number(formData.depreciationRate) || 0,
+        purchaseDate: formData.purchaseDate || null,
+        warrantyExpiry: formData.warrantyExpiry || null,
+        amcExpiry: formData.amcExpiry || null,
+        insuranceExpiry: formData.insuranceExpiry || null,
+      };
+
       if (assetModal.isEdit && assetModal.asset?.id) {
-        await api.put(`/assets/${assetModal.asset.id}`, formData);
+        await api.put(`/assets/${assetModal.asset.id}`, payload);
         toast.success('Asset updated successfully!', { icon: '✅' });
       } else {
-        await api.post('/assets', formData);
+        await api.post('/assets', payload);
         toast.success('New asset registered successfully!', { icon: '📦' });
       }
 

@@ -1264,7 +1264,7 @@ model Asset {
   name              String    @db.VarChar(200)
   code              String    @unique @db.VarChar(100)
   category          String    @db.VarChar(100)
-  allocatedToUser   String?   @map("allocated_to_user") @db.Uuid
+  allocatedToUser   String?   @map("allocated_to_user") @db.VarChar(100)
   allocatedToUserName String? @map("allocated_to_user_name") @db.VarChar(200)
   allocatedToBranch String?   @map("allocated_to_branch") @db.VarChar(50)
   status            String    @default("AVAILABLE") @db.VarChar(50) // AVAILABLE, ALLOCATED, MAINTENANCE, DISPOSED
@@ -1298,7 +1298,7 @@ model AssetAllocation {
   id          String    @id @default(uuid()) @db.Uuid
   assetId     String    @map("asset_id") @db.Uuid
   branchCode  String?   @map("branch_code") @db.VarChar(50)
-  userId      String?   @map("user_id") @db.Uuid
+  userId      String?   @map("user_id") @db.VarChar(100)
   userName    String?   @map("user_name") @db.VarChar(200)
   allocatedAt DateTime  @default(now()) @map("allocated_at")
   returnedAt  DateTime? @map("returned_at")

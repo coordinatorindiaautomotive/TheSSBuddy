@@ -266,55 +266,73 @@ export class AssetsService {
       throw new BadRequestException('Asset Code, Name, and Category are required.');
     }
 
-    const cleanCode = dto.code.trim().toUpperCase();
+    const cleanStr = (val: any) => {
+      if (val === undefined || val === null) return null;
+      const s = String(val).trim();
+      return s.length === 0 ? null : s;
+    };
+
+    const cleanDate = (val: any) => {
+      if (!val || val === '' || val === 'null') return null;
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    const cleanNum = (val: any, fallback = 0) => {
+      if (val === undefined || val === null || val === '') return fallback;
+      const n = Number(val);
+      return isNaN(n) ? fallback : n;
+    };
+
+    const cleanCode = cleanStr(dto.code)?.toUpperCase() || '';
     const existing = await this.prisma.asset.findUnique({ where: { code: cleanCode } });
     if (existing) {
       throw new BadRequestException(`Asset with code '${cleanCode}' already exists.`);
     }
 
-    const purchaseCost = Number(dto.purchaseCost) || 0;
-    const depreciationRate = Number(dto.depreciationRate) || 0;
+    const purchaseCost = cleanNum(dto.purchaseCost, 0);
+    const depreciationRate = cleanNum(dto.depreciationRate, 0);
     const currentValue = dto.currentValue !== undefined
-      ? Number(dto.currentValue)
+      ? cleanNum(dto.currentValue, purchaseCost)
       : purchaseCost;
 
-    const status = dto.status || (dto.allocatedToBranch || dto.allocatedToUser ? 'ALLOCATED' : 'AVAILABLE');
+    const status = cleanStr(dto.status) || (cleanStr(dto.allocatedToBranch) || cleanStr(dto.allocatedToUser) ? 'ALLOCATED' : 'AVAILABLE');
 
     const created = await this.prisma.asset.create({
       data: {
         code: cleanCode,
-        name: dto.name.trim(),
-        category: dto.category.trim().toUpperCase(),
+        name: cleanStr(dto.name) || '',
+        category: cleanStr(dto.category)?.toUpperCase() || '',
         status,
-        serialNumber: dto.serialNumber?.trim() || null,
-        modelNumber: dto.modelNumber?.trim() || null,
-        specifications: dto.specifications?.trim() || null,
-        purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : null,
+        serialNumber: cleanStr(dto.serialNumber),
+        modelNumber: cleanStr(dto.modelNumber),
+        specifications: cleanStr(dto.specifications),
+        purchaseDate: cleanDate(dto.purchaseDate),
         purchaseCost,
         currentValue,
-        billNumber: dto.billNumber?.trim() || null,
-        vendorName: dto.vendorName?.trim() || null,
-        allocatedToBranch: dto.allocatedToBranch?.trim() || null,
-        allocatedToUser: dto.allocatedToUser?.trim() || null,
-        allocatedToUserName: dto.allocatedToUserName?.trim() || null,
-        warrantyExpiry: dto.warrantyExpiry ? new Date(dto.warrantyExpiry) : null,
-        amcExpiry: dto.amcExpiry ? new Date(dto.amcExpiry) : null,
-        insuranceExpiry: dto.insuranceExpiry ? new Date(dto.insuranceExpiry) : null,
-        barcode: dto.barcode?.trim() || cleanCode,
-        qrCode: dto.qrCode?.trim() || cleanCode,
+        billNumber: cleanStr(dto.billNumber),
+        vendorName: cleanStr(dto.vendorName),
+        allocatedToBranch: cleanStr(dto.allocatedToBranch),
+        allocatedToUser: cleanStr(dto.allocatedToUser),
+        allocatedToUserName: cleanStr(dto.allocatedToUserName),
+        warrantyExpiry: cleanDate(dto.warrantyExpiry),
+        amcExpiry: cleanDate(dto.amcExpiry),
+        insuranceExpiry: cleanDate(dto.insuranceExpiry),
+        barcode: cleanStr(dto.barcode) || cleanCode,
+        qrCode: cleanStr(dto.qrCode) || cleanCode,
         depreciationRate,
-        notes: dto.notes?.trim() || null,
+        notes: cleanStr(dto.notes),
       },
     });
 
     // Create initial allocation log if assigned
-    if (dto.allocatedToBranch || dto.allocatedToUser) {
+    if (cleanStr(dto.allocatedToBranch) || cleanStr(dto.allocatedToUser)) {
       await this.prisma.assetAllocation.create({
         data: {
           assetId: created.id,
-          branchCode: dto.allocatedToBranch?.trim() || null,
-          userId: dto.allocatedToUser?.trim() || null,
-          userName: dto.allocatedToUserName?.trim() || 'Assigned User',
+          branchCode: cleanStr(dto.allocatedToBranch),
+          userId: cleanStr(dto.allocatedToUser),
+          userName: cleanStr(dto.allocatedToUserName) || 'Assigned User',
           remarks: 'Initial Allocation upon Registration',
         },
       });
@@ -337,36 +355,57 @@ export class AssetsService {
     const asset = await this.prisma.asset.findUnique({ where: { id } });
     if (!asset) throw new NotFoundException('Asset not found.');
 
-    const purchaseCost = dto.purchaseCost !== undefined ? Number(dto.purchaseCost) : asset.purchaseCost;
-    const depreciationRate = dto.depreciationRate !== undefined ? Number(dto.depreciationRate) : asset.depreciationRate;
-    const currentValue = dto.currentValue !== undefined ? Number(dto.currentValue) : asset.currentValue;
+    const cleanStr = (val: any, fallback: any = null) => {
+      if (val === undefined) return fallback;
+      if (val === null) return null;
+      const s = String(val).trim();
+      return s.length === 0 ? null : s;
+    };
+
+    const cleanDate = (val: any, fallback: any = null) => {
+      if (val === undefined) return fallback;
+      if (!val || val === '' || val === 'null') return null;
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    const cleanNum = (val: any, fallback = 0) => {
+      if (val === undefined || val === null || val === '') return fallback;
+      const n = Number(val);
+      return isNaN(n) ? fallback : n;
+    };
+
+    const purchaseCost = cleanNum(dto.purchaseCost, asset.purchaseCost || 0);
+    const depreciationRate = cleanNum(dto.depreciationRate, asset.depreciationRate || 0);
+    const currentValue = cleanNum(dto.currentValue, asset.currentValue || purchaseCost);
 
     const updated = await this.prisma.asset.update({
       where: { id },
       data: {
-        name: dto.name ? dto.name.trim() : asset.name,
-        category: dto.category ? dto.category.trim().toUpperCase() : asset.category,
-        status: dto.status || asset.status,
-        serialNumber: dto.serialNumber !== undefined ? dto.serialNumber?.trim() : asset.serialNumber,
-        modelNumber: dto.modelNumber !== undefined ? dto.modelNumber?.trim() : asset.modelNumber,
-        specifications: dto.specifications !== undefined ? dto.specifications?.trim() : asset.specifications,
-        purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : asset.purchaseDate,
+        code: cleanStr(dto.code, asset.code)?.toUpperCase() || asset.code,
+        name: cleanStr(dto.name, asset.name) || asset.name,
+        category: cleanStr(dto.category, asset.category)?.toUpperCase() || asset.category,
+        status: cleanStr(dto.status, asset.status) || asset.status,
+        serialNumber: cleanStr(dto.serialNumber, asset.serialNumber),
+        modelNumber: cleanStr(dto.modelNumber, asset.modelNumber),
+        specifications: cleanStr(dto.specifications, asset.specifications),
+        purchaseDate: cleanDate(dto.purchaseDate, asset.purchaseDate),
         purchaseCost,
         currentValue,
-        billNumber: dto.billNumber !== undefined ? dto.billNumber?.trim() : asset.billNumber,
-        vendorName: dto.vendorName !== undefined ? dto.vendorName?.trim() : asset.vendorName,
-        allocatedToBranch: dto.allocatedToBranch !== undefined ? dto.allocatedToBranch?.trim() : asset.allocatedToBranch,
-        allocatedToUser: dto.allocatedToUser !== undefined ? dto.allocatedToUser?.trim() : asset.allocatedToUser,
-        allocatedToUserName: dto.allocatedToUserName !== undefined ? dto.allocatedToUserName?.trim() : asset.allocatedToUserName,
-        warrantyExpiry: dto.warrantyExpiry ? new Date(dto.warrantyExpiry) : asset.warrantyExpiry,
-        amcExpiry: dto.amcExpiry ? new Date(dto.amcExpiry) : asset.amcExpiry,
-        insuranceExpiry: dto.insuranceExpiry ? new Date(dto.insuranceExpiry) : asset.insuranceExpiry,
-        barcode: dto.barcode !== undefined ? dto.barcode?.trim() : asset.barcode,
-        qrCode: dto.qrCode !== undefined ? dto.qrCode?.trim() : asset.qrCode,
+        billNumber: cleanStr(dto.billNumber, asset.billNumber),
+        vendorName: cleanStr(dto.vendorName, asset.vendorName),
+        allocatedToBranch: cleanStr(dto.allocatedToBranch, asset.allocatedToBranch),
+        allocatedToUser: cleanStr(dto.allocatedToUser, asset.allocatedToUser),
+        allocatedToUserName: cleanStr(dto.allocatedToUserName, asset.allocatedToUserName),
+        warrantyExpiry: cleanDate(dto.warrantyExpiry, asset.warrantyExpiry),
+        amcExpiry: cleanDate(dto.amcExpiry, asset.amcExpiry),
+        insuranceExpiry: cleanDate(dto.insuranceExpiry, asset.insuranceExpiry),
+        barcode: cleanStr(dto.barcode, asset.barcode) || asset.code,
+        qrCode: cleanStr(dto.qrCode, asset.qrCode) || asset.code,
         depreciationRate,
-        disposalDate: dto.disposalDate ? new Date(dto.disposalDate) : asset.disposalDate,
-        disposalReason: dto.disposalReason !== undefined ? dto.disposalReason : asset.disposalReason,
-        notes: dto.notes !== undefined ? dto.notes?.trim() : asset.notes,
+        disposalDate: cleanDate(dto.disposalDate, asset.disposalDate),
+        disposalReason: cleanStr(dto.disposalReason, asset.disposalReason),
+        notes: cleanStr(dto.notes, asset.notes),
       },
     });
 
