@@ -739,7 +739,6 @@ export class DashboardService {
     };
   }
 
-  // ─── POWER BI / DAX COMPLIANT EXECUTIVE KPIS (FTD, MTD, QTD, YTD) ───────────
   async getExecutiveKPIs(params: {
     fiscalYear?: number;
     month?: string;
@@ -747,6 +746,7 @@ export class DashboardService {
     branchCode?: string;
     partyType?: string;
     partCategory?: string;
+    refresh?: boolean;
   }) {
     const MONTH_ORDER = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
     const MONTH_INDEX_MAP: Record<string, number> = {
@@ -804,10 +804,6 @@ export class DashboardService {
     const prevMonthFY = currentMonthIdx === 0 ? targetFY - 1 : targetFY;
 
     // Determine Quarter
-    // Q1: Apr, May, Jun (0,1,2)
-    // Q2: Jul, Aug, Sep (3,4,5)
-    // Q3: Oct, Nov, Dec (6,7,8)
-    // Q4: Jan, Feb, Mar (9,10,11)
     const quarterNum = Math.floor(currentMonthIdx / 3) + 1;
     const quarterName = `Q${quarterNum}`;
     const quarterStartMonthIdx = (quarterNum - 1) * 3;
@@ -827,9 +823,11 @@ export class DashboardService {
     const effectivePartCategory = params.partCategory !== undefined ? params.partCategory : 'M';
     const cacheKey = `dashboard:exec-kpis:${targetFY}:${targetMonth}:${targetDay}:${effectiveBranch}:${effectivePartyType}:${effectivePartCategory}`;
 
-    const cached = await this.cacheService.get<any>(cacheKey);
-    if (cached) {
-      return cached;
+    if (!params.refresh) {
+      const cached = await this.cacheService.get<any>(cacheKey);
+      if (cached) {
+        return cached;
+      }
     }
 
     // Formatter helper
@@ -886,36 +884,66 @@ export class DashboardService {
     const ytdPriorCond = currentMonthIdx > 0 ? `r.month IN (${MONTH_ORDER.slice(0, currentMonthIdx).map(m => `'${m}'`).join(', ')})` : '1=0';
 
     let locationRows: any[] = [];
+    let trajectoryRows: any[] = [];
+    let partyMixRows: any[] = [];
+
     try {
-      locationRows = await this.prisma.$queryRawUnsafe<any[]>(`
-        SELECT
-          r.loc AS "loc",
-          -- FTD
-          SUM(CASE WHEN r.fiscal_year = ${targetFY} AND r.month = '${targetMonth}' AND ${dayCastSql} = ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "ftdSales",
-          SUM(CASE WHEN r.fiscal_year = ${prevMonthFY} AND r.month = '${prevMonthName}' AND ${dayCastSql} = ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "ftdLmSales",
-          SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} AND r.month = '${targetMonth}' AND ${dayCastSql} = ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "ftdLySales",
-          
-          -- MTD
-          SUM(CASE WHEN r.fiscal_year = ${targetFY} AND r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "mtdSales",
-          SUM(CASE WHEN r.fiscal_year = ${prevMonthFY} AND r.month = '${prevMonthName}' AND ${dayCastSql} <= ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "mtdLmSales",
-          SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} AND r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "mtdLySales",
-          
-          -- QTD
-          SUM(CASE WHEN r.fiscal_year = ${targetFY} AND (${qtdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "qtdSales",
-          SUM(CASE WHEN r.fiscal_year = ${prevQuarterFY} AND (${lqPriorCond} OR (r.month = '${equivalentPrevQMonthName}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "qtdLqSales",
-          SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} AND (${qtdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "qtdLySales",
-          
-          -- YTD
-          SUM(CASE WHEN r.fiscal_year = ${targetFY} AND (${ytdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "ytdSales",
-          SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} AND (${ytdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "ytdLySales"
-        FROM retail_sales_records r
-        WHERE r.fiscal_year IN (${targetFY}, ${targetFY - 1}, ${prevQuarterFY}) ${locWhereClause}
-        GROUP BY r.loc
-        ORDER BY "ytdSales" DESC
-      `);
+      [locationRows, trajectoryRows, partyMixRows] = await Promise.all([
+        this.prisma.$queryRawUnsafe<any[]>(`
+          SELECT
+            r.loc AS "loc",
+            -- FTD
+            SUM(CASE WHEN r.fiscal_year = ${targetFY} AND r.month = '${targetMonth}' AND ${dayCastSql} = ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "ftdSales",
+            SUM(CASE WHEN r.fiscal_year = ${prevMonthFY} AND r.month = '${prevMonthName}' AND ${dayCastSql} = ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "ftdLmSales",
+            SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} AND r.month = '${targetMonth}' AND ${dayCastSql} = ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "ftdLySales",
+            
+            -- MTD
+            SUM(CASE WHEN r.fiscal_year = ${targetFY} AND r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "mtdSales",
+            SUM(CASE WHEN r.fiscal_year = ${prevMonthFY} AND r.month = '${prevMonthName}' AND ${dayCastSql} <= ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "mtdLmSales",
+            SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} AND r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay} THEN r.net_retail_selling ELSE 0 END) AS "mtdLySales",
+            
+            -- QTD
+            SUM(CASE WHEN r.fiscal_year = ${targetFY} AND (${qtdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "qtdSales",
+            SUM(CASE WHEN r.fiscal_year = ${prevQuarterFY} AND (${lqPriorCond} OR (r.month = '${equivalentPrevQMonthName}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "qtdLqSales",
+            SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} AND (${qtdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "qtdLySales",
+            
+            -- YTD
+            SUM(CASE WHEN r.fiscal_year = ${targetFY} AND (${ytdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "ytdSales",
+            SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} AND (${ytdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "ytdLySales"
+          FROM retail_sales_records r
+          WHERE r.fiscal_year IN (${targetFY}, ${targetFY - 1}, ${prevQuarterFY}) ${locWhereClause}
+          GROUP BY r.loc
+          ORDER BY "ytdSales" DESC
+        `),
+        this.prisma.$queryRawUnsafe<any[]>(`
+          SELECT
+            r.month,
+            SUM(CASE WHEN r.fiscal_year = ${targetFY} THEN r.net_retail_selling ELSE 0 END) / 10000000.0 AS "fyCurrentCr",
+            SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} THEN r.net_retail_selling ELSE 0 END) / 10000000.0 AS "fyLyCr",
+            SUM(CASE WHEN r.fiscal_year = ${targetFY - 2} THEN r.net_retail_selling ELSE 0 END) / 10000000.0 AS "fyLy2Cr"
+          FROM retail_sales_records r
+          WHERE r.fiscal_year IN (${targetFY}, ${targetFY - 1}, ${targetFY - 2}) ${locWhereClause}
+          GROUP BY r.month
+        `).catch(() => []),
+        this.prisma.$queryRawUnsafe<any[]>(`
+          SELECT
+            r.party_type AS "partyType",
+            SUM(CASE WHEN r.fiscal_year = ${targetFY} THEN r.net_retail_selling ELSE 0 END) AS "currentSales",
+            SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} THEN r.net_retail_selling ELSE 0 END) AS "lySales",
+            COUNT(DISTINCT r.part_num) AS "skus",
+            COUNT(*) AS "lines"
+          FROM retail_sales_records r
+          WHERE r.fiscal_year IN (${targetFY}, ${targetFY - 1})
+            AND r.party_type IS NOT NULL AND r.party_type != '' ${locWhereClause}
+          GROUP BY r.party_type
+          ORDER BY "currentSales" DESC
+        `).catch(() => []),
+      ]);
     } catch (err: any) {
       this.logger.error(`Location rows query failed: ${err.message}`);
       locationRows = [];
+      trajectoryRows = [];
+      partyMixRows = [];
     }
 
     // ─── SINGLE-PASS CONSOLIDATED TOTALS (Exact sum of all location rows) ─────────
@@ -971,6 +999,52 @@ export class DashboardService {
         mtd: { current: mtdCur, formatted: formatINR(mtdCur), lm: mtdLm, formattedLm: formatINR(mtdLm), ly: mtdLy, formattedLy: formatINR(mtdLy), growthLM: Number(mtdGLM.toFixed(1)), growthLY: Number(mtdGLY.toFixed(1)) },
         qtd: { current: qtdCur, formatted: formatINR(qtdCur), lq: qtdLq, formattedLq: formatINR(qtdLq), ly: qtdLy, formattedLy: formatINR(qtdLy), growthLQ: Number(qtdGLQ.toFixed(1)), growthLY: Number(qtdGLY.toFixed(1)) },
         ytd: { current: ytdCur, formatted: formatINR(ytdCur), ly: ytdLy, formattedLy: formatINR(ytdLy), growthLY: Number(ytdGLY.toFixed(1)) },
+      };
+    });
+
+    // ─── DYNAMIC MONTHLY PERFORMANCE TRAJECTORY ───────────────────────────
+    const trajectoryMap = new Map<string, any>();
+    MONTH_ORDER.forEach(m => {
+      trajectoryMap.set(m, {
+        month: m,
+        [`FY${targetFY - 2}`]: 0,
+        [`FY${targetFY - 1}`]: 0,
+        [`FY${targetFY}`]: null,
+      });
+    });
+    trajectoryRows.forEach(r => {
+      const entry = trajectoryMap.get(r.month);
+      if (entry) {
+        entry[`FY${targetFY - 2}`] = Number((Number(r.fyLy2Cr) || 0).toFixed(2));
+        entry[`FY${targetFY - 1}`] = Number((Number(r.fyLyCr) || 0).toFixed(2));
+        const monthIdx = MONTH_INDEX_MAP[r.month] ?? 0;
+        if (monthIdx <= currentMonthIdx) {
+          entry[`FY${targetFY}`] = Number((Number(r.fyCurrentCr) || 0).toFixed(2));
+        }
+      }
+    });
+    const trajectoryData = Array.from(trajectoryMap.values());
+
+    // ─── DYNAMIC PARTY TYPE MIX ───────────────────────────────────────────
+    const totalMixSales = partyMixRows.reduce((sum, r) => sum + (Number(r.currentSales) || 0), 0);
+    const PARTY_TYPE_COLORS = ['#2563eb', '#053D3A', '#d97706', '#087443', '#7c3aed', '#dc2626', '#4b5563', '#0284c7'];
+
+    const partyTypeMixData = partyMixRows.map((r, i) => {
+      const cur = Number(r.currentSales) || 0;
+      const ly = Number(r.lySales) || 0;
+      const growth = ly > 0 ? ((cur - ly) / ly) * 100 : (cur > 0 ? 100 : 0);
+      const val = totalMixSales > 0 ? Number(((cur / totalMixSales) * 100).toFixed(1)) : 0;
+      return {
+        name: r.partyType,
+        shortName: r.partyType,
+        value: val,
+        salesCr: Number((cur / 10000000).toFixed(2)),
+        lySalesCr: Number((ly / 10000000).toFixed(2)),
+        growth: `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`,
+        isPositive: growth >= 0,
+        color: PARTY_TYPE_COLORS[i % PARTY_TYPE_COLORS.length],
+        lines: `${Math.round(Number(r.lines || 0)).toLocaleString()} Lines`,
+        parts: `${Math.round(Number(r.skus || 0)).toLocaleString()} SKUs`,
       };
     });
 
@@ -1053,6 +1127,8 @@ export class DashboardService {
         },
       },
       locationGrid,
+      trajectoryData,
+      partyTypeMixData,
       filters: {
         periods: [
           { fiscalYear: 2026, month: 'Aug', monthYear: 'Aug-2026' },

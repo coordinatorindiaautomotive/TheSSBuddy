@@ -28,6 +28,7 @@ export class DashboardController {
     @Query('branchCode') branchCode?: string,
     @Query('partyType') partyType?: string,
     @Query('partCategory') partCategory?: string,
+    @Query('refresh') refresh?: boolean | string,
   ) {
     return this.dashboardService.getExecutiveKPIs({
       fiscalYear: fiscalYear ? Number(fiscalYear) : undefined,
@@ -36,6 +37,7 @@ export class DashboardController {
       branchCode,
       partyType,
       partCategory,
+      refresh: Boolean(refresh === true || refresh === 'true' || refresh === '1'),
     });
   }
 

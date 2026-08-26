@@ -595,9 +595,10 @@ export default function DashboardPage() {
   const { isBranchUser, userBranch, isSuperAdmin, user } = useAuth();
   const yesterday = useMemo(() => getYesterdayDate(), []);
   const [fiscalYear, setFiscalYear] = useState<number>(2026);
-  const [month, setMonth] = useState<string>(yesterday.month || 'Aug');
-  const [day, setDay] = useState<number>(yesterday.day || 22);
+  const [month, setMonth] = useState<string>('Aug');
+  const [day, setDay] = useState<number>(25);
   const [branchCode, setBranchCode] = useState<string>('ALL');
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
   // Default party type multi-selection: MASS, INDEPENDENT WORKSHOP, TRADER/RETAILER, WALK-IN CUSTOMER
   const [selectedPartyTypes, setSelectedPartyTypes] = useState<string[]>(DEFAULT_PARTY_TYPES);
@@ -630,12 +631,27 @@ export default function DashboardPage() {
 
   const { data: kpiData, mutate, isLoading } = useSWR(
     `/dashboard/executive-kpis?${queryParams}`,
-    fetcher
+    fetcher,
+    { revalidateOnFocus: false }
   );
 
   const kpis = kpiData?.kpis;
   const asOf = kpiData?.asOf;
   const filters = kpiData?.filters;
+
+  // Live Refresh handler (forces backend cache bypass and fresh DB recalculation)
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const fresh = await api.get(`/dashboard/executive-kpis?${queryParams}&refresh=true`).then(r => r.data);
+      await mutate(fresh, { revalidate: false });
+      toast.success('Dashboard refreshed with latest live data!', { icon: '⚡' });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to refresh dashboard');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Toggle single party type
   const togglePartyType = (pt: string) => {
@@ -663,72 +679,83 @@ export default function DashboardPage() {
     setTimeout(() => setCopiedDax(null), 2500);
   };
 
-  // Monthly performance trajectory
-  const trajectoryData = [
-    { month: 'Apr', FY24: 10.93, FY25: 12.74, FY26: 14.19 },
-    { month: 'May', FY24: 12.16, FY25: 13.40, FY26: 14.64 },
-    { month: 'Jun', FY24: 10.48, FY25: 12.39, FY26: 13.71 },
-    { month: 'Jul', FY24: 12.06, FY25: 13.85, FY26: 14.34 },
-    { month: 'Aug', FY24: 11.82, FY25: 13.59, FY26: 5.75 }, // partial month
-    { month: 'Sep', FY24: 11.87, FY25: 14.04, FY26: null },
-    { month: 'Oct', FY24: 12.00, FY25: 14.55, FY26: null },
-    { month: 'Nov', FY24: 12.34, FY25: 15.33, FY26: null },
-    { month: 'Dec', FY24: 12.98, FY25: 15.66, FY26: null },
-    { month: 'Jan', FY24: 14.11, FY25: 14.40, FY26: null },
-    { month: 'Feb', FY24: 12.09, FY25: 13.93, FY26: null },
-    { month: 'Mar', FY24: 11.04, FY25: 12.79, FY26: null },
-  ];
+  // Dynamic live monthly performance trajectory
+  const trajectoryData = useMemo(() => {
+    if (kpiData?.trajectoryData && kpiData.trajectoryData.length > 0) {
+      return kpiData.trajectoryData;
+    }
+    return [
+      { month: 'Apr', FY24: 10.93, FY25: 12.74, FY26: 14.19 },
+      { month: 'May', FY24: 12.16, FY25: 13.40, FY26: 14.64 },
+      { month: 'Jun', FY24: 10.48, FY25: 12.39, FY26: 13.71 },
+      { month: 'Jul', FY24: 12.06, FY25: 13.85, FY26: 14.34 },
+      { month: 'Aug', FY24: 11.82, FY25: 13.59, FY26: 5.75 },
+      { month: 'Sep', FY24: 11.87, FY25: 14.04, FY26: null },
+      { month: 'Oct', FY24: 12.00, FY25: 14.55, FY26: null },
+      { month: 'Nov', FY24: 12.34, FY25: 15.33, FY26: null },
+      { month: 'Dec', FY24: 12.98, FY25: 15.66, FY26: null },
+      { month: 'Jan', FY24: 14.11, FY25: 14.40, FY26: null },
+      { month: 'Feb', FY24: 12.09, FY25: 13.93, FY26: null },
+      { month: 'Mar', FY24: 11.04, FY25: 12.79, FY26: null },
+    ];
+  }, [kpiData?.trajectoryData]);
 
-  const partyTypeMixData = [
-    {
-      name: 'Independent Workshop',
-      shortName: 'Workshop (IW)',
-      value: 37.1,
-      salesCr: 21.69,
-      lySalesCr: 21.45,
-      growth: '+1.1%',
-      isPositive: true,
-      color: '#2563eb', // Blue
-      lines: '2.23L Lines',
-      parts: '12,307 SKUs',
-    },
-    {
-      name: 'Trader / Retailer',
-      shortName: 'Trader / Retailer',
-      value: 30.2,
-      salesCr: 17.64,
-      lySalesCr: 14.74,
-      growth: '+19.6%',
-      isPositive: true,
-      color: '#10b981', // Emerald Green
-      lines: '1.50L Lines',
-      parts: '14,002 SKUs',
-    },
-    {
-      name: 'Walk-in Customer',
-      shortName: 'Walk-in Cust.',
-      value: 16.4,
-      salesCr: 9.61,
-      lySalesCr: 8.44,
-      growth: '+13.8%',
-      isPositive: true,
-      color: '#f59e0b', // Amber
-      lines: '1.49L Lines',
-      parts: '9,151 SKUs',
-    },
-    {
-      name: 'MASS (Authorized)',
-      shortName: 'MASS (Auth.)',
-      value: 16.3,
-      salesCr: 9.52,
-      lySalesCr: 8.80,
-      growth: '+8.2%',
-      isPositive: true,
-      color: '#8b5cf6', // Purple
-      lines: '0.59L Lines',
-      parts: '9,728 SKUs',
-    },
-  ];
+  // Dynamic live party type mix
+  const partyTypeMixData = useMemo(() => {
+    if (kpiData?.partyTypeMixData && kpiData.partyTypeMixData.length > 0) {
+      return kpiData.partyTypeMixData;
+    }
+    return [
+      {
+        name: 'Independent Workshop',
+        shortName: 'Workshop (IW)',
+        value: 37.1,
+        salesCr: 21.69,
+        lySalesCr: 21.45,
+        growth: '+1.1%',
+        isPositive: true,
+        color: '#2563eb',
+        lines: '2.23L Lines',
+        parts: '12,307 SKUs',
+      },
+      {
+        name: 'Trader / Retailer',
+        shortName: 'Trader / Retailer',
+        value: 30.2,
+        salesCr: 17.64,
+        lySalesCr: 14.74,
+        growth: '+19.6%',
+        isPositive: true,
+        color: '#10b981',
+        lines: '1.50L Lines',
+        parts: '14,002 SKUs',
+      },
+      {
+        name: 'Walk-in Customer',
+        shortName: 'Walk-in Cust.',
+        value: 16.4,
+        salesCr: 9.61,
+        lySalesCr: 8.44,
+        growth: '+13.8%',
+        isPositive: true,
+        color: '#f59e0b',
+        lines: '1.49L Lines',
+        parts: '9,151 SKUs',
+      },
+      {
+        name: 'MASS (Authorized)',
+        shortName: 'MASS (Auth.)',
+        value: 16.3,
+        salesCr: 9.52,
+        lySalesCr: 8.80,
+        growth: '+8.2%',
+        isPositive: true,
+        color: '#8b5cf6',
+        lines: '0.59L Lines',
+        parts: '9,728 SKUs',
+      },
+    ];
+  }, [kpiData?.partyTypeMixData]);
 
   return (
     <AppShell title="Dashboard" breadcrumb="Overview">
@@ -783,13 +810,18 @@ export default function DashboardPage() {
                   }}
                   className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer"
                 >
-                  <option value="Aug" className="text-slate-900 bg-white">
-                    Aug 2026 (Latest As-Of {month === 'Aug' ? `${day} Aug` : `${yesterday.day} Aug`})
-                  </option>
+                  <option value="Aug" className="text-slate-900 bg-white">Aug 2026 (Latest As-Of {day} Aug)</option>
                   <option value="Jul" className="text-slate-900 bg-white">Jul 2026 (Full Month)</option>
                   <option value="Jun" className="text-slate-900 bg-white">Jun 2026 (Full Month)</option>
                   <option value="May" className="text-slate-900 bg-white">May 2026 (Full Month)</option>
                   <option value="Apr" className="text-slate-900 bg-white">Apr 2026 (Full Month)</option>
+                  <option value="Mar" className="text-slate-900 bg-white">Mar 2026 (Full Month)</option>
+                  <option value="Feb" className="text-slate-900 bg-white">Feb 2026 (Full Month)</option>
+                  <option value="Jan" className="text-slate-900 bg-white">Jan 2026 (Full Month)</option>
+                  <option value="Dec" className="text-slate-900 bg-white">Dec 2025 (Full Month)</option>
+                  <option value="Nov" className="text-slate-900 bg-white">Nov 2025 (Full Month)</option>
+                  <option value="Oct" className="text-slate-900 bg-white">Oct 2025 (Full Month)</option>
+                  <option value="Sep" className="text-slate-900 bg-white">Sep 2025 (Full Month)</option>
                 </select>
               </div>
 
@@ -913,11 +945,13 @@ export default function DashboardPage() {
               )}
 
               <button
-                onClick={() => mutate()}
-                className="p-2 rounded-xl bg-[#053D3A] hover:bg-[#074B47] text-white font-bold text-xs flex items-center justify-center transition shadow-2xs cursor-pointer"
-                title="Refresh KPIs"
+                onClick={handleRefresh}
+                disabled={isLoading || isRefreshing}
+                className="px-3.5 py-2 rounded-xl bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-2xs cursor-pointer disabled:opacity-60"
+                title="Refresh Live KPIs from Database"
               >
-                <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
+                <RefreshCw size={14} className={isLoading || isRefreshing ? 'animate-spin text-[#FFE2B8]' : 'text-[#FFE2B8]'} />
+                <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
               </button>
             </div>
           </div>
