@@ -928,10 +928,10 @@ export class DashboardService {
         this.prisma.$queryRawUnsafe<any[]>(`
           SELECT
             r.party_type AS "partyType",
-            SUM(CASE WHEN r.fiscal_year = ${targetFY} THEN r.net_retail_selling ELSE 0 END) AS "currentSales",
-            SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} THEN r.net_retail_selling ELSE 0 END) AS "lySales",
-            COUNT(DISTINCT r.part_num) AS "skus",
-            COUNT(*) AS "lines"
+            SUM(CASE WHEN r.fiscal_year = ${targetFY} AND (${ytdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "currentSales",
+            SUM(CASE WHEN r.fiscal_year = ${targetFY - 1} AND (${ytdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.net_retail_selling ELSE 0 END) AS "lySales",
+            COUNT(DISTINCT CASE WHEN r.fiscal_year = ${targetFY} AND (${ytdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN r.part_num ELSE NULL END) AS "skus",
+            COUNT(CASE WHEN r.fiscal_year = ${targetFY} AND (${ytdPriorCond} OR (r.month = '${targetMonth}' AND ${dayCastSql} <= ${targetDay})) THEN 1 ELSE NULL END) AS "lines"
           FROM retail_sales_records r
           WHERE r.fiscal_year IN (${targetFY}, ${targetFY - 1})
             AND r.party_type IS NOT NULL AND r.party_type != '' ${locWhereClause}
@@ -1038,26 +1038,46 @@ export class DashboardService {
     });
     const trajectoryData = Array.from(trajectoryMap.values());
 
-    // ─── DYNAMIC PARTY TYPE MIX ───────────────────────────────────────────
+    // ─── DYNAMIC PARTY TYPE MIX & YOY GROWTH (YTD vs LY YTD) ──────────────
     const totalMixSales = partyMixRows.reduce((sum, r) => sum + (Number(r.currentSales) || 0), 0);
+    const totalLyMixSales = partyMixRows.reduce((sum, r) => sum + (Number(r.lySales) || 0), 0);
     const PARTY_TYPE_COLORS = ['#2563eb', '#053D3A', '#d97706', '#087443', '#7c3aed', '#dc2626', '#4b5563', '#0284c7'];
 
     const partyTypeMixData = partyMixRows.map((r, i) => {
       const cur = Number(r.currentSales) || 0;
       const ly = Number(r.lySales) || 0;
+      const diff = cur - ly;
       const growth = ly > 0 ? ((cur - ly) / ly) * 100 : (cur > 0 ? 100 : 0);
-      const val = totalMixSales > 0 ? Number(((cur / totalMixSales) * 100).toFixed(1)) : 0;
+      const contribution = totalMixSales > 0 ? Number(((cur / totalMixSales) * 100).toFixed(1)) : 0;
+      const lyContribution = totalLyMixSales > 0 ? Number(((ly / totalLyMixSales) * 100).toFixed(1)) : 0;
+
       return {
+        partyType: r.partyType,
         name: r.partyType,
-        shortName: r.partyType,
-        value: val,
+        shortName: r.partyType === 'INDEPENDENT WORKSHOP' ? 'Workshop (IW)'
+                 : r.partyType === 'TRADER/RETAILER' ? 'Trader / Retailer'
+                 : r.partyType === 'WALK-IN CUSTOMER' ? 'Walk-in Cust.'
+                 : r.partyType === 'MASS' ? 'MASS (Auth.)'
+                 : r.partyType,
+        value: contribution,
+        contribution,
+        lyContribution,
+        currentSales: cur,
+        lySales: ly,
+        currentSalesFormatted: formatINR(cur),
+        lySalesFormatted: formatINR(ly),
+        diffFormatted: `${diff >= 0 ? '+' : ''}${formatINR(diff)}`,
         salesCr: Number((cur / 10000000).toFixed(2)),
         lySalesCr: Number((ly / 10000000).toFixed(2)),
+        diffCr: Number((diff / 10000000).toFixed(2)),
+        growthYoY: Number(growth.toFixed(1)),
         growth: `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`,
         isPositive: growth >= 0,
         color: PARTY_TYPE_COLORS[i % PARTY_TYPE_COLORS.length],
         lines: `${Math.round(Number(r.lines || 0)).toLocaleString()} Lines`,
         parts: `${Math.round(Number(r.skus || 0)).toLocaleString()} SKUs`,
+        skusCount: Number(r.skus || 0),
+        linesCount: Number(r.lines || 0),
       };
     });
 

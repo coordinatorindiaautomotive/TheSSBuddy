@@ -1245,77 +1245,150 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Right Chart: Party Type Mix & YoY Growth Break-up */}
+          {/* Right Chart: Party Type Revenue & YoY Growth Bar Chart */}
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/90 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
                 <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2 mb-1">
-                  <PieChartIcon size={18} className="text-[#053D3A]" />
-                  Party Type Mix & Growth
+                  <BarChart3 size={18} className="text-[#053D3A]" />
+                  Party Type Sales & YoY Growth
                 </h3>
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
                   YTD vs LY YTD
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mb-2">Channel share distribution & YoY revenue growth</p>
+              <p className="text-xs text-slate-400 mb-2">Turnover in ₹ Cr with YoY Growth % & Channel Share</p>
             </div>
 
-            <div className="h-44 w-full relative flex items-center justify-center my-1">
+            {/* Horizontal Bar Chart */}
+            <div className="h-56 w-full relative my-1">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={partyTypeMixData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={72}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {partyTypeMixData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
+                <BarChart
+                  data={partyTypeMixData}
+                  layout="vertical"
+                  margin={{ top: 5, right: 42, left: 10, bottom: 0 }}
+                  barCategoryGap="16%"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} unit="Cr" tickLine={false} axisLine={{ stroke: '#cbd5e1' }} />
+                  <YAxis
+                    type="category"
+                    dataKey="shortName"
+                    tick={{ fontSize: 11, fill: '#1e293b', fontWeight: 700 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={95}
+                  />
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
+                        const isPos = data.isPositive;
                         return (
-                          <div className="bg-slate-900 text-white p-2.5 rounded-xl text-xs shadow-xl border border-slate-700">
-                            <p className="font-bold text-slate-200">{data.name}</p>
-                            <p className="text-emerald-400 font-extrabold text-sm mt-0.5">
-                              ₹{data.salesCr} Cr <span className="text-xs font-normal text-slate-300">({data.value}%)</span>
-                            </p>
-                            <p className="text-slate-400 text-[10px] mt-1">
-                              YoY Growth: <span className="text-emerald-400 font-bold">{data.growth}</span> (vs ₹{data.lySalesCr} Cr)
-                            </p>
-                            <p className="text-slate-400 text-[10px]">
-                              Range: <span className="text-amber-300 font-bold">{data.parts}</span> • {data.lines}
-                            </p>
+                          <div className="bg-slate-900/95 backdrop-blur-md text-white rounded-2xl p-4 shadow-2xl border border-slate-700/80 text-xs space-y-2.5 min-w-[240px]">
+                            {/* Header */}
+                            <div className="flex items-center justify-between border-b border-slate-700/80 pb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-3 h-3 rounded-full shadow-xs" style={{ backgroundColor: data.color }} />
+                                <span className="font-extrabold text-amber-300 text-xs">{data.name}</span>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-md bg-white/10 text-cyan-300 text-[10px] font-black">
+                                {data.contribution || data.value}% Share
+                              </span>
+                            </div>
+
+                            {/* Metrics Grid */}
+                            <div className="space-y-1.5 text-[11px]">
+                              <div className="flex justify-between items-center bg-white/5 px-2.5 py-1.5 rounded-lg">
+                                <span className="text-slate-300 font-semibold">CY Turnover (FY26):</span>
+                                <span className="text-emerald-400 font-black text-xs">₹{data.salesCr} Cr</span>
+                              </div>
+                              <div className="flex justify-between items-center px-2.5 py-1">
+                                <span className="text-slate-400 font-medium">LY Turnover (FY25):</span>
+                                <span className="text-teal-300 font-bold">₹{data.lySalesCr} Cr</span>
+                              </div>
+                              <div className="flex justify-between items-center px-2.5 py-1 border-t border-slate-800">
+                                <span className="text-slate-300 font-semibold">YoY Absolute Change:</span>
+                                <span className={`font-black ${isPos ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {data.diffFormatted || (data.diffCr ? `${data.diffCr >= 0 ? '+' : ''}₹${data.diffCr} Cr` : '-')}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center px-2.5 py-1">
+                                <span className="text-slate-300 font-semibold">YoY Growth Rate:</span>
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
+                                  isPos
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                                }`}>
+                                  {data.growth}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Catalog Depth Footer */}
+                            <div className="border-t border-slate-800 pt-2 flex items-center justify-between text-[10px] text-slate-400">
+                              <span>Range: <strong className="text-amber-300">{data.parts}</strong></span>
+                              <span>•</span>
+                              <span>Volume: <strong className="text-slate-200">{data.lines}</strong></span>
+                            </div>
                           </div>
                         );
                       }
                       return null;
                     }}
                   />
-                </PieChart>
+                  <Bar
+                    dataKey="salesCr"
+                    radius={[0, 6, 6, 0]}
+                    maxBarSize={18}
+                  >
+                    {partyTypeMixData.map((entry: any, index: number) => (
+                      <Cell key={`cell-bar-${index}`} fill={entry.color} />
+                    ))}
+                    <LabelList
+                      dataKey="salesCr"
+                      position="right"
+                      content={(props: any) => {
+                        const { x, y, width, height, index } = props;
+                        const item = partyTypeMixData[index];
+                        if (!item) return null;
+                        return (
+                          <g>
+                            <text
+                              x={x + width + 5}
+                              y={y + height / 2 + 4}
+                              fill="#0f172a"
+                              fontSize={10}
+                              fontWeight={800}
+                            >
+                              ₹{Number(item.salesCr).toFixed(1)}Cr
+                            </text>
+                          </g>
+                        );
+                      }}
+                    />
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
-              <div className="absolute text-center pointer-events-none">
-                <p className="text-[9px] text-slate-400 uppercase font-black tracking-wider">TOP SHARE</p>
-                <p className="text-sm font-black text-[#053D3A]">IW (37.1%)</p>
-              </div>
             </div>
 
+            {/* Bottom Channels Breakdown Grid */}
             <div className="grid grid-cols-2 gap-2 text-xs pt-3 border-t border-slate-100">
-              {partyTypeMixData.map((c) => (
-                <div key={c.name} className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition-colors">
+              {partyTypeMixData.slice(0, 4).map((c: any) => (
+                <div key={c.name} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition-colors shadow-2xs">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }}></span>
-                    <span className="text-slate-700 font-bold truncate text-[11px]">{c.shortName}</span>
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-xs" style={{ backgroundColor: c.color }}></span>
+                    <div className="min-w-0">
+                      <p className="text-slate-800 font-extrabold truncate text-[11px] leading-tight">{c.shortName}</p>
+                      <p className="text-[10px] text-slate-500 font-semibold">₹{c.salesCr} Cr <span className="text-slate-400">({c.contribution || c.value}%)</span></p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <span className="text-slate-900 font-black text-[11px]">{c.value}%</span>
-                    <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-100/80 px-1 py-0.2 rounded">
+                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md border ${
+                      c.isPositive
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
                       {c.growth}
                     </span>
                   </div>
