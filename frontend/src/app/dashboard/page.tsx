@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell
+  CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, LabelList
 } from 'recharts';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -679,25 +679,45 @@ export default function DashboardPage() {
     setTimeout(() => setCopiedDax(null), 2500);
   };
 
-  // Dynamic live monthly performance trajectory
+  // Dynamic live monthly performance trajectory with YoY Growth % & formatting
   const trajectoryData = useMemo(() => {
-    if (kpiData?.trajectoryData && kpiData.trajectoryData.length > 0) {
-      return kpiData.trajectoryData;
-    }
-    return [
-      { month: 'Apr', FY24: 10.93, FY25: 12.74, FY26: 14.19 },
-      { month: 'May', FY24: 12.16, FY25: 13.40, FY26: 14.64 },
-      { month: 'Jun', FY24: 10.48, FY25: 12.39, FY26: 13.71 },
-      { month: 'Jul', FY24: 12.06, FY25: 13.85, FY26: 14.34 },
-      { month: 'Aug', FY24: 11.82, FY25: 13.59, FY26: 5.75 },
-      { month: 'Sep', FY24: 11.87, FY25: 14.04, FY26: null },
-      { month: 'Oct', FY24: 12.00, FY25: 14.55, FY26: null },
-      { month: 'Nov', FY24: 12.34, FY25: 15.33, FY26: null },
-      { month: 'Dec', FY24: 12.98, FY25: 15.66, FY26: null },
-      { month: 'Jan', FY24: 14.11, FY25: 14.40, FY26: null },
-      { month: 'Feb', FY24: 12.09, FY25: 13.93, FY26: null },
-      { month: 'Mar', FY24: 11.04, FY25: 12.79, FY26: null },
-    ];
+    const raw = (kpiData?.trajectoryData && kpiData.trajectoryData.length > 0)
+      ? kpiData.trajectoryData
+      : [
+          { month: 'Apr', FY24: 10.93, FY25: 12.83, FY26: 14.27 },
+          { month: 'May', FY24: 12.10, FY25: 13.41, FY26: 14.65 },
+          { month: 'Jun', FY24: 10.46, FY25: 12.37, FY26: 13.72 },
+          { month: 'Jul', FY24: 12.03, FY25: 13.86, FY26: 14.34 },
+          { month: 'Aug', FY24: 11.78, FY25: 13.59, FY26: 11.30 },
+          { month: 'Sep', FY24: 11.85, FY25: 14.03, FY26: null },
+          { month: 'Oct', FY24: 11.96, FY25: 14.55, FY26: null },
+          { month: 'Nov', FY24: 12.30, FY25: 15.32, FY26: null },
+          { month: 'Dec', FY24: 12.93, FY25: 15.65, FY26: null },
+          { month: 'Jan', FY24: 14.08, FY25: 14.37, FY26: null },
+          { month: 'Feb', FY24: 12.07, FY25: 13.91, FY26: null },
+          { month: 'Mar', FY24: 11.00, FY25: 12.79, FY26: null },
+        ];
+
+    return raw.map((d: any) => {
+      const fy26 = d.FY26 !== null && d.FY26 !== undefined ? Number(d.FY26) : null;
+      const fy25 = d.FY25 !== null && d.FY25 !== undefined ? Number(d.FY25) : null;
+      const fy24 = d.FY24 !== null && d.FY24 !== undefined ? Number(d.FY24) : null;
+      
+      let growthYoY: number | null = null;
+      if (fy26 !== null && fy25 !== null && fy25 > 0) {
+        growthYoY = Number((((fy26 - fy25) / fy25) * 100).toFixed(1));
+      }
+
+      return {
+        ...d,
+        FY26: fy26,
+        FY25: fy25,
+        FY24: fy24,
+        growthYoY,
+        growthFormatted: growthYoY !== null ? `${growthYoY >= 0 ? '+' : ''}${growthYoY}%` : null,
+        isPositive: growthYoY !== null ? growthYoY >= 0 : true,
+      };
+    });
   }, [kpiData?.trajectoryData]);
 
   // Dynamic live party type mix
@@ -1092,54 +1112,131 @@ export default function DashboardPage() {
 
         {/* 4. PERFORMANCE CHARTS & TRAJECTORY */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Chart: Trajectory */}
+          {/* Left Chart: Trajectory Column Chart */}
           <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-200/90 flex flex-col justify-between">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
               <div>
                 <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
                   <BarChart3 size={18} className="text-[#053D3A]" />
                   Multi-Year Sales Trajectory (FY24 vs FY25 vs FY26)
                 </h3>
-                <p className="text-xs text-slate-400">Net Retail Turnover in ₹ Crores across financial years</p>
+                <p className="text-xs text-slate-400">Net Retail Turnover in ₹ Crores with Monthly YoY Growth % Conditional Formatting</p>
               </div>
               <div className="flex items-center gap-3 text-xs">
                 <span className="flex items-center gap-1.5 text-[#053D3A] font-extrabold">
-                  <span className="w-3 h-3 rounded-full bg-[#053D3A] shadow-xs"></span> FY26
+                  <span className="w-3 h-3 rounded-md bg-[#053D3A] shadow-xs"></span> FY26
                 </span>
-                <span className="flex items-center gap-1.5 text-teal-700 font-bold">
-                  <span className="w-3 h-3 rounded-full bg-[#2A716A] shadow-xs"></span> FY25
+                <span className="flex items-center gap-1.5 text-[#2A716A] font-bold">
+                  <span className="w-3 h-3 rounded-md bg-[#2A716A] shadow-xs"></span> FY25
                 </span>
                 <span className="flex items-center gap-1.5 text-slate-400 font-semibold">
-                  <span className="w-3 h-3 rounded-full bg-slate-300"></span> FY24
+                  <span className="w-3 h-3 rounded-md bg-slate-300"></span> FY24
                 </span>
               </div>
             </div>
 
+            {/* Column Chart */}
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trajectoryData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorFY26" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#053D3A" stopOpacity={0.45} />
-                      <stop offset="95%" stopColor="#053D3A" stopOpacity={0.0} />
-                    </linearGradient>
-                    <linearGradient id="colorFY25" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2A716A" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#2A716A" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }} />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }} unit="Cr" />
+                <BarChart data={trajectoryData} margin={{ top: 22, right: 10, left: -15, bottom: 5 }} barGap={2} barCategoryGap="16%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#475569', fontWeight: 700 }} tickLine={false} axisLine={{ stroke: '#cbd5e1' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }} unit="Cr" tickLine={false} axisLine={false} />
                   <Tooltip
-                    formatter={(val: any) => [`₹${val} Cr`, '']}
-                    contentStyle={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: 12, fontWeight: 700 }}
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        const fy26 = data.FY26;
+                        const fy25 = data.FY25;
+                        const fy24 = data.FY24;
+                        const growth = data.growthYoY;
+                        return (
+                          <div className="bg-slate-900 text-white rounded-2xl p-3.5 shadow-xl border border-slate-700 text-xs space-y-2 min-w-[190px]">
+                            <div className="flex items-center justify-between border-b border-slate-700 pb-1.5 font-bold">
+                              <span className="text-amber-400">{label} Performance</span>
+                              {growth !== null && (
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${growth >= 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'}`}>
+                                  {data.growthFormatted} YoY
+                                </span>
+                              )}
+                            </div>
+                            <div className="space-y-1 text-[11px]">
+                              <div className="flex justify-between items-center text-emerald-300 font-bold">
+                                <span>FY26 (Current):</span>
+                                <span>{fy26 !== null ? `₹${fy26.toFixed(2)} Cr` : 'In Progress / Upcoming'}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-teal-300 font-semibold">
+                                <span>FY25 (LY):</span>
+                                <span>₹{fy25?.toFixed(2) || '0'} Cr</span>
+                              </div>
+                              <div className="flex justify-between items-center text-slate-400">
+                                <span>FY24:</span>
+                                <span>₹{fy24?.toFixed(2) || '0'} Cr</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
                   />
-                  <Area type="monotone" dataKey="FY26" stroke="#053D3A" strokeWidth={3.5} fillOpacity={1} fill="url(#colorFY26)" name="FY 2026" />
-                  <Area type="monotone" dataKey="FY25" stroke="#2A716A" strokeWidth={2.5} fillOpacity={1} fill="url(#colorFY25)" name="FY 2025" />
-                  <Area type="monotone" dataKey="FY24" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="3 3" fill="none" name="FY 2024" />
-                </AreaChart>
+                  <Bar dataKey="FY24" fill="#cbd5e1" name="FY 2024" radius={[4, 4, 0, 0]} maxBarSize={16} />
+                  <Bar dataKey="FY25" fill="#2A716A" name="FY 2025" radius={[4, 4, 0, 0]} maxBarSize={16} />
+                  <Bar dataKey="FY26" fill="#053D3A" name="FY 2026" radius={[4, 4, 0, 0]} maxBarSize={16}>
+                    <LabelList
+                      dataKey="FY26"
+                      position="top"
+                      content={(props: any) => {
+                        const { x, y, width, value } = props;
+                        if (value === null || value === undefined || isNaN(value) || value <= 0) return null;
+                        return (
+                          <text
+                            x={x + width / 2}
+                            y={y - 6}
+                            fill="#053D3A"
+                            textAnchor="middle"
+                            fontSize={10}
+                            fontWeight={800}
+                          >
+                            ₹{Number(value).toFixed(1)}
+                          </text>
+                        );
+                      }}
+                    />
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
+            </div>
+
+            {/* Monthly Growth % Conditional Formatting Scorecard */}
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <div className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <span>Monthly YoY Growth % (FY26 vs FY25):</span>
+                <span className="text-[9px] font-semibold text-slate-400">Conditional: Green (+Growth) | Red (-Decline)</span>
+              </div>
+              <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5 text-center">
+                {trajectoryData.map((d: any) => {
+                  const hasGrowth = d.growthYoY !== null;
+                  const isPos = d.growthYoY >= 0;
+                  return (
+                    <div
+                      key={d.month}
+                      className={`p-1.5 rounded-xl border flex flex-col items-center justify-center transition ${
+                        !hasGrowth
+                          ? 'bg-slate-50 border-slate-200 text-slate-400'
+                          : isPos
+                          ? 'bg-emerald-50 border-emerald-200/90 text-emerald-800 shadow-2xs font-extrabold'
+                          : 'bg-rose-50 border-rose-200/90 text-rose-800 shadow-2xs font-extrabold'
+                      }`}
+                    >
+                      <span className="text-[10px] font-bold text-slate-600 uppercase">{d.month}</span>
+                      <span className="text-[11px] leading-tight">
+                        {hasGrowth ? d.growthFormatted : '—'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
