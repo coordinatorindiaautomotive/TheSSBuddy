@@ -1138,7 +1138,13 @@ export class DashboardService {
           { fiscalYear: 2026, month: 'Apr', monthYear: 'Apr-2026' },
         ],
         branches: branches.map(b => ({ code: b.code, name: b.name })),
-        categories: ['M', 'A', 'C', 'O', 'S', 'G', 'P'],
+        categories: [
+          { code: 'ALL', name: 'All Categories (MGP + MGA + MGO + Tyres)' },
+          { code: 'M', name: 'M — Maruti Genuine Parts (MGP)' },
+          { code: 'AA', name: 'AA — Maruti Genuine Accessories (MGA)' },
+          { code: 'AG', name: 'AG — Maruti Genuine Oil & Lubes (MGO)' },
+          { code: 'T', name: 'T — Tyres, Battery & Tools' },
+        ],
         partyTypes: partyTypes.map(pt => pt.partyType).filter(Boolean),
       },
     };

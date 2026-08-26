@@ -921,12 +921,11 @@ export default function DashboardPage() {
                   onChange={(e) => setPartCategory(e.target.value)}
                   className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer"
                 >
-                  <option value="ALL" className="text-slate-900 bg-white">All Categories</option>
-                  {(filters?.categories || []).map((c: string) => (
-                    <option key={c} value={c} className="text-slate-900 bg-white">
-                      Category: {c}
-                    </option>
-                  ))}
+                  <option value="ALL" className="text-slate-900 bg-white">All Categories (MGP + MGA + MGO + Tyres)</option>
+                  <option value="M" className="text-slate-900 bg-white">M — Maruti Genuine Parts (MGP)</option>
+                  <option value="AA" className="text-slate-900 bg-white">AA — Maruti Genuine Accessories (MGA)</option>
+                  <option value="AG" className="text-slate-900 bg-white">AG — Maruti Genuine Oil & Lubes (MGO)</option>
+                  <option value="T" className="text-slate-900 bg-white">T — Tyres, Battery & Tools</option>
                 </select>
               </div>
             </div>
@@ -973,7 +972,15 @@ export default function DashboardPage() {
             <span className="text-slate-300 mx-1">|</span>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">PART CATEGORY:</span>
             <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-teal-50 text-[#053D3A] border border-teal-200 rounded-md text-[10px] font-extrabold uppercase shadow-2xs">
-              {partCategory === 'ALL' ? 'All Categories' : `Category: ${partCategory}`}
+              {partCategory === 'M'
+                ? 'MGP Parts (M)'
+                : partCategory === 'AA'
+                ? 'MGA Accessories (AA)'
+                : partCategory === 'AG'
+                ? 'MGO Oil & Lubes (AG)'
+                : partCategory === 'T'
+                ? 'Tyres & Tools (T)'
+                : 'All Categories'}
             </span>
           </div>
         </div>
