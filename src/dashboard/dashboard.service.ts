@@ -1003,10 +1003,17 @@ export class DashboardService {
     });
 
     // ─── DYNAMIC MONTHLY PERFORMANCE TRAJECTORY ───────────────────────────
+    const shortFY = String(targetFY).slice(-2);
+    const shortLyFY = String(targetFY - 1).slice(-2);
+    const shortLy2FY = String(targetFY - 2).slice(-2);
+
     const trajectoryMap = new Map<string, any>();
     MONTH_ORDER.forEach(m => {
       trajectoryMap.set(m, {
         month: m,
+        [`FY${shortLy2FY}`]: 0,
+        [`FY${shortLyFY}`]: 0,
+        [`FY${shortFY}`]: null,
         [`FY${targetFY - 2}`]: 0,
         [`FY${targetFY - 1}`]: 0,
         [`FY${targetFY}`]: null,
@@ -1015,11 +1022,17 @@ export class DashboardService {
     trajectoryRows.forEach(r => {
       const entry = trajectoryMap.get(r.month);
       if (entry) {
-        entry[`FY${targetFY - 2}`] = Number((Number(r.fyLy2Cr) || 0).toFixed(2));
-        entry[`FY${targetFY - 1}`] = Number((Number(r.fyLyCr) || 0).toFixed(2));
+        const fy24 = Number((Number(r.fyLy2Cr) || 0).toFixed(2));
+        const fy25 = Number((Number(r.fyLyCr) || 0).toFixed(2));
+        entry[`FY${shortLy2FY}`] = fy24;
+        entry[`FY${targetFY - 2}`] = fy24;
+        entry[`FY${shortLyFY}`] = fy25;
+        entry[`FY${targetFY - 1}`] = fy25;
         const monthIdx = MONTH_INDEX_MAP[r.month] ?? 0;
         if (monthIdx <= currentMonthIdx) {
-          entry[`FY${targetFY}`] = Number((Number(r.fyCurrentCr) || 0).toFixed(2));
+          const fy26 = Number((Number(r.fyCurrentCr) || 0).toFixed(2));
+          entry[`FY${shortFY}`] = fy26;
+          entry[`FY${targetFY}`] = fy26;
         }
       }
     });

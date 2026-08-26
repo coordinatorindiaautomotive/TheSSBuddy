@@ -699,9 +699,14 @@ export default function DashboardPage() {
         ];
 
     return raw.map((d: any) => {
-      const fy26 = d.FY26 !== null && d.FY26 !== undefined ? Number(d.FY26) : null;
-      const fy25 = d.FY25 !== null && d.FY25 !== undefined ? Number(d.FY25) : null;
-      const fy24 = d.FY24 !== null && d.FY24 !== undefined ? Number(d.FY24) : null;
+      const getVal = (v1: any, v2: any, v3: any) => {
+        const val = v1 !== undefined && v1 !== null ? v1 : (v2 !== undefined && v2 !== null ? v2 : v3);
+        return val !== null && val !== undefined && !isNaN(Number(val)) ? Number(val) : null;
+      };
+
+      const fy26 = getVal(d.FY26, d.FY2026, d.fy26);
+      const fy25 = getVal(d.FY25, d.FY2025, d.fy25);
+      const fy24 = getVal(d.FY24, d.FY2024, d.fy24);
       
       let growthYoY: number | null = null;
       if (fy26 !== null && fy25 !== null && fy25 > 0) {
@@ -709,7 +714,7 @@ export default function DashboardPage() {
       }
 
       return {
-        ...d,
+        month: d.month,
         FY26: fy26,
         FY25: fy25,
         FY24: fy24,
