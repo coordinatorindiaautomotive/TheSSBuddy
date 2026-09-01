@@ -1049,31 +1049,214 @@ export default function PartyMasterRegistryPage() {
     }
   };
 
-  // Export to Excel
-  const handleExport = () => {
-    try {
-      const rows = filteredList.map((p, idx) => ({
-        '#': idx + 1,
-        'Code': p.code || p.consPartyCode || '-',
-        'Party Name': p.name || p.consPartyName || '-',
-        'Party Type': p.type || p.partyType || '-',
-        'Incentive Rule': p.incentiveRule || p.incentiveType || 'Slab-Based',
-        'Mobile': p.phone || '-',
-        'Sales Executive': p.salesExecutive || '-',
-        'Bank Account': p.accountNumber || 'Pending Setup',
-        'Bank Name': p.bankName || '-',
-        'Location': p.baseLoc || p.primaryBranchCode || '-',
-        'Status': p.status || 'Active',
-        'Total Sales': p.totalSales || 0,
-      }));
+  // Export to Excel with Rich Corporate Formatting & Original Code details
+  const [isExporting, setIsExporting] = useState(false);
 
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, 'Party Master Registry');
-      XLSX.writeFile(wb, `Party_Master_Registry_${new Date().toISOString().slice(0,10)}.xlsx`);
-      toast.success('Excel export generated!');
-    } catch {
-      toast.error('Export failed');
+  const handleExport = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    const toastId = toast.loading('Generating rich formatted Excel export...');
+    try {
+      const ExcelJS = (await import('exceljs')).default;
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'TheSSBuddy Portal';
+      workbook.created = new Date();
+
+      const worksheet = workbook.addWorksheet('Party Master Registry', {
+        views: [{ showGridLines: true, state: 'frozen', ySplit: 4 }],
+      });
+
+      // ── 1. TITLE BANNER (Row 1) ──
+      worksheet.mergeCells('A1:R1');
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = 'THE SS BUDDY — MARUTI SUZUKI DEALER & PARTY MASTER REGISTRY';
+      titleCell.font = { name: 'Segoe UI', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF053D3A' } };
+      titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      worksheet.getRow(1).height = 34;
+
+      // ── 2. METADATA STRIP (Row 2) ──
+      worksheet.mergeCells('A2:R2');
+      const metaCell = worksheet.getCell('A2');
+      const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+      metaCell.value = `Export As-Of: ${nowStr}  |  Total Parties: ${filteredList.length.toLocaleString('en-IN')}  |  Location: ${locationFilter}  |  Party Type: ${partyTypeFilter}  |  Executive: ${executiveFilter}`;
+      metaCell.font = { name: 'Segoe UI', size: 9.5, italic: true, bold: true, color: { argb: 'FF053D3A' } };
+      metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4F1' } };
+      metaCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      worksheet.getRow(2).height = 22;
+
+      // ── 3. EMPTY SEPARATOR (Row 3) ──
+      worksheet.getRow(3).height = 6;
+
+      // ── 4. TABLE HEADERS (Row 4) ──
+      const headers = [
+        { header: 'S.No', key: 'sno', width: 8 },
+        { header: 'Original / Parent Code', key: 'originalCode', width: 22 },
+        { header: 'Party Code', key: 'code', width: 18 },
+        { header: 'Party Name', key: 'name', width: 34 },
+        { header: 'Party Type', key: 'partyType', width: 22 },
+        { header: 'Assigned Branch', key: 'branch', width: 16 },
+        { header: 'Sales Executive', key: 'salesExecutive', width: 22 },
+        { header: 'Mobile Number', key: 'phone', width: 16 },
+        { header: 'PAN Number', key: 'pan', width: 16 },
+        { header: 'GSTIN', key: 'gstIn', width: 18 },
+        { header: 'Incentive Scheme Rule', key: 'incentiveRule', width: 20 },
+        { header: 'Bank Name', key: 'bankName', width: 24 },
+        { header: 'Bank Branch', key: 'branchName', width: 20 },
+        { header: 'Account Number', key: 'accountNumber', width: 20 },
+        { header: 'IFSC Code', key: 'ifscCode', width: 15 },
+        { header: 'Account Holder', key: 'accountHolder', width: 26 },
+        { header: 'Total Sales Turnover (₹)', key: 'totalSales', width: 24 },
+        { header: 'Account Status', key: 'status', width: 15 },
+      ];
+
+      const headerRow = worksheet.getRow(4);
+      headerRow.values = headers.map(h => h.header);
+      headerRow.height = 28;
+      headerRow.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF053D3A' } };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+
+      const thinBorder: any = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      };
+
+      headerRow.eachCell((cell) => {
+        cell.border = thinBorder;
+      });
+
+      // ── 5. DATA ROWS ──
+      filteredList.forEach((p, idx) => {
+        const code = p.code || p.consPartyCode || '-';
+        const origCode = p.originalCode && p.originalCode !== '-' ? p.originalCode : code;
+        const totalSalesNum = typeof p.totalSales === 'number' ? p.totalSales : parseFloat(p.totalSales || '0') || 0;
+        const status = p.status || (p.isActive ? 'Active' : 'Disabled');
+
+        const row = worksheet.addRow([
+          idx + 1,
+          origCode,
+          code,
+          p.name || p.consPartyName || '-',
+          p.type || p.partyType || '-',
+          p.baseLoc || p.primaryBranchCode || '-',
+          p.salesExecutive || '-',
+          p.phone || '-',
+          p.pan || '-',
+          p.gstIn || p.gstin || '-',
+          p.incentiveRule || p.incentiveType || 'Slab-Based',
+          p.bankName || '-',
+          p.branchName || p.bankBranch || '-',
+          p.accountNumber || 'Pending Setup',
+          p.ifscCode || '-',
+          p.accountHolder || (p.bankName ? (p.name || p.consPartyName) : 'Pending Setup'),
+          totalSalesNum,
+          status,
+        ]);
+
+        const isEven = idx % 2 === 0;
+        row.height = 21;
+        row.font = { name: 'Segoe UI', size: 9.5 };
+
+        row.eachCell((cell, colNumber) => {
+          cell.border = thinBorder;
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: isEven ? 'FFFFFFFF' : 'FFF8FAFC' },
+          };
+
+          // Alignment
+          if ([1, 2, 3, 6, 8, 9, 10, 11, 14, 15, 18].includes(colNumber)) {
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          } else if (colNumber === 17) {
+            cell.alignment = { vertical: 'middle', horizontal: 'right' };
+            cell.numFmt = '₹#,##,##0.00';
+          } else {
+            cell.alignment = { vertical: 'middle', horizontal: 'left' };
+          }
+
+          // Special highlight for mapped Original Code
+          if (colNumber === 2 && origCode !== code && origCode !== '-') {
+            cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: 'FF92400E' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };
+          }
+
+          // Status Badge styling
+          if (colNumber === 18) {
+            const isActive = String(status).toLowerCase() === 'active';
+            cell.font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: isActive ? 'FF166534' : 'FF991B1B' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isActive ? 'FFDCFCE7' : 'FFFEE2E2' } };
+          }
+        });
+      });
+
+      // ── 6. SUMMARY / TOTALS ROW ──
+      const lastRowNum = 4 + filteredList.length;
+      const totalRow = worksheet.addRow([
+        'TOTALS',
+        `${filteredList.length} Parties`,
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        { formula: `SUM(Q5:Q${lastRowNum})` },
+        '',
+      ]);
+
+      totalRow.height = 25;
+      totalRow.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF053D3A' } };
+      totalRow.eachCell((cell, colNumber) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF053D3A' } },
+          bottom: { style: 'double', color: { argb: 'FF053D3A' } },
+          left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        };
+        if (colNumber === 17) {
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+          cell.numFmt = '₹#,##,##0.00';
+        } else if (colNumber === 1 || colNumber === 2) {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        }
+      });
+
+      // Apply Column Widths
+      headers.forEach((h, idx) => {
+        worksheet.getColumn(idx + 1).width = h.width;
+      });
+
+      // Write buffer and download in browser
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `TheSSBuddy_Party_Master_Registry_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`Rich Excel Export generated for ${filteredList.length.toLocaleString('en-IN')} parties!`, { id: toastId, icon: '📊' });
+    } catch (err: any) {
+      console.error('Export failed:', err);
+      toast.error('Export failed: ' + (err?.message || 'Unknown error'), { id: toastId });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -1418,13 +1601,15 @@ export default function PartyMasterRegistryPage() {
               </button>
             )}
 
-            {/* Export Excel */}
+            {/* Export Excel (Rich Formatted) */}
             <button
               onClick={handleExport}
-              title="Export filtered records to Excel"
-              className="p-2 rounded-xl bg-white hover:bg-slate-100 text-blue-600 border border-slate-200 text-xs flex items-center justify-center transition shadow-md"
+              disabled={isExporting}
+              title="Export filtered records with rich formatting to Excel"
+              className="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-blue-600 border border-slate-200 text-xs font-bold flex items-center gap-1.5 transition shadow-md disabled:opacity-50"
             >
-              <Download size={15} />
+              {isExporting ? <Loader2 size={15} className="animate-spin text-blue-600" /> : <Download size={15} />}
+              <span className="hidden sm:inline">Export</span>
             </button>
 
             {/* + Party button (SuperAdmin Only) */}
