@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button, Badge, StatCard, PageHeader } from '@/components/ui';
 
 const fetcher = (url: string) => api.get(url).then(r => r.data);
 
@@ -1372,106 +1373,45 @@ export default function PartyMasterRegistryPage() {
           </div>
         </div>
 
-        {/* 3. 6 METRIC CARDS */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-          {/* Card 1: TOTAL PARTIES */}
-          <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200/80 border-t-4 border-t-blue-500 flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL PARTIES</p>
-                <p className="text-2xl font-extrabold text-slate-800 mt-1">
-                  {isLoading ? '...' : stats.total.toLocaleString()}
-                </p>
-              </div>
-              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                <Building2 size={15} />
-              </div>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-2 font-medium">Registered In System Master</p>
-          </div>
-
-          {/* Card 2: ACTIVE */}
-          <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200/80 border-t-4 border-t-emerald-500 flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ACTIVE</p>
-                <p className="text-2xl font-extrabold text-emerald-600 mt-1">
-                  {isLoading ? '...' : stats.active.toLocaleString()}
-                </p>
-              </div>
-              <div className="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <CheckCircle2 size={16} />
-              </div>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-2 font-medium">Operational & Invoiced</p>
-          </div>
-
-          {/* Card 3: FIXED RATE */}
-          <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200/80 border-t-4 border-t-purple-500 flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">FIXED RATE</p>
-                <p className="text-2xl font-extrabold text-purple-700 mt-1">
-                  {isLoading ? '...' : stats.fixedRate.toLocaleString()}
-                </p>
-              </div>
-              <div className="w-6 h-6 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 font-bold text-xs">
-                %
-              </div>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-2 font-medium">Fixed Commission %</p>
-          </div>
-
-          {/* Card 4: SLAB BASED */}
-          <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200/80 border-t-4 border-t-indigo-500 flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SLAB BASED</p>
-                <p className="text-2xl font-extrabold text-indigo-700 mt-1">
-                  {isLoading ? '...' : stats.slabBased.toLocaleString()}
-                </p>
-              </div>
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <Sliders size={15} />
-              </div>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-2 font-medium">Tiered Incentive Structure</p>
-          </div>
-
-          {/* Card 5: BANK SETUP */}
-          <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200/80 border-t-4 border-t-amber-500 flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">BANK SETUP</p>
-                <p className="text-lg font-extrabold text-slate-800 mt-1">
-                  {stats.hasBank} <span className="text-xs font-normal text-slate-400">/ {stats.total.toLocaleString()}</span>
-                </p>
-              </div>
-              <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
-                <CreditCard size={15} />
-              </div>
-            </div>
-            <p className="text-[10px] text-amber-600 mt-2 font-bold flex items-center gap-1">
-              <AlertTriangle size={11} />
-              {stats.pendingBank.toLocaleString()} Pending Setup
-            </p>
-          </div>
-
-          {/* Card 6: REVIEW QUEUE */}
-          <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200/80 border-t-4 border-t-rose-500 flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">REVIEW QUEUE</p>
-                <p className="text-2xl font-extrabold text-rose-600 mt-1">
-                  {stats.reviewQueue}
-                </p>
-              </div>
-              <div className="w-7 h-7 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
-                <Filter size={15} />
-              </div>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-2 font-medium">Location Mismatch</p>
-          </div>
+        {/* 3. STANDARDIZED METRIC STAT CARDS */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3.5">
+          <StatCard
+            title="Total Parties"
+            value={isLoading ? '...' : stats.total.toLocaleString()}
+            subtitle="Registered master"
+            icon={<Building2 size={16} />}
+          />
+          <StatCard
+            title="Active Parties"
+            value={isLoading ? '...' : stats.active.toLocaleString()}
+            subtitle="Operational & invoiced"
+            icon={<CheckCircle2 size={16} />}
+            trend={{ value: `${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 100}% Active`, isPositive: true }}
+          />
+          <StatCard
+            title="Fixed Rate"
+            value={isLoading ? '...' : stats.fixedRate.toLocaleString()}
+            subtitle="Fixed commission %"
+            icon={<Percent size={16} />}
+          />
+          <StatCard
+            title="Slab Based"
+            value={isLoading ? '...' : stats.slabBased.toLocaleString()}
+            subtitle="Tiered incentive model"
+            icon={<Sliders size={16} />}
+          />
+          <StatCard
+            title="Bank Setup"
+            value={`${stats.hasBank} / ${stats.total.toLocaleString()}`}
+            subtitle={`${stats.pendingBank.toLocaleString()} pending`}
+            icon={<CreditCard size={16} />}
+          />
+          <StatCard
+            title="Review Queue"
+            value={stats.reviewQueue}
+            subtitle="Location mismatch"
+            icon={<Filter size={16} />}
+          />
         </div>
 
         {/* 4. FILTER TOOLBAR — CLEAN BRANDED CONTAINER */}
@@ -1541,8 +1481,8 @@ export default function PartyMasterRegistryPage() {
 
           {/* Search Input */}
           <div className="flex-[1.5] min-w-[220px]">
-            <label className="block text-[11px] font-extrabold text-blue-100 uppercase tracking-wider mb-1 flex items-center gap-1">
-              <Search size={12} className="text-cyan-300" /> SEARCH
+            <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+              <Search size={12} className="text-[#053D3A]" /> SEARCH
             </label>
             <div className="relative">
               <input
@@ -1550,7 +1490,7 @@ export default function PartyMasterRegistryPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search Code, Name, Mobile, GST..."
-                className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 font-extrabold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-md"
+                className="input-enterprise w-full placeholder-slate-400"
               />
               {searchQuery && (
                 <button
@@ -1565,11 +1505,11 @@ export default function PartyMasterRegistryPage() {
 
           {/* Show count dropdown */}
           <div className="w-24">
-            <label className="block text-[11px] font-extrabold text-blue-100 uppercase tracking-wider mb-1">SHOW</label>
+            <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">SHOW</label>
             <select
               value={pageSize}
               onChange={(e) => setPageSize(Number(e.target.value))}
-              className="w-full px-2 py-2 bg-white border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-md"
+              className="input-enterprise w-full cursor-pointer"
             >
               <option value={25} className="bg-white text-slate-900 font-bold">25</option>
               <option value={50} className="bg-white text-slate-900 font-bold">50</option>
@@ -1581,46 +1521,50 @@ export default function PartyMasterRegistryPage() {
           {/* Action Buttons */}
           <div className="flex items-end gap-2 pt-4 sm:pt-0">
             {/* Reset Filters */}
-            <button
+            <Button
+              variant="secondary"
+              size="md"
               onClick={handleResetFilters}
               title="Reset Filters"
-              className="p-2 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs flex items-center justify-center transition shadow-md"
-            >
-              <RotateCcw size={15} />
-            </button>
+              icon={<RotateCcw size={14} className="text-slate-500" />}
+            />
 
             {/* Sync from raw_sales (SuperAdmin Only) */}
             {isSuperAdmin && (
-              <button
+              <Button
+                variant="secondary"
+                size="md"
                 onClick={handleSync}
                 disabled={isSyncing}
+                isLoading={isSyncing}
                 title="Sync Party Master from Sales"
-                className="p-2 rounded-xl bg-white hover:bg-slate-100 text-emerald-600 border border-slate-200 text-xs flex items-center justify-center transition shadow-md disabled:opacity-50"
-              >
-                <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
-              </button>
+                icon={<RefreshCw size={14} className="text-emerald-600" />}
+              />
             )}
 
             {/* Export Excel (Rich Formatted) */}
-            <button
+            <Button
+              variant="secondary"
+              size="md"
               onClick={handleExport}
               disabled={isExporting}
+              isLoading={isExporting}
               title="Export filtered records with rich formatting to Excel"
-              className="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-blue-600 border border-slate-200 text-xs font-bold flex items-center gap-1.5 transition shadow-md disabled:opacity-50"
+              icon={<Download size={14} className="text-slate-600" />}
             >
-              {isExporting ? <Loader2 size={15} className="animate-spin text-blue-600" /> : <Download size={15} />}
               <span className="hidden sm:inline">Export</span>
-            </button>
+            </Button>
 
             {/* + Party button (SuperAdmin Only) */}
             {isSuperAdmin && (
-              <button
+              <Button
+                variant="primary"
+                size="md"
                 onClick={() => setEditParty({ code: '', name: '', type: 'INDEPENDENT WORKSHOP', incentiveRule: 'Slab-Based' })}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-lg"
+                icon={<Plus size={14} />}
               >
-                <Plus size={14} />
-                <span>Party</span>
-              </button>
+                Party
+              </Button>
             )}
           </div>
         </div>
@@ -1923,17 +1867,9 @@ export default function PartyMasterRegistryPage() {
 
                         {/* Status */}
                         <td className="px-2.5 py-2 text-center align-middle border-r border-slate-200/80 whitespace-nowrap min-w-[75px]">
-                          {p.isActive !== false ? (
-                            <span className="inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-[8.5px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 shadow-2xs">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                              ACTIVE
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-[8.5px] font-bold bg-rose-50 border border-rose-200 text-rose-700 shadow-2xs">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                              OFF
-                            </span>
-                          )}
+                          <Badge variant={p.isActive !== false ? 'success' : 'danger'} dot size="sm">
+                            {p.isActive !== false ? 'Active' : 'Disabled'}
+                          </Badge>
                         </td>
 
                         {/* Actions Menu */}

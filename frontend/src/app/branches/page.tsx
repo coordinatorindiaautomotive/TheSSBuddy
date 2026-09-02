@@ -11,6 +11,7 @@ import {
   Phone, Mail, Calendar, Compass
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { Button, Badge, StatCard, PageHeader } from '@/components/ui';
 
 const fetcher = (url: string) => api.get(url).then(r => r.data);
 
@@ -292,21 +293,21 @@ function RegisterBranchModal({
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-            <button
+          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="px-5 py-2 rounded-lg border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={loading}
-              className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition disabled:opacity-60"
+              variant="primary"
+              isLoading={loading}
             >
-              {loading ? 'Saving...' : isEdit ? 'Update Branch' : 'Register Branch'}
-            </button>
+              {isEdit ? 'Update Branch' : 'Register Branch'}
+            </Button>
           </div>
         </form>
       </div>
@@ -356,6 +357,22 @@ export default function OperationalLocationsMasterPage() {
       return true;
     });
   }, [branches, regionFilter, searchQuery]);
+
+  const stats = useMemo(() => {
+    const total = branches.length;
+    const active = branches.filter((b: any) => b.isActive !== false).length;
+    const regions = new Set(branches.map((b: any) => b.region).filter(Boolean)).size;
+    const totalArea = branches.reduce((sum: number, b: any) => {
+      const a = parseInt(String(b.area || '0').replace(/[^0-9]/g, ''), 10);
+      return sum + (isNaN(a) ? 0 : a);
+    }, 0);
+    return {
+      total,
+      active,
+      regions: regions || 1,
+      totalArea: totalArea > 0 ? totalArea.toLocaleString('en-IN') + ' sq ft' : '15,000+ sq ft',
+    };
+  }, [branches]);
 
   // Delete Branch
   const handleDeleteBranch = async (code: string) => {
@@ -413,19 +430,17 @@ export default function OperationalLocationsMasterPage() {
       )}
 
       <div className="space-y-4 max-w-full">
-        {/* Header with Title, Search, and Action Buttons */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-          <div>
-            <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Operational Locations Master</h1>
-            <p className="text-xs text-slate-500 mt-0.5">List of currently active and operational company branch networks ({branches.length} locations).</p>
-          </div>
-
+        {/* Unified Page Header */}
+        <PageHeader
+          title="Operational Locations Master"
+          subtitle={`List of currently active and operational company branch networks (${branches.length} locations).`}
+        >
           <div className="flex items-center gap-2 flex-wrap">
             {/* Region Filter */}
             <select
               value={regionFilter}
               onChange={(e) => setRegionFilter(e.target.value)}
-              className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 shadow-sm focus:outline-none"
+              className="input-enterprise h-9 text-xs font-semibold text-slate-700 cursor-pointer shadow-2xs"
             >
               {regionsList.map(r => (
                 <option key={r} value={r}>{r === 'ALL' ? 'All Regions' : r}</option>
@@ -439,39 +454,69 @@ export default function OperationalLocationsMasterPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search Code, Name, Phone..."
-                className="px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 placeholder-slate-400 w-48 shadow-sm focus:outline-none"
+                className="input-enterprise h-9 w-48 sm:w-56 text-xs placeholder-slate-400 shadow-2xs"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400">
+                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
                   <X size={12} />
                 </button>
               )}
             </div>
 
-            <button
+            <Button
+              variant="secondary"
+              size="md"
               onClick={handleExport}
-              className="px-3.5 py-2 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition bg-white shadow-sm"
+              icon={<Download size={14} className="text-slate-500" />}
             >
-              <Download size={14} className="text-slate-500" />
-              <span>Export Excel</span>
-            </button>
+              Export Excel
+            </Button>
 
-            <button
+            <Button
+              variant="primary"
+              size="md"
               onClick={() => { setModalBranch(null); setIsModalOpen(true); }}
-              className="px-4 py-2 rounded-lg bg-[#2563eb] hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
+              icon={<Plus size={14} />}
             >
-              <Plus size={14} />
-              <span>+ Register Branch</span>
-            </button>
+              Register Branch
+            </Button>
           </div>
+        </PageHeader>
+
+        {/* Standardized KPI Stat Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <StatCard
+            title="Total Locations"
+            value={stats.total}
+            subtitle="Registered branch network"
+            icon={<Building2 size={16} />}
+          />
+          <StatCard
+            title="Active Locations"
+            value={stats.active}
+            subtitle="Operational branches"
+            icon={<CheckCircle2 size={16} />}
+            trend={{ value: `${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 100}% Active`, isPositive: true }}
+          />
+          <StatCard
+            title="Operational Regions"
+            value={stats.regions}
+            subtitle="Geographical distribution"
+            icon={<Globe size={16} />}
+          />
+          <StatCard
+            title="Total Floor Area"
+            value={stats.totalArea}
+            subtitle="Combined warehouse space"
+            icon={<MapPin size={16} />}
+          />
         </div>
 
-        {/* DATA TABLE (WITH HIGH VISIBILITY ENTERPRISE GRID) */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden">
+        {/* DATA TABLE (STANDARDIZED ENTERPRISE GRID) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-center align-middle border-collapse">
-              {/* Dark Navy Table Header */}
-              <thead className="table-header-navy select-none">
+            <table className="table-enterprise text-center align-middle">
+              <thead>
                 <tr>
                   <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap border-r border-slate-700/80">CODE</th>
                   <th className="px-2 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap text-center border-r border-slate-700/80">TYPE</th>
@@ -531,25 +576,17 @@ export default function OperationalLocationsMasterPage() {
                     return (
                       <tr key={b.code} className={`hover:bg-blue-50/60 transition-colors border-b border-slate-200 ${idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}`}>
                         {/* 1. Code */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap font-mono font-semibold text-blue-700 text-xs">
-                          <span className="px-2 py-0.5 bg-blue-50 border border-blue-200 rounded-md">
+                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap font-mono font-semibold text-xs">
+                          <span className="px-2 py-0.5 bg-[#EAF5F3] text-[#053D3A] border border-[#DCEDEA] rounded-md font-bold">
                             {b.code}
                           </span>
                         </td>
 
                         {/* 2. Type Badge */}
                         <td className="px-2 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${
-                              isMw
-                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                : isAw
-                                ? 'bg-cyan-50 text-cyan-700 border border-cyan-200'
-                                : 'bg-purple-50 text-purple-700 border border-purple-200'
-                            }`}
-                          >
+                          <Badge variant={isMw ? 'info' : isAw ? 'accent' : 'brand'}>
                             {b.type || 'RO'}
-                          </span>
+                          </Badge>
                         </td>
 
                         {/* 3. Consignee */}
@@ -619,9 +656,9 @@ export default function OperationalLocationsMasterPage() {
                         <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1">
                             {allowedCategories.map((c: string) => (
-                              <span key={c} className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-md text-[10px] font-semibold text-slate-800">
+                              <Badge key={c} variant="neutral" size="sm">
                                 {c}
-                              </span>
+                              </Badge>
                             ))}
                           </div>
                         </td>
@@ -635,10 +672,9 @@ export default function OperationalLocationsMasterPage() {
 
                         {/* 16. Status */}
                         <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
-                          <span className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700 shadow-xs">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            ACTIVE
-                          </span>
+                          <Badge variant={b.isActive !== false ? 'success' : 'danger'} dot>
+                            {b.isActive !== false ? 'Active' : 'Inactive'}
+                          </Badge>
                         </td>
 
                         {/* 17. Actions */}

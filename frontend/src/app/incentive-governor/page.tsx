@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSearchParams } from 'next/navigation';
 import * as XLSX from 'xlsx';
+import { Button, Badge, StatCard } from '@/components/ui';
 
 const MONTH_NAMES_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -1598,38 +1599,46 @@ function IncentiveGovernorContent() {
           </div>
         )}
 
-        {/* ─── 5. EXECUTIVE SUMMARY KPI CARDS ─── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Transacting Parties</span>
-            <p className="text-lg font-black text-[#053D3A] mt-1 font-mono">{filteredRecords.length.toLocaleString()}</p>
-            <p className="text-[10px] font-semibold text-slate-400 mt-0.5">out of {records.length.toLocaleString()} Master Parties</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Sales NRS</span>
-            <p className="text-lg font-black text-slate-900 mt-1 font-mono">₹{Math.round(totalNrs).toLocaleString()}</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Discount</span>
-            <p className="text-lg font-black text-slate-700 mt-1 font-mono">₹{Math.round(totalDiscount).toLocaleString()}</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Gross Incentive</span>
-            <p className="text-lg font-black text-blue-700 mt-1 font-mono">₹{Math.round(totalGrossIncentive).toLocaleString()}</p>
-          </div>
-
-          <div className="bg-[#FFF8EC] rounded-2xl p-3.5 border border-[#FFE2B8] shadow-2xs">
-            <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">Final Payable</span>
-            <p className="text-lg font-black text-[#053D3A] mt-1 font-mono">₹{Math.round(totalFinalIncentive).toLocaleString()}</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Validation Warnings</span>
-            <p className="text-lg font-black text-amber-600 mt-1 font-mono">{totalWarnings}</p>
-          </div>
+        {/* ─── 5. STANDARDIZED EXECUTIVE SUMMARY KPI CARDS ─── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+          <StatCard
+            title="Active Parties"
+            value={filteredRecords.length.toLocaleString()}
+            subtitle={`out of ${records.length.toLocaleString()} master`}
+            icon={<UserCheck size={16} />}
+          />
+          <StatCard
+            title="Total Sales NRS"
+            value={`₹${Math.round(totalNrs).toLocaleString()}`}
+            subtitle="Net real sales"
+            icon={<Calculator size={16} />}
+          />
+          <StatCard
+            title="Total Discount"
+            value={`₹${Math.round(totalDiscount).toLocaleString()}`}
+            subtitle="Reductions applied"
+            icon={<Tag size={16} />}
+          />
+          <StatCard
+            title="Gross Incentive"
+            value={`₹${Math.round(totalGrossIncentive).toLocaleString()}`}
+            subtitle="Calculated amount"
+            icon={<Sliders size={16} />}
+          />
+          <StatCard
+            title="Final Payable"
+            value={`₹${Math.round(totalFinalIncentive).toLocaleString()}`}
+            subtitle="Committed payable"
+            icon={<CheckCircle2 size={16} />}
+            trend={{ value: 'Payable', isPositive: true }}
+          />
+          <StatCard
+            title="Validation Warnings"
+            value={totalWarnings}
+            subtitle={totalWarnings === 0 ? 'No issues flagged' : 'Pending resolution'}
+            icon={<AlertTriangle size={16} />}
+            trend={{ value: `${totalWarnings} Warnings`, isPositive: totalWarnings === 0 }}
+          />
         </div>
 
         {/* ─── 6. INCENTIVE PREVIEW DATAGRID MATRIX ─── */}
@@ -1731,8 +1740,8 @@ function IncentiveGovernorContent() {
 
           {/* Matrix Table */}
           <div className="overflow-x-auto max-h-[60vh]">
-            <table className="w-full text-xs text-left border-collapse">
-              <thead className="sticky top-0 z-20 table-header-navy select-none">
+            <table className="table-enterprise text-left">
+              <thead className="sticky top-0 z-20 select-none">
                 <tr>
                   <th className="px-3 py-2.5 text-center border-r border-white/10 w-10">
                     <input
@@ -1819,15 +1828,13 @@ function IncentiveGovernorContent() {
                         ₹{Math.round(rec.finalIncentive).toLocaleString()}
                       </td>
                       <td className="px-3.5 py-2.5 text-center border-r border-slate-200">
-                        {rec.validationStatus === 'VALID' ? (
-                          <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                            VALID
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">
-                            WARNING
-                          </span>
-                        )}
+                        <Badge
+                          variant={rec.validationStatus === 'VALID' ? 'success' : 'warning'}
+                          dot
+                          size="sm"
+                        >
+                          {rec.validationStatus === 'VALID' ? 'Valid' : 'Warning'}
+                        </Badge>
                       </td>
                       <td className="px-3.5 py-2.5 text-center">
                         <button

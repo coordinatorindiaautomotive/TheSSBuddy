@@ -12,6 +12,7 @@ import {
   Lock, Mail, Phone, RefreshCw, Zap, Trash2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { Button, Badge, StatCard, PageHeader } from '@/components/ui';
 
 const fetcher = (url: string) => api.get(url).then(r => r.data);
 
@@ -252,22 +253,22 @@ function RegisterUserModal({
           </div>
 
           {/* Modal Footer */}
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-            <button
+          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="px-5 py-2 rounded-lg border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={loading}
-              className="px-5 py-2 rounded-lg bg-[#00b87c] hover:bg-[#00a36d] text-white font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-60"
+              variant="primary"
+              isLoading={loading}
+              icon={<Check size={14} className="stroke-[3]" />}
             >
-              <Check size={14} className="stroke-[3]" />
-              <span>{loading ? 'Saving...' : 'Save User'}</span>
-            </button>
+              {isEdit ? 'Update User' : 'Save User'}
+            </Button>
           </div>
         </form>
       </div>
@@ -404,54 +405,69 @@ export default function UserMasterPage() {
       )}
 
       <div className="space-y-4 max-w-full">
-        {/* 1. STAT CARDS */}
+        {/* Unified Page Header */}
+        <PageHeader
+          title="User Master & Access Control"
+          subtitle="Enterprise identity administration, role-based permissions (RBAC), and branch security boundaries."
+        >
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={handleExport}
+              icon={<Download size={14} className="text-slate-500" />}
+            >
+              Export Excel
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => { setModalUser(null); setIsModalOpen(true); }}
+              icon={<Plus size={14} />}
+            >
+              Register User
+            </Button>
+          </div>
+        </PageHeader>
+
+        {/* 1. STANDARDIZED STAT CARDS */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 border-t-4 border-t-blue-600">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TOTAL USERS</span>
-              <Users size={16} className="text-blue-600" />
-            </div>
-            <p className="text-2xl font-extrabold text-slate-900 mt-2">{stats.total}</p>
-            <p className="text-[11px] text-blue-600 font-semibold mt-1">System Accounts</p>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 border-t-4 border-t-emerald-500">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">ACTIVE USERS</span>
-              <CheckCircle2 size={16} className="text-emerald-500" />
-            </div>
-            <p className="text-2xl font-extrabold text-emerald-600 mt-2">{stats.active}</p>
-            <p className="text-[11px] text-emerald-700 font-semibold mt-1">Operational</p>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 border-t-4 border-t-purple-600">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">ADMINISTRATORS</span>
-              <ShieldCheck size={16} className="text-purple-600" />
-            </div>
-            <p className="text-2xl font-extrabold text-purple-600 mt-2">{stats.superAdmins}</p>
-            <p className="text-[11px] text-purple-700 font-semibold mt-1">Full Privileges</p>
-          </div>
-
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 border-t-4 border-t-amber-500">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">BRANCH MANAGERS</span>
-              <Building2 size={16} className="text-amber-500" />
-            </div>
-            <p className="text-2xl font-extrabold text-amber-600 mt-2">{stats.branchManagers}</p>
-            <p className="text-[11px] text-amber-700 font-semibold mt-1">Branch Scope</p>
-          </div>
+          <StatCard
+            title="Total Users"
+            value={stats.total}
+            subtitle="System accounts"
+            icon={<Users size={16} />}
+          />
+          <StatCard
+            title="Active Users"
+            value={stats.active}
+            subtitle="Operational logins"
+            icon={<CheckCircle2 size={16} />}
+            trend={{ value: `${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 100}% Active`, isPositive: true }}
+          />
+          <StatCard
+            title="Administrators"
+            value={stats.superAdmins}
+            subtitle="Super Admin access"
+            icon={<ShieldCheck size={16} />}
+          />
+          <StatCard
+            title="Branch Managers"
+            value={stats.branchManagers}
+            subtitle="Location-scoped"
+            icon={<Building2 size={16} />}
+          />
         </div>
 
-        {/* 2. NAVY FILTER TOOLBAR */}
-        <div className="bg-[#121f3d] text-white rounded-xl p-3 shadow-md flex flex-wrap items-center gap-3">
+        {/* 2. STANDARDIZED FILTER TOOLBAR */}
+        <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs flex flex-wrap items-center gap-3">
           {/* Role Filter */}
-          <div className="w-40">
-            <label className="block text-[10px] font-bold text-blue-300/80 uppercase mb-1">ROLE</label>
+          <div className="w-44">
+            <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">SECURITY ROLE</label>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-slate-900/80 border border-blue-400/30 rounded-lg text-xs font-semibold text-white focus:outline-none"
+              className="input-enterprise w-full text-xs cursor-pointer"
             >
               <option value="ALL">All Roles</option>
               <option value="Super Admin">Super Admin</option>
@@ -464,12 +480,12 @@ export default function UserMasterPage() {
           </div>
 
           {/* Status Filter */}
-          <div className="w-32">
-            <label className="block text-[10px] font-bold text-blue-300/80 uppercase mb-1">STATUS</label>
+          <div className="w-36">
+            <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">STATUS</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-2.5 py-1.5 bg-slate-900/80 border border-blue-400/30 rounded-lg text-xs font-semibold text-white focus:outline-none"
+              className="input-enterprise w-full text-xs cursor-pointer"
             >
               <option value="ALL">All Status</option>
               <option value="ACTIVE">Active</option>
@@ -478,55 +494,43 @@ export default function UserMasterPage() {
           </div>
 
           {/* Search */}
-          <div className="flex-1 min-w-[220px]">
-            <label className="block text-[10px] font-bold text-blue-300/80 uppercase mb-1">SEARCH</label>
+          <div className="flex-1 min-w-[240px]">
+            <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">SEARCH ACCOUNTS</label>
             <div className="relative">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search Name, Username, Email, Phone..."
-                className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                className="input-enterprise w-full placeholder-slate-400"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
                   <X size={12} />
                 </button>
               )}
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-end gap-1.5 pt-4 sm:pt-0">
-            <button
+          {/* Reset Filter Button */}
+          <div className="flex items-end pt-4 sm:pt-0">
+            <Button
+              variant="secondary"
+              size="md"
               onClick={() => { setRoleFilter('ALL'); setStatusFilter('ALL'); setSearchQuery(''); }}
               title="Reset Filters"
-              className="px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-blue-300 border border-blue-400/30 text-xs transition"
+              icon={<RotateCcw size={14} className="text-slate-500" />}
             >
-              <RotateCcw size={14} />
-            </button>
-            <button
-              onClick={handleExport}
-              title="Export to Excel"
-              className="px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-blue-300 border border-blue-400/30 text-xs transition"
-            >
-              <Download size={14} />
-            </button>
-            <button
-              onClick={() => { setModalUser(null); setIsModalOpen(true); }}
-              className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1 transition shadow-sm"
-            >
-              <Plus size={14} />
-              <span>Register User</span>
-            </button>
+              Reset
+            </Button>
           </div>
         </div>
 
-        {/* 3. USERS TABLE WITH HIGH VISIBILITY ENTERPRISE GRID */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden">
+        {/* 3. USERS TABLE (STANDARDIZED ENTERPRISE GRID) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-center align-middle border-collapse">
-              <thead className="table-header-navy select-none">
+            <table className="table-enterprise text-center align-middle">
+              <thead>
                 <tr>
                   <th className="w-10 px-3 py-3 text-center align-middle text-[11px] font-black text-white uppercase border-r border-slate-700/80">#</th>
                   <th className="px-3 py-3 text-[11px] font-black text-white uppercase min-w-[200px] border-r border-slate-700/80">USER PROFILE</th>
@@ -596,21 +600,13 @@ export default function UserMasterPage() {
                                 const isManager = roleName.toLowerCase().includes('manager');
 
                                 return (
-                                  <span
+                                  <Badge
                                     key={r.id || r.name}
-                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-semibold border ${
-                                      isSuper
-                                        ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                        : isFinance
-                                        ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                        : isManager
-                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    }`}
+                                    variant={isSuper ? 'brand' : isFinance ? 'accent' : isManager ? 'info' : 'success'}
+                                    icon={<Shield size={10} />}
                                   >
-                                    <Shield size={9} />
                                     {roleName}
-                                  </span>
+                                  </Badge>
                                 );
                               })}
                             </div>
@@ -624,23 +620,20 @@ export default function UserMasterPage() {
                           ) : (
                             <div className="flex items-center justify-center flex-wrap gap-1">
                               {branches.slice(0, 3).map((b) => (
-                                <span
+                                <Badge
                                   key={b}
-                                  className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold border ${
-                                    b === u.defaultBranch
-                                      ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                      : 'bg-slate-50 text-slate-800 border-slate-200'
-                                  }`}
-                                  title={b === u.defaultBranch ? 'Primary Branch' : b}
+                                  variant={b === u.defaultBranch ? 'accent' : 'neutral'}
+                                  size="sm"
+                                  className="font-mono"
                                 >
                                   {b === u.defaultBranch && '⭐ '}
                                   {b}
-                                </span>
+                                </Badge>
                               ))}
                               {branches.length > 3 && (
-                                <span className="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 text-slate-700 font-semibold border border-slate-200">
+                                <Badge variant="neutral" size="sm">
                                   +{branches.length - 3} more
-                                </span>
+                                </Badge>
                               )}
                             </div>
                           )}
@@ -648,15 +641,9 @@ export default function UserMasterPage() {
 
                         {/* Status */}
                         <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
-                          {u.isActive !== false ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700">
-                              <CheckCircle2 size={10} /> Active
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 border border-slate-200 text-slate-600">
-                              <XCircle size={10} /> Inactive
-                            </span>
-                          )}
+                          <Badge variant={u.isActive !== false ? 'success' : 'danger'} dot>
+                            {u.isActive !== false ? 'Active' : 'Inactive'}
+                          </Badge>
                         </td>
 
                         {/* Actions */}

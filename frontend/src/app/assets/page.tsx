@@ -15,6 +15,7 @@ import {
   HardDrive, Server, Camera
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { Button, Badge, StatCard } from '@/components/ui';
 
 const fetcher = (url: string) => api.get(url).then((r) => r.data);
 
@@ -510,71 +511,38 @@ export default function AssetManagerPage() {
           </div>
         </div>
 
-        {/* ─── 2. EXECUTIVE 5-CARD VALUATION & LIFECYCLE COCKPIT ─── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {/* Card 1: TOTAL INVENTORY & VALUATION */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Inventory</span>
-              <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-200">
-                <Boxes size={14} />
-              </div>
-            </div>
-            <p className="text-xl font-black text-slate-900 mt-1 font-mono">{metrics.totalCount.toLocaleString()}</p>
-            <p className="text-[10px] font-bold text-[#053D3A] mt-0.5 font-mono">
-              ₹{Math.round(metrics.totalCurrentValuation || metrics.totalPurchaseCost || 0).toLocaleString('en-IN')} CapVal
-            </p>
-          </div>
-
-          {/* Card 2: ALLOCATED / IN ACTIVE SERVICE */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">In Active Service</span>
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-200">
-                <UserCheck size={14} />
-              </div>
-            </div>
-            <p className="text-xl font-black text-indigo-900 mt-1 font-mono">{metrics.allocatedCount.toLocaleString()}</p>
-            <p className="text-[10px] font-semibold text-slate-500 mt-0.5">
-              {metrics.totalCount > 0 ? Math.round((metrics.allocatedCount / metrics.totalCount) * 100) : 0}% fleet deployed
-            </p>
-          </div>
-
-          {/* Card 3: AVAILABLE IN STOCK */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Available in Stock</span>
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
-                <CheckCircle2 size={14} />
-              </div>
-            </div>
-            <p className="text-xl font-black text-emerald-700 mt-1 font-mono">{metrics.availableCount.toLocaleString()}</p>
-            <p className="text-[10px] font-semibold text-emerald-600 mt-0.5">Ready for allocation</p>
-          </div>
-
-          {/* Card 4: UNDER MAINTENANCE */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">In Maintenance</span>
-              <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200">
-                <Wrench size={14} />
-              </div>
-            </div>
-            <p className="text-xl font-black text-amber-800 mt-1 font-mono">{metrics.maintenanceCount.toLocaleString()}</p>
-            <p className="text-[10px] font-semibold text-amber-600 mt-0.5">Repair & service queue</p>
-          </div>
-
-          {/* Card 5: RETIRED / SALVAGE */}
-          <div className="bg-[#FFF8EC] rounded-2xl p-4 border border-[#FFE2B8] shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">Retired / Disposed</span>
-              <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center border border-amber-300">
-                <ShieldCheck size={14} />
-              </div>
-            </div>
-            <p className="text-xl font-black text-[#053D3A] mt-1 font-mono">{(metrics.disposedCount || 0).toLocaleString()}</p>
-            <p className="text-[10px] font-semibold text-amber-800 mt-0.5">Off-book salvage</p>
-          </div>
+        {/* ─── 2. STANDARDIZED 5-CARD VALUATION & LIFECYCLE COCKPIT ─── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+          <StatCard
+            title="Total Inventory"
+            value={metrics.totalCount.toLocaleString()}
+            subtitle={`₹${Math.round(metrics.totalCurrentValuation || metrics.totalPurchaseCost || 0).toLocaleString('en-IN')} CapVal`}
+            icon={<Boxes size={16} />}
+          />
+          <StatCard
+            title="In Active Service"
+            value={metrics.allocatedCount.toLocaleString()}
+            subtitle={`${metrics.totalCount > 0 ? Math.round((metrics.allocatedCount / metrics.totalCount) * 100) : 0}% deployed`}
+            icon={<UserCheck size={16} />}
+          />
+          <StatCard
+            title="Available in Stock"
+            value={metrics.availableCount.toLocaleString()}
+            subtitle="Ready for allocation"
+            icon={<CheckCircle2 size={16} />}
+          />
+          <StatCard
+            title="In Maintenance"
+            value={metrics.maintenanceCount.toLocaleString()}
+            subtitle="Repair & service queue"
+            icon={<Wrench size={16} />}
+          />
+          <StatCard
+            title="Retired / Disposed"
+            value={(metrics.disposedCount || 0).toLocaleString()}
+            subtitle="Off-book salvage"
+            icon={<ShieldCheck size={16} />}
+          />
         </div>
 
         {/* ─── 3. ADVANCED TOOLBAR & SEARCH ─── */}
@@ -641,21 +609,23 @@ export default function AssetManagerPage() {
 
             {/* Action Buttons */}
             <div className="flex items-center gap-2 flex-wrap">
-              <button
+              <Button
+                variant="secondary"
+                size="md"
                 onClick={handleExportExcel}
-                className="px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition border border-slate-300 shadow-2xs cursor-pointer"
+                icon={<FileSpreadsheet size={14} className="text-emerald-700" />}
               >
-                <FileSpreadsheet size={14} className="text-emerald-700" />
-                <span>Export Excel</span>
-              </button>
+                Export Excel
+              </Button>
 
-              <button
+              <Button
+                variant="primary"
+                size="md"
                 onClick={() => handleOpenAssetModal()}
-                className="px-4 py-1.5 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 transition shadow-2xs cursor-pointer border border-[#053D3A]"
+                icon={<Plus size={14} className="text-[#FFE2B8]" />}
               >
-                <Plus size={14} className="text-[#FFE2B8]" />
-                <span>Register Asset</span>
-              </button>
+                Register Asset
+              </Button>
             </div>
           </div>
         </div>
@@ -675,11 +645,11 @@ export default function AssetManagerPage() {
           </div>
 
           <div className="overflow-x-auto max-h-[65vh]">
-            <table className="w-full text-xs text-left border-collapse">
-              <thead className="sticky top-0 z-20 table-header-navy select-none">
+            <table className="table-enterprise text-left">
+              <thead className="sticky top-0 z-20 select-none">
                 <tr>
-                  <th className="px-3.5 py-2.5 border-r border-white/10 w-12 text-center">#</th>
-                  <th className="px-3.5 py-2.5 border-r border-white/10 min-w-[140px]">Asset Code & Tag</th>
+                  <th className="px-3.5 py-2.5 border-r border-white/15 w-12 text-center">#</th>
+                  <th className="px-3.5 py-2.5 border-r border-white/15 min-w-[140px]">Asset Code & Tag</th>
                   <th className="px-3.5 py-2.5 border-r border-white/10 min-w-[200px]">Asset Details</th>
                   <th className="px-3.5 py-2.5 border-r border-white/10 text-center">Category</th>
                   <th className="px-3.5 py-2.5 border-r border-white/10 text-center">Location & Custodian</th>
@@ -770,19 +740,12 @@ export default function AssetManagerPage() {
 
                         {/* Status */}
                         <td className="px-3.5 py-2.5 text-center border-r border-slate-200">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
-                              isAvailable
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                                : isAllocated
-                                ? 'bg-indigo-50 text-indigo-700 border-indigo-300'
-                                : isMaintenance
-                                ? 'bg-amber-50 text-amber-700 border-amber-300'
-                                : 'bg-rose-50 text-rose-700 border-rose-300'
-                            }`}
+                          <Badge
+                            variant={isAvailable ? 'success' : isAllocated ? 'info' : isMaintenance ? 'warning' : 'danger'}
+                            dot
                           >
                             {a.status}
-                          </span>
+                          </Badge>
                         </td>
 
                         {/* Valuation */}

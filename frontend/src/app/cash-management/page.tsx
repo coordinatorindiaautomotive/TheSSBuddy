@@ -10,6 +10,7 @@ import {
   Trash2, Upload, Calendar, Building2, Wallet, Settings,
   FileText, Check, AlertCircle, RefreshCw, Layers, SlidersHorizontal
 } from 'lucide-react';
+import { Button, Badge, StatCard } from '@/components/ui';
 
 const fetcher = (url: string) => api.get(url).then(r => r.data);
 
@@ -580,9 +581,9 @@ function TxTable({
   onApprove: (type: 'in' | 'out', id: string) => void;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-300 shadow-2xs">
-      <table className="w-full text-xs text-center align-middle border-collapse">
-        <thead className="table-header-navy select-none">
+    <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
+      <table className="table-enterprise text-center align-middle">
+        <thead className="select-none">
           <tr>
             {txCols.map((h, idx) => (
               <th
@@ -607,15 +608,15 @@ function TxTable({
             data.map((tx: any, idx: number) => (
               <tr
                 key={tx.id || idx}
-                className={`hover:bg-slate-100/80 transition border-b border-slate-200 ${
+                className={`hover:bg-slate-50 transition border-b border-slate-200 ${
                   idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'
                 }`}
               >
                 {/* Branch */}
                 <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200">
-                  <span className="px-2 py-0.5 bg-slate-100 text-slate-900 border border-slate-200 font-bold rounded-md text-[11px]">
+                  <Badge variant="neutral" size="sm" className="font-mono">
                     {tx.branchCode || 'ALW'}
-                  </span>
+                  </Badge>
                 </td>
 
                 {/* Category / Type */}
@@ -640,19 +641,21 @@ function TxTable({
 
                 {/* Status */}
                 <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200">
-                  <span
-                    className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold shadow-2xs ${
+                  <Badge
+                    variant={
                       tx.status === 'Approved' || tx.status === 'APPROVED'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        ? 'success'
                         : tx.status === 'Rejected' || tx.status === 'REJECTED'
-                        ? 'bg-rose-50 text-rose-800 border border-rose-200'
+                        ? 'danger'
                         : tx.status === 'Draft'
-                        ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                        : 'bg-amber-50 text-amber-800 border border-amber-200'
-                    }`}
+                        ? 'neutral'
+                        : 'warning'
+                    }
+                    dot
+                    size="sm"
                   >
                     {tx.status || 'Pending'}
-                  </span>
+                  </Badge>
                 </td>
 
                 {/* Date */}
@@ -663,12 +666,14 @@ function TxTable({
                 {/* Action */}
                 <td className="px-3 py-2.5 text-center align-middle">
                   {(tx.status === 'Pending' || tx.status === 'PENDING' || tx.status === 'Draft') && (
-                    <button
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => onApprove(type, tx.id)}
-                      className="text-xs px-2.5 py-1 bg-[#053D3A] hover:bg-[#074B47] text-white font-bold rounded-lg transition shadow-2xs inline-flex items-center gap-1 cursor-pointer"
+                      icon={<CheckCircle2 size={13} />}
                     >
-                      <CheckCircle2 size={13} /> Approve
-                    </button>
+                      Approve
+                    </Button>
                   )}
                 </td>
               </tr>
@@ -778,104 +783,81 @@ export default function CashManagementPage() {
         />
       )}
 
-      {/* Summary Metric Cockpit */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Receipts (In)</span>
-            <span className="text-xl font-black text-emerald-800 font-mono mt-1 block">
-              ₹{totalIn.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium">{cashInList.length} transactions</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
-            <ArrowDownCircle size={20} />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Total Payments (Out)</span>
-            <span className="text-xl font-black text-rose-800 font-mono mt-1 block">
-              ₹{totalOut.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium">{cashOutList.length} transactions</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200">
-            <ArrowUpCircle size={20} />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Net Cashflow</span>
-            <span className={`text-xl font-black font-mono mt-1 block ${netFlow >= 0 ? 'text-emerald-800' : 'text-rose-800'}`}>
-              ₹{netFlow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium">{netFlow >= 0 ? 'Surplus' : 'Deficit'}</span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-[#053D3A]/10 text-[#053D3A] flex items-center justify-center border border-[#053D3A]/20">
-            <Wallet size={20} />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-              {isSuperAdmin ? 'Configured Categories' : 'Assigned Location'}
-            </span>
-            <span className="text-xl font-black text-slate-900 font-mono mt-1 block">
-              {isSuperAdmin ? expenseCategories.length + receiptTypes.length : (userBranchName || userBranch || 'BSE')}
-            </span>
-            <span className="text-[10px] text-slate-400 font-medium">
-              {isSuperAdmin ? 'Dynamic dropdown options' : `Branch Code: ${userBranch || 'BSE'}`}
-            </span>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200">
-            {isSuperAdmin ? <Settings size={20} /> : <Building2 size={20} />}
-          </div>
-        </div>
+      {/* Standardized Summary Metric Cockpit */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+        <StatCard
+          title="Total Receipts (In)"
+          value={`₹${totalIn.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          subtitle={`${cashInList.length} transactions`}
+          icon={<ArrowDownCircle size={16} />}
+        />
+        <StatCard
+          title="Total Payments (Out)"
+          value={`₹${totalOut.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          subtitle={`${cashOutList.length} transactions`}
+          icon={<ArrowUpCircle size={16} />}
+        />
+        <StatCard
+          title="Net Cashflow"
+          value={`₹${netFlow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          subtitle={netFlow >= 0 ? 'Surplus liquidity' : 'Deficit liquidity'}
+          icon={<Wallet size={16} />}
+          trend={{ value: netFlow >= 0 ? 'Surplus' : 'Deficit', isPositive: netFlow >= 0 }}
+        />
+        <StatCard
+          title={isSuperAdmin ? 'Configured Categories' : 'Assigned Location'}
+          value={isSuperAdmin ? expenseCategories.length + receiptTypes.length : (userBranchName || userBranch || 'BSE')}
+          subtitle={isSuperAdmin ? 'Dynamic dropdown options' : `Branch Code: ${userBranch || 'BSE'}`}
+          icon={isSuperAdmin ? <Settings size={16} /> : <Building2 size={16} />}
+        />
       </div>
 
       {/* Action Buttons Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="danger"
+            size="md"
             onClick={() => setModal('out')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl text-xs transition shadow-md cursor-pointer"
+            icon={<ArrowUpCircle size={16} />}
           >
-            <ArrowUpCircle size={16} /> New Cash Out Payment
-          </button>
+            New Cash Out Payment
+          </Button>
 
-          <button
+          <Button
+            variant="primary"
+            size="md"
             onClick={() => setModal('in')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition shadow-md cursor-pointer"
+            icon={<ArrowDownCircle size={16} />}
           >
-            <ArrowDownCircle size={16} /> New Cash In Receipt
-          </button>
+            New Cash In Receipt
+          </Button>
         </div>
 
         <div className="flex items-center gap-2.5">
           {isSuperAdmin && (
-            <button
+            <Button
+              variant="secondary"
+              size="md"
               onClick={() => setCategoryModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold rounded-xl text-xs transition shadow-2xs cursor-pointer"
+              icon={<Settings size={15} className="text-[#053D3A]" />}
             >
-              <Settings size={15} className="text-[#053D3A]" />
-              <span>Manage Dropdowns</span>
-            </button>
+              Manage Dropdowns
+            </Button>
           )}
 
-          <button
+          <Button
+            variant="secondary"
+            size="md"
             onClick={() => {
               mutateIn();
               mutateOut();
+              toast.success('Cash ledger refreshed');
             }}
-            className="p-2.5 bg-white hover:bg-slate-50 text-slate-600 border border-slate-300 rounded-xl transition shadow-2xs cursor-pointer"
-            title="Refresh transactions"
+            icon={<RefreshCw size={14} className="text-slate-600" />}
           >
-            <RefreshCw size={15} />
-          </button>
+            Refresh
+          </Button>
         </div>
       </div>
 

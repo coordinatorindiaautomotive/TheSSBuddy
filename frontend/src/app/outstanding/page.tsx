@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button, Badge, StatCard } from '@/components/ui';
 
 const fetcher = (url: string) => api.get(url).then(r => r.data);
 
@@ -361,143 +362,84 @@ export default function AdvancedOutstandingRegistryPage() {
 
       <div className="space-y-4 max-w-full">
         {/* 1. EXECUTIVE BENTO METRICS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card 1: Total Outstanding */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 border-t-4 border-t-blue-600 relative overflow-hidden group">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                TOTAL OUTSTANDING
-              </span>
-              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs">
-                ₹
-              </div>
-            </div>
-            <p className="text-2xl font-extrabold text-slate-900 leading-tight">
-              {formatInrStrict(metrics.totalOutstanding)}
-            </p>
-            <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-500 font-medium">
-              <span className="inline-flex items-center gap-0.5 text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-semibold">
-                <TrendingUp size={11} /> {metrics.activeDealers} Active Accounts
-              </span>
-              <span>across branch networks</span>
-            </div>
-          </div>
-
-          {/* Card 2: Overdue (>28 Days) */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 border-t-4 border-t-rose-500 relative overflow-hidden group">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                OVERDUE (&gt;28 DAYS)
-              </span>
-              <div className="w-8 h-8 rounded-full bg-rose-50 flex items-center justify-center text-rose-600">
-                <AlertTriangle size={15} />
-              </div>
-            </div>
-            <p className="text-2xl font-extrabold text-rose-600 leading-tight">
-              {formatInrStrict(metrics.overdue)}
-            </p>
-            <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-500 font-medium">
-              <span className="inline-flex items-center gap-0.5 text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded font-bold">
-                {metrics.overduePercent}%
-              </span>
-              <span>of total pending portfolio</span>
-            </div>
-          </div>
-
-          {/* Card 3: Collection Efficiency & Tally Status */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                  EFFICIENCY
-                </span>
-                <p className="text-xl font-extrabold text-blue-900">{metrics.collectionEfficiency}%</p>
-              </div>
-              <div className="w-10 h-10">
-                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                  <circle cx="18" cy="18" r="15.915" fill="none" stroke="#e2e8f0" strokeWidth="3.5" />
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.915"
-                    fill="none"
-                    stroke="#2563eb"
-                    strokeWidth="3.5"
-                    strokeDasharray={`${metrics.collectionEfficiency}, 100`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-tr from-blue-50 to-indigo-50/80 rounded-xl p-3.5 shadow-sm border border-blue-200 flex flex-col justify-center">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-bold text-blue-900 uppercase">TALLY SYNC</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              </div>
-              <p className="text-[11px] font-bold text-slate-800 leading-tight">Live Connected</p>
-              <p className="text-[10px] text-blue-700 mt-0.5 font-mono">Real-Time SSOT</p>
-            </div>
-          </div>
+        {/* 1. STANDARDIZED EXECUTIVE METRIC CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          <StatCard
+            title="Total Outstanding"
+            value={formatInrStrict(metrics.totalOutstanding)}
+            subtitle={`${metrics.activeDealers} active dealer accounts`}
+            icon={<Receipt size={16} />}
+          />
+          <StatCard
+            title="Overdue (>28 Days)"
+            value={formatInrStrict(metrics.overdue)}
+            subtitle={`${metrics.overduePercent}% of total pending portfolio`}
+            icon={<AlertTriangle size={16} />}
+            trend={{ value: `${metrics.overduePercent}% Overdue`, isPositive: false }}
+          />
+          <StatCard
+            title="Collection Efficiency"
+            value={`${metrics.collectionEfficiency}%`}
+            subtitle="Tally Real-Time SSOT connected"
+            icon={<TrendingUp size={16} />}
+            trend={{ value: `${metrics.collectionEfficiency}%`, isPositive: Number(metrics.collectionEfficiency) >= 80 }}
+          />
         </div>
 
         {/* 2. ADVANCED TOOLBAR & FILTERS */}
-        <div
-          className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/90 flex flex-wrap items-center justify-between gap-3 text-slate-800"
-        >
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/90 flex flex-wrap items-center justify-between gap-3 text-slate-800">
           <div className="flex items-center gap-3 flex-wrap">
             {/* Period Selector — SuperAdmin Only */}
             {isSuperAdmin && (
-              <div className="flex items-center gap-1.5 bg-white text-slate-900 border border-slate-200 rounded-2xl px-3.5 py-2 shadow-md">
-                <Calendar size={15} className="text-blue-600 shrink-0" />
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
+                <Calendar size={14} className="text-[#053D3A] shrink-0" />
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="bg-slate-100 text-slate-900 font-extrabold text-xs focus:outline-none cursor-pointer rounded-lg px-2 py-1 border border-slate-300"
+                  className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
                 >
-                  <option value={1} className="text-slate-900 bg-white">Jan</option>
-                  <option value={2} className="text-slate-900 bg-white">Feb</option>
-                  <option value={3} className="text-slate-900 bg-white">Mar</option>
-                  <option value={4} className="text-slate-900 bg-white">Apr</option>
-                  <option value={5} className="text-slate-900 bg-white">May</option>
-                  <option value={6} className="text-slate-900 bg-white">Jun</option>
-                  <option value={7} className="text-slate-900 bg-white">Jul</option>
-                  <option value={8} className="text-slate-900 bg-white">Aug</option>
-                  <option value={9} className="text-slate-900 bg-white">Sep</option>
-                  <option value={10} className="text-slate-900 bg-white">Oct</option>
-                  <option value={11} className="text-slate-900 bg-white">Nov</option>
-                  <option value={12} className="text-slate-900 bg-white">Dec</option>
+                  <option value={1}>Jan</option>
+                  <option value={2}>Feb</option>
+                  <option value={3}>Mar</option>
+                  <option value={4}>Apr</option>
+                  <option value={5}>May</option>
+                  <option value={6}>Jun</option>
+                  <option value={7}>Jul</option>
+                  <option value={8}>Aug</option>
+                  <option value={9}>Sep</option>
+                  <option value={10}>Oct</option>
+                  <option value={11}>Nov</option>
+                  <option value={12}>Dec</option>
                 </select>
-                {/* Year */}
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="bg-slate-100 text-slate-900 font-extrabold text-xs focus:outline-none cursor-pointer rounded-lg px-2 py-1 border border-slate-300"
+                  className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
                 >
-                  <option value={2026} className="text-slate-900 bg-white">2026</option>
-                  <option value={2025} className="text-slate-900 bg-white">2025</option>
-                  <option value={2024} className="text-slate-900 bg-white">2024</option>
+                  <option value={2026}>2026</option>
+                  <option value={2025}>2025</option>
+                  <option value={2024}>2024</option>
                 </select>
               </div>
             )}
 
             {/* Branch Filter */}
             {isSuperAdmin ? (
-              <div className="flex items-center gap-1.5 bg-white text-slate-900 border border-slate-200 rounded-2xl px-3.5 py-2 shadow-md">
-                <Building2 size={15} className="text-blue-600 shrink-0" />
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
+                <Building2 size={14} className="text-[#053D3A] shrink-0" />
                 <select
                   value={branchFilter}
                   onChange={(e) => setBranchFilter(e.target.value)}
-                  className="bg-transparent text-xs font-black text-slate-900 focus:outline-none cursor-pointer"
+                  className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer"
                 >
-                  <option value="ALL" className="text-slate-900 bg-white">All Branches ({branchOptions.length - 1})</option>
+                  <option value="ALL">All Branches ({branchOptions.length - 1})</option>
                   {branchOptions.filter(b => b !== 'ALL').map(b => (
-                    <option key={b} value={b} className="text-slate-900 bg-white">{b}</option>
+                    <option key={b} value={b}>{b}</option>
                   ))}
                 </select>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 bg-amber-400 text-slate-950 rounded-2xl px-3.5 py-2 text-xs font-black shadow-md font-mono">
+              <div className="flex items-center gap-1.5 bg-amber-400 text-slate-950 rounded-xl px-3 py-1.5 text-xs font-bold shadow-2xs font-mono">
                 <Lock size={13} className="text-slate-950" />
                 <span>Branch: {userBranch || user?.branchCode || 'BSE'}</span>
               </div>
@@ -510,7 +452,7 @@ export default function AdvancedOutstandingRegistryPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search Dealer or Code..."
-                className="px-3.5 py-2 bg-white border border-slate-200 text-slate-900 font-extrabold placeholder-slate-400 rounded-2xl text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-md"
+                className="input-enterprise w-full placeholder-slate-400"
               />
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
@@ -521,58 +463,63 @@ export default function AdvancedOutstandingRegistryPage() {
 
             {/* Expand / Collapse buttons */}
             <div className="flex items-center gap-1.5">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={expandAll}
-                className="px-3 py-2 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 text-xs font-extrabold transition shadow-md border border-slate-200"
               >
                 Expand All
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={collapseAll}
-                className="px-3 py-2 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 text-xs font-extrabold transition shadow-md border border-slate-200"
               >
                 Collapse
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2">
-            <button
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="secondary"
+              size="md"
               onClick={handleSyncTally}
               disabled={isSyncingTally}
-              className="px-3.5 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-md disabled:opacity-60"
+              isLoading={isSyncingTally}
+              icon={<RefreshCw size={14} className="text-indigo-600" />}
             >
-              <RefreshCw size={14} className={isSyncingTally ? 'animate-spin' : ''} />
-              <span>{isSyncingTally ? 'Syncing...' : 'Sync Tally'}</span>
-            </button>
+              Sync Tally
+            </Button>
 
-            <button
+            <Button
+              variant="secondary"
+              size="md"
               onClick={handleExport}
-              className="px-3.5 py-2 rounded-2xl bg-white hover:bg-slate-100 text-blue-600 font-extrabold text-xs flex items-center gap-1.5 transition shadow-md border border-slate-200"
+              icon={<Download size={14} className="text-slate-600" />}
             >
-              <Download size={14} />
-              <span>Export</span>
-            </button>
+              Export
+            </Button>
 
             {isSuperAdmin && (
-              <button
+              <Button
+                variant="primary"
+                size="md"
                 onClick={() => setIsUploadModalOpen(true)}
-                className="px-4 py-2 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-md"
+                icon={<Upload size={13} />}
               >
-                <Upload size={13} />
-                <span>Upload Excel</span>
-              </button>
+                Upload Excel
+              </Button>
             )}
           </div>
         </div>
 
-        {/* 3. GROUPED OUTSTANDING TABLE WITH HIGH VISIBILITY ENTERPRISE GRID */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden">
+        {/* 3. GROUPED OUTSTANDING TABLE (STANDARDIZED ENTERPRISE GRID) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-center align-middle border-collapse">
-              {/* Deep Navy Header matching Reference Design (#0A122C) */}
-              <thead className="table-header-navy select-none sticky top-0 z-20">
+            <table className="table-enterprise text-center align-middle">
+              <thead className="select-none sticky top-0 z-20">
                 <tr>
                   <th className="px-3 py-3 text-[11px] font-semibold text-white uppercase whitespace-nowrap min-w-[240px] text-left border-r border-slate-700/80">
                     BRANCH / PARTICULARS
@@ -768,9 +715,9 @@ export default function AdvancedOutstandingRegistryPage() {
 
                                 <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 font-mono text-xs">
                                   {m80 > 0 ? (
-                                    <span className="bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-md text-[11px] font-semibold">
+                                    <Badge variant="danger" size="sm">
                                       {formatInr(m80)}
-                                    </span>
+                                    </Badge>
                                   ) : (
                                     <span className="text-slate-300 font-medium">-</span>
                                   )}

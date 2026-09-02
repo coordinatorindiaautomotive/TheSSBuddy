@@ -38,8 +38,17 @@ export default function Topbar({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>('');
-  const [selectedFy, setSelectedFy] = useState<number>(2026);
-  const [selectedMonthName, setSelectedMonthName] = useState<string>('Aug');
+  const [selectedFy, setSelectedFy] = useState<number>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
+  });
+  const [selectedMonthName, setSelectedMonthName] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[d.getMonth()];
+  });
 
   useEffect(() => {
     const updateClock = () => {

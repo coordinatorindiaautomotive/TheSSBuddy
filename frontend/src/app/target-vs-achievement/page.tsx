@@ -17,6 +17,7 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip
 } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button, Badge, StatCard } from '@/components/ui';
 
 function ClientPortal({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
@@ -1169,91 +1170,34 @@ export default function TargetVsAchievementPage() {
           </div>
         </div>
 
-        {/* ─── 6. ANALYTICS BENTO KPI CARDS ─── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-          {/* Card 1: Total Target */}
-          <div className="bg-white rounded-2xl p-3 px-4 shadow-xs border border-purple-200/80 hover:shadow-md transition relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-600 to-indigo-500"></div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-black uppercase text-purple-700 tracking-wider">
-                Total Target ({currentPeriodLabel})
-              </span>
-              <div className="w-6 h-6 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-                <Target size={14} />
-              </div>
-            </div>
-            <p className="text-xl font-bold font-mono text-slate-900 tracking-tight">
-              {formatLakhs(summary.totalTarget)}
-            </p>
-            <p className="text-[10px] text-slate-400 mt-1 font-medium truncate">
-              Weighted Base + Guardrail Floor Gap Adjustment
-            </p>
-          </div>
-
-          {/* Card 2: Current Month Sales */}
-          <div className="bg-white rounded-2xl p-3 px-4 shadow-xs border border-emerald-200/80 hover:shadow-md transition relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-600 to-teal-500"></div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-black uppercase text-emerald-700 tracking-wider">
-                {currentPeriodLabel} Sales
-              </span>
-              <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <BarChart3 size={14} />
-              </div>
-            </div>
-            <p className="text-xl font-bold font-mono text-slate-900 tracking-tight">
-              {formatLakhs(summary.totalCurrentSales)}
-            </p>
-            <p className="text-[10px] text-slate-400 mt-1 font-medium truncate">
-              Real-time net retail sales turnover for {currentPeriodLabel}
-            </p>
-          </div>
-
-          {/* Card 3: Overall Achievement % */}
-          <div className="bg-white rounded-2xl p-3 px-4 shadow-xs border border-blue-200/80 hover:shadow-md transition relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-cyan-500"></div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-black uppercase text-blue-700 tracking-wider">
-                Achievement % ({currentPeriodLabel})
-              </span>
-              <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                <Sparkles size={14} />
-              </div>
-            </div>
-            <div className="flex items-center justify-between mt-0.5">
-              <p className="text-xl font-bold font-mono text-slate-900 tracking-tight">
-                {summary.overallAchievementPercent || 0}%
-              </p>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  (summary.overallAchievementPercent || 0) >= 100
-                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                    : 'bg-blue-100 text-blue-800 border border-blue-300'
-                }`}
-              >
-                {(summary.overallAchievementPercent || 0) >= 100 ? 'Target Exceeded' : 'On Track'}
-              </span>
-            </div>
-          </div>
-
-          {/* Card 4: Guardrail Audit Floor */}
-          <div className="bg-white rounded-2xl p-3 px-4 shadow-xs border border-amber-200/80 hover:shadow-md transition relative overflow-hidden group">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500"></div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-black uppercase text-amber-700 tracking-wider">
-                Guardrail Floor ({floorMultiplier}x)
-              </span>
-              <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-                <Scale size={14} />
-              </div>
-            </div>
-            <p className="text-xl font-bold font-mono text-slate-900 tracking-tight">
-              {formatLakhs(guardrail?.overallFloor)}
-            </p>
-            <p className="text-[10px] text-emerald-700 mt-1 font-bold flex items-center gap-1 truncate">
-              <ShieldCheck size={12} /> Status: {guardrail?.isFloorPassed ? 'Floor Passed' : 'Gap Distributed Pro-rata'}
-            </p>
-          </div>
+        {/* ─── 6. STANDARDIZED ANALYTICS BENTO KPI CARDS ─── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">
+          <StatCard
+            title={`Total Target (${currentPeriodLabel})`}
+            value={formatLakhs(summary.totalTarget)}
+            subtitle="Weighted Base + Guardrail Floor Gap Adjustment"
+            icon={<Target size={16} />}
+          />
+          <StatCard
+            title={`${currentPeriodLabel} Sales`}
+            value={formatLakhs(summary.totalCurrentSales)}
+            subtitle={`Real-time net retail sales turnover for ${currentPeriodLabel}`}
+            icon={<BarChart3 size={16} />}
+          />
+          <StatCard
+            title={`Achievement % (${currentPeriodLabel})`}
+            value={`${summary.overallAchievementPercent || 0}%`}
+            subtitle={(summary.overallAchievementPercent || 0) >= 100 ? 'Target Exceeded' : 'On Track'}
+            icon={<Sparkles size={16} />}
+            trend={{ value: `${summary.overallAchievementPercent || 0}%`, isPositive: (summary.overallAchievementPercent || 0) >= 100 }}
+          />
+          <StatCard
+            title={`Guardrail Floor (${floorMultiplier}x)`}
+            value={formatLakhs(guardrail?.overallFloor)}
+            subtitle={guardrail?.isFloorPassed ? 'Floor Passed' : 'Gap Distributed Pro-rata'}
+            icon={<Scale size={16} />}
+            trend={{ value: guardrail?.isFloorPassed ? 'Floor Passed' : 'Floor Gap', isPositive: Boolean(guardrail?.isFloorPassed) }}
+          />
         </div>
 
         {/* ─── 7. INTERACTIVE STATUS FILTER PILLS & DISPLAY SELECTOR ─── */}
@@ -1373,9 +1317,9 @@ export default function TargetVsAchievementPage() {
           </div>
 
           <div className="overflow-x-auto max-h-[72vh]">
-            <table className="w-full text-xs text-center align-middle border-collapse">
-              {/* Sticky Header (High-Visibility Enterprise Theme) */}
-              <thead className="sticky top-0 z-20 table-header-navy select-none shadow-md">
+            <table className="table-enterprise text-center align-middle">
+              {/* Sticky Header */}
+              <thead className="sticky top-0 z-20 select-none shadow-md">
                 <tr>
                   <th
                     onClick={() => handleSort('branchCode')}
@@ -1637,9 +1581,13 @@ export default function TargetVsAchievementPage() {
                         {/* Achievement % */}
                         <td className="px-3.5 py-2.5 text-center align-middle border-r border-slate-200">
                           <div className="flex flex-col items-center gap-1">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border font-mono ${achBg}`}>
+                            <Badge
+                              variant={ach >= 100 ? 'success' : ach >= 70 ? 'warning' : 'danger'}
+                              size="sm"
+                              className="font-mono"
+                            >
                               {ach}%
-                            </span>
+                            </Badge>
                             <div className="w-16 bg-slate-200 rounded-full h-1.5 overflow-hidden">
                               <div
                                 className={`h-full ${ach >= 100 ? 'bg-emerald-500' : ach >= 70 ? 'bg-amber-500' : 'bg-rose-500'} rounded-full transition-all duration-300`}
@@ -1662,15 +1610,13 @@ export default function TargetVsAchievementPage() {
                         {/* YoY Growth % */}
                         <td className="px-3.5 py-2.5 text-center align-middle">
                           {r.yoyGrowthPercent !== undefined && (
-                            <span
-                              className={`inline-flex items-center justify-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-semibold font-mono ${
-                                r.yoyGrowthPercent >= 0
-                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                                  : 'bg-rose-50 text-rose-800 border border-rose-200'
-                              }`}
+                            <Badge
+                              variant={r.yoyGrowthPercent >= 0 ? 'success' : 'danger'}
+                              size="sm"
+                              className="font-mono"
                             >
                               {r.yoyGrowthPercent >= 0 ? '+' : ''}{r.yoyGrowthPercent}%
-                            </span>
+                            </Badge>
                           )}
                         </td>
                       </tr>
