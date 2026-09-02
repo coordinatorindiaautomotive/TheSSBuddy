@@ -529,16 +529,16 @@ export default function UserMasterPage() {
         {/* 3. USERS TABLE (STANDARDIZED ENTERPRISE GRID) */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="table-enterprise text-center align-middle">
+            <table className="table-enterprise">
               <thead>
                 <tr>
-                  <th className="w-10 px-3 py-3 text-center align-middle text-[11px] font-black text-white uppercase border-r border-slate-700/80">#</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase min-w-[200px] border-r border-slate-700/80">USER PROFILE</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase border-r border-slate-700/80">CONTACT</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase border-r border-slate-700/80">SECURITY ACCESS ROLE</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase border-r border-slate-700/80">BRANCH BOUNDARIES</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase text-center border-r border-slate-700/80">STATUS</th>
-                  <th className="w-24 px-3 py-3 text-center align-middle text-[11px] font-black text-white uppercase">ACTIONS</th>
+                  <th className="w-12 px-3 py-3 text-center align-middle text-[11px] font-bold text-white uppercase border-r border-white/10">#</th>
+                  <th className="px-4 py-3 text-left align-middle text-[11px] font-bold text-white uppercase min-w-[220px] border-r border-white/10">USER PROFILE</th>
+                  <th className="px-4 py-3 text-left align-middle text-[11px] font-bold text-white uppercase min-w-[200px] border-r border-white/10">CONTACT</th>
+                  <th className="px-3 py-3 text-center align-middle text-[11px] font-bold text-white uppercase min-w-[180px] border-r border-white/10">SECURITY ACCESS ROLE</th>
+                  <th className="px-3 py-3 text-center align-middle text-[11px] font-bold text-white uppercase min-w-[160px] border-r border-white/10">BRANCH BOUNDARIES</th>
+                  <th className="w-28 px-3 py-3 text-center align-middle text-[11px] font-bold text-white uppercase border-r border-white/10">STATUS</th>
+                  <th className="w-24 px-3 py-3 text-center align-middle text-[11px] font-bold text-white uppercase">ACTIONS</th>
                 </tr>
               </thead>
 
@@ -547,16 +547,16 @@ export default function UserMasterPage() {
                   <tr>
                     <td colSpan={7} className="py-12 text-center align-middle text-slate-400 border-b border-slate-200">
                       <div className="flex flex-col items-center gap-2">
-                        <RefreshCw size={24} className="animate-spin text-blue-500" />
-                        <span className="font-bold">Loading User Master & RBAC...</span>
+                        <RefreshCw size={24} className="animate-spin text-[#053D3A]" />
+                        <span className="font-bold text-xs">Loading User Master & RBAC...</span>
                       </div>
                     </td>
                   </tr>
                 ) : filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center align-middle text-slate-400 border-b border-slate-200">
-                      <UserCog size={32} className="text-slate-200 mx-auto mb-2" />
-                      <p className="font-bold text-slate-600">No users found matching the filter criteria.</p>
+                      <UserCog size={32} className="text-slate-300 mx-auto mb-2" />
+                      <p className="font-bold text-slate-600 text-xs">No users found matching the filter criteria.</p>
                     </td>
                   </tr>
                 ) : (
@@ -565,47 +565,63 @@ export default function UserMasterPage() {
                     const branches: string[] = u.branches || [];
 
                     return (
-                      <tr key={u.id} className={`hover:bg-blue-50/60 transition-colors border-b border-slate-200 ${idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}`}>
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 font-semibold text-slate-900 text-xs">{idx + 1}</td>
+                      <tr key={u.id} className={`hover:bg-slate-50 transition border-b border-slate-200 ${idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}`}>
+                        <td className="px-3 py-3 text-center align-middle border-r border-slate-200 font-mono font-bold text-slate-700 text-xs">
+                          {idx + 1}
+                        </td>
 
                         {/* Profile */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200">
-                          <div className="flex items-center justify-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-semibold flex items-center justify-center text-xs flex-shrink-0 shadow-sm">
+                        <td className="px-4 py-3 text-left align-middle border-r border-slate-200">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#053D3A] text-[#FFE2B8] font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs">
                               {u.fullName?.charAt(0) || u.username?.charAt(0) || 'U'}
                             </div>
-                            <div className="text-left">
-                              <p className="font-semibold text-slate-900 leading-tight text-xs uppercase">{u.fullName || u.username}</p>
-                              <p className="text-[11px] text-blue-700 font-mono font-semibold">@{u.username}</p>
+                            <div className="min-w-0">
+                              <p className="font-bold text-slate-900 leading-snug text-xs uppercase truncate">
+                                {u.fullName || u.username}
+                              </p>
+                              <p className="text-[11px] text-slate-500 font-mono font-medium truncate">
+                                @{u.username}
+                              </p>
                             </div>
                           </div>
                         </td>
 
                         {/* Contact */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 text-slate-800">
-                          <p className="text-slate-900 font-semibold text-xs">{u.email || '-'}</p>
-                          <p className="text-slate-600 font-mono font-semibold text-[11px]">{u.phone || '-'}</p>
+                        <td className="px-4 py-3 text-left align-middle border-r border-slate-200">
+                          <div className="min-w-0 space-y-0.5">
+                            <p className="text-slate-800 font-medium text-xs truncate" title={u.email}>
+                              {u.email || '—'}
+                            </p>
+                            <p className="text-slate-500 font-mono text-[11px] font-medium">
+                              {u.phone || '—'}
+                            </p>
+                          </div>
                         </td>
 
                         {/* Roles Badges */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
+                        <td className="px-3 py-3 text-center align-middle border-r border-slate-200 whitespace-nowrap">
                           {roles.length === 0 ? (
-                            <span className="text-[10px] text-slate-400 italic font-semibold">No role assigned</span>
+                            <span className="text-[10px] text-slate-400 italic font-medium">No role assigned</span>
                           ) : (
                             <div className="flex items-center justify-center flex-wrap gap-1">
                               {roles.map((r: any) => {
-                                const roleName = r.name || 'Role';
-                                const isSuper = roleName.toLowerCase().includes('admin');
-                                const isFinance = roleName.toLowerCase().includes('finance');
-                                const isManager = roleName.toLowerCase().includes('manager');
+                                const rawName = r.name || 'Role';
+                                const formattedName = rawName
+                                  .replace(/([a-z])([A-Z])/g, '$1 $2')
+                                  .replace(/_/g, ' ')
+                                  .trim();
+                                const isSuper = rawName.toLowerCase().includes('admin');
+                                const isFinance = rawName.toLowerCase().includes('finance');
+                                const isManager = rawName.toLowerCase().includes('manager');
 
                                 return (
                                   <Badge
                                     key={r.id || r.name}
-                                    variant={isSuper ? 'brand' : isFinance ? 'accent' : isManager ? 'info' : 'success'}
-                                    icon={<Shield size={10} />}
+                                    variant={isSuper ? 'danger' : isFinance ? 'accent' : isManager ? 'brand' : 'info'}
+                                    icon={<ShieldCheck size={11} />}
                                   >
-                                    {roleName}
+                                    {formattedName}
                                   </Badge>
                                 );
                               })}
@@ -614,9 +630,9 @@ export default function UserMasterPage() {
                         </td>
 
                         {/* Branch Access */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200">
+                        <td className="px-3 py-3 text-center align-middle border-r border-slate-200">
                           {branches.length === 0 ? (
-                            <span className="text-[10px] text-slate-500 font-semibold italic">All Branches (Global Scope)</span>
+                            <span className="text-[10px] text-slate-400 font-medium italic">All Branches (Global Scope)</span>
                           ) : (
                             <div className="flex items-center justify-center flex-wrap gap-1">
                               {branches.slice(0, 3).map((b) => (
@@ -625,8 +641,8 @@ export default function UserMasterPage() {
                                   variant={b === u.defaultBranch ? 'accent' : 'neutral'}
                                   size="sm"
                                   className="font-mono"
+                                  icon={b === u.defaultBranch ? <Star size={10} className="fill-amber-500 text-amber-500" /> : undefined}
                                 >
-                                  {b === u.defaultBranch && '⭐ '}
                                   {b}
                                 </Badge>
                               ))}
@@ -640,26 +656,26 @@ export default function UserMasterPage() {
                         </td>
 
                         {/* Status */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
+                        <td className="px-3 py-3 text-center align-middle border-r border-slate-200 whitespace-nowrap">
                           <Badge variant={u.isActive !== false ? 'success' : 'danger'} dot>
                             {u.isActive !== false ? 'Active' : 'Inactive'}
                           </Badge>
                         </td>
 
                         {/* Actions */}
-                        <td className="px-3 py-2.5 text-center whitespace-nowrap">
+                        <td className="px-3 py-3 text-center align-middle whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
                               onClick={() => { setModalUser(u); setIsModalOpen(true); }}
                               title="Edit User Profile & Access"
-                              className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition border border-slate-200"
+                              className="p-1.5 text-slate-600 hover:text-[#053D3A] hover:bg-slate-100 rounded-lg transition border border-slate-200 cursor-pointer"
                             >
                               <Edit size={13} />
                             </button>
                             <button
                               onClick={() => handleDeleteUser(u.id, u.username)}
                               title="Deactivate User"
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200 cursor-pointer"
                             >
                               <Trash2 size={13} />
                             </button>
