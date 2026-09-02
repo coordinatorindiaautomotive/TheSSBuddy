@@ -1176,13 +1176,20 @@ export class DashboardService {
       trajectoryData,
       partyTypeMixData,
       filters: {
-        periods: [
-          { fiscalYear: 2026, month: 'Aug', monthYear: 'Aug-2026' },
-          { fiscalYear: 2026, month: 'Jul', monthYear: 'Jul-2026' },
-          { fiscalYear: 2026, month: 'Jun', monthYear: 'Jun-2026' },
-          { fiscalYear: 2026, month: 'May', monthYear: 'May-2026' },
-          { fiscalYear: 2026, month: 'Apr', monthYear: 'Apr-2026' },
-        ],
+        periods: availablePeriods.map(p => ({
+          fiscalYear: p.fiscalYear,
+          month: p.month,
+          maxDay: p.maxDay,
+          monthYear: `${p.month}-${p.fiscalYear}`,
+          label: p.label,
+        })),
+        availableMonths: availablePeriods.map(p => ({
+          fiscalYear: p.fiscalYear,
+          month: p.month,
+          maxDay: p.maxDay,
+          monthYear: `${p.month}-${p.fiscalYear}`,
+          label: p.label,
+        })),
         branches: branches.map(b => ({ code: b.code, name: b.name })),
         categories: [
           { code: 'ALL', name: 'All Categories (MGP + MGA + MGO + Tyres)' },

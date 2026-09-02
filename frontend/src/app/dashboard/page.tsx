@@ -648,6 +648,12 @@ export default function DashboardPage() {
     if (Array.isArray(kpiData?.availablePeriods) && kpiData.availablePeriods.length > 0) {
       return kpiData.availablePeriods;
     }
+    if (Array.isArray(kpiData?.filters?.availableMonths) && kpiData.filters.availableMonths.length > 0) {
+      return kpiData.filters.availableMonths;
+    }
+    if (Array.isArray(kpiData?.filters?.periods) && kpiData.filters.periods.length > 0) {
+      return kpiData.filters.periods;
+    }
     return [
       {
         fiscalYear: yesterday.year,
@@ -662,7 +668,7 @@ export default function DashboardPage() {
       { fiscalYear: 2026, month: 'May', maxDay: 31, isLatest: false, label: 'May 2026 (Full Month)' },
       { fiscalYear: 2026, month: 'Apr', maxDay: 30, isLatest: false, label: 'Apr 2026 (Full Month)' },
     ];
-  }, [kpiData?.availablePeriods, yesterday]);
+  }, [kpiData?.availablePeriods, kpiData?.filters?.availableMonths, kpiData?.filters?.periods, yesterday]);
 
   // Live Refresh handler (forces backend cache bypass and fresh DB recalculation)
   const handleRefresh = async () => {
