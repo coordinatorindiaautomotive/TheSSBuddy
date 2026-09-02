@@ -135,6 +135,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(false);
+
+    // Periodic session presence heartbeat (every 60s while active)
+    const heartbeatInterval = setInterval(() => {
+      const tokenNow = localStorage.getItem('access_token');
+      if (tokenNow) {
+        api.post('/auth/heartbeat').catch(() => {});
+      }
+    }, 60000);
+
+    return () => clearInterval(heartbeatInterval);
   }, []);
 
   const isSuperAdmin = useMemo(() => {

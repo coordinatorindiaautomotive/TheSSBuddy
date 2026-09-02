@@ -219,4 +219,15 @@ export class AuthService {
       default: return 0;
     }
   }
+
+  async updateHeartbeat(userId: string): Promise<void> {
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { lastLoginAt: new Date() },
+      });
+    } catch {
+      // Non-blocking
+    }
+  }
 }

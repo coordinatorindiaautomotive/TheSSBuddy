@@ -63,4 +63,14 @@ export class AuthController {
     await this.authService.changePassword(req.user.id, dto.currentPassword, dto.newPassword);
     return { message: 'Password changed successfully. Please login again.' };
   }
+
+  @Post('heartbeat')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update user active session heartbeat' })
+  async heartbeat(@Req() req: any) {
+    await this.authService.updateHeartbeat(req.user.id);
+    return { ok: true, timestamp: new Date() };
+  }
 }
