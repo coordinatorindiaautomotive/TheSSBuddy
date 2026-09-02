@@ -583,10 +583,14 @@ const getYesterdayDate = () => {
   const d = new Date();
   d.setDate(d.getDate() - 1);
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const mIdx = d.getMonth();
+  const year = d.getFullYear();
+  // Financial Year convention in DB: Apr-Dec is calendar year, Jan-Mar is calendar year - 1
+  const fy = mIdx >= 3 ? year : year - 1;
   return {
     day: d.getDate(),
-    month: months[d.getMonth()],
-    year: 2026,
+    month: months[mIdx],
+    year: fy,
   };
 };
 
@@ -594,9 +598,9 @@ const getYesterdayDate = () => {
 export default function DashboardPage() {
   const { isBranchUser, userBranch, isSuperAdmin, user } = useAuth();
   const yesterday = useMemo(() => getYesterdayDate(), []);
-  const [fiscalYear, setFiscalYear] = useState<number>(2026);
-  const [month, setMonth] = useState<string>('Aug');
-  const [day, setDay] = useState<number>(25);
+  const [fiscalYear, setFiscalYear] = useState<number>(yesterday.year);
+  const [month, setMonth] = useState<string>(yesterday.month);
+  const [day, setDay] = useState<number>(yesterday.day);
   const [branchCode, setBranchCode] = useState<string>('ALL');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   
@@ -638,6 +642,27 @@ export default function DashboardPage() {
   const kpis = kpiData?.kpis;
   const asOf = kpiData?.asOf;
   const filters = kpiData?.filters;
+
+  // Dynamic available periods derived from actual sales records in DB
+  const availablePeriods = useMemo(() => {
+    if (Array.isArray(kpiData?.availablePeriods) && kpiData.availablePeriods.length > 0) {
+      return kpiData.availablePeriods;
+    }
+    return [
+      {
+        fiscalYear: yesterday.year,
+        month: yesterday.month,
+        maxDay: yesterday.day,
+        isLatest: true,
+        label: `${yesterday.month} ${yesterday.year} (Latest As-Of ${yesterday.day} ${yesterday.month})`,
+      },
+      { fiscalYear: 2026, month: 'Aug', maxDay: 31, isLatest: false, label: 'Aug 2026 (Full Month)' },
+      { fiscalYear: 2026, month: 'Jul', maxDay: 31, isLatest: false, label: 'Jul 2026 (Full Month)' },
+      { fiscalYear: 2026, month: 'Jun', maxDay: 30, isLatest: false, label: 'Jun 2026 (Full Month)' },
+      { fiscalYear: 2026, month: 'May', maxDay: 31, isLatest: false, label: 'May 2026 (Full Month)' },
+      { fiscalYear: 2026, month: 'Apr', maxDay: 30, isLatest: false, label: 'Apr 2026 (Full Month)' },
+    ];
+  }, [kpiData?.availablePeriods, yesterday]);
 
   // Live Refresh handler (forces backend cache bypass and fresh DB recalculation)
   const handleRefresh = async () => {
@@ -825,7 +850,11 @@ export default function DashboardPage() {
                   onChange={(e) => {
                     const selectedM = e.target.value;
                     setMonth(selectedM);
-                    if (selectedM === yesterday.month) {
+                    const found = availablePeriods.find((p: any) => p.month === selectedM);
+                    if (found) {
+                      setFiscalYear(found.fiscalYear);
+                      setDay(found.maxDay);
+                    } else if (selectedM === yesterday.month) {
                       setDay(yesterday.day);
                     } else if (['Jul', 'May', 'Mar', 'Jan', 'Aug', 'Oct', 'Dec'].includes(selectedM)) {
                       setDay(31);
@@ -835,18 +864,11 @@ export default function DashboardPage() {
                   }}
                   className="bg-transparent text-xs font-bold text-slate-900 focus:outline-none cursor-pointer"
                 >
-                  <option value="Aug" className="text-slate-900 bg-white">Aug 2026 (Latest As-Of {day} Aug)</option>
-                  <option value="Jul" className="text-slate-900 bg-white">Jul 2026 (Full Month)</option>
-                  <option value="Jun" className="text-slate-900 bg-white">Jun 2026 (Full Month)</option>
-                  <option value="May" className="text-slate-900 bg-white">May 2026 (Full Month)</option>
-                  <option value="Apr" className="text-slate-900 bg-white">Apr 2026 (Full Month)</option>
-                  <option value="Mar" className="text-slate-900 bg-white">Mar 2026 (Full Month)</option>
-                  <option value="Feb" className="text-slate-900 bg-white">Feb 2026 (Full Month)</option>
-                  <option value="Jan" className="text-slate-900 bg-white">Jan 2026 (Full Month)</option>
-                  <option value="Dec" className="text-slate-900 bg-white">Dec 2025 (Full Month)</option>
-                  <option value="Nov" className="text-slate-900 bg-white">Nov 2025 (Full Month)</option>
-                  <option value="Oct" className="text-slate-900 bg-white">Oct 2025 (Full Month)</option>
-                  <option value="Sep" className="text-slate-900 bg-white">Sep 2025 (Full Month)</option>
+                  {availablePeriods.map((p: any) => (
+                    <option key={`${p.fiscalYear}-${p.month}`} value={p.month} className="text-slate-900 bg-white">
+                      {p.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 

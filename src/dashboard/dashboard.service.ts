@@ -753,49 +753,47 @@ export class DashboardService {
       Apr: 0, May: 1, Jun: 2, Jul: 3, Aug: 4, Sep: 5, Oct: 6, Nov: 7, Dec: 8, Jan: 9, Feb: 10, Mar: 11
     };
 
-    // 1. Resolve Target FiscalYear, Month, and Day dynamically using SQL integer casting
+    // 1. Resolve Target FiscalYear, Month, and Day dynamically from retail_sales_records & day-1
+    const availablePeriodsRaw = await this.prisma.$queryRawUnsafe<any[]>(`
+      SELECT 
+        r.fiscal_year AS "fiscalYear",
+        r.month AS "month",
+        MAX(CAST(CASE WHEN r.day ~ '^[0-9]+$' THEN r.day ELSE '1' END AS INTEGER)) AS "maxDay"
+      FROM retail_sales_records r
+      GROUP BY r.fiscal_year, r.month
+      ORDER BY r.fiscal_year DESC, 
+        CASE 
+          WHEN r.month = 'Apr' THEN 1
+          WHEN r.month = 'May' THEN 2
+          WHEN r.month = 'Jun' THEN 3
+          WHEN r.month = 'Jul' THEN 4
+          WHEN r.month = 'Aug' THEN 5
+          WHEN r.month = 'Sep' THEN 6
+          WHEN r.month = 'Oct' THEN 7
+          WHEN r.month = 'Nov' THEN 8
+          WHEN r.month = 'Dec' THEN 9
+          WHEN r.month = 'Jan' THEN 10
+          WHEN r.month = 'Feb' THEN 11
+          WHEN r.month = 'Mar' THEN 12
+          ELSE 0
+        END DESC
+    `).catch(() => []);
+
+    const latestPeriod = availablePeriodsRaw.length > 0 ? availablePeriodsRaw[0] : null;
+
     const now = new Date();
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     const yesterdayDay = yesterday.getDate();
 
-    let targetFY: number = params.fiscalYear || 2026;
-    let targetMonth: string = params.month || 'Aug';
-    let targetDay: number = params.day || yesterdayDay;
+    let targetFY: number = params.fiscalYear ? Number(params.fiscalYear) : (latestPeriod ? Number(latestPeriod.fiscalYear) : 2026);
+    let targetMonth: string = params.month && params.month !== 'latest' ? params.month : (latestPeriod ? latestPeriod.month : 'Sep');
+    let targetDay: number = params.day ? Number(params.day) : (latestPeriod ? Number(latestPeriod.maxDay) : yesterdayDay);
 
-    if (!params.fiscalYear || !params.month || !params.day) {
-      const maxDateRes = await this.prisma.$queryRawUnsafe<any[]>(`
-        SELECT 
-          r.fiscal_year AS "fiscalYear",
-          r.month AS "month",
-          MAX(CAST(CASE WHEN r.day ~ '^[0-9]+$' THEN r.day ELSE '1' END AS INTEGER)) AS "maxDay"
-        FROM retail_sales_records r
-        WHERE 1=1 ${params.fiscalYear ? `AND r.fiscal_year = ${params.fiscalYear}` : `AND r.fiscal_year = (SELECT MAX(fiscal_year) FROM retail_sales_records)`}
-          ${params.month ? `AND r.month = '${params.month.replace(/'/g, "''")}'` : ''}
-        GROUP BY r.fiscal_year, r.month
-        ORDER BY r.fiscal_year DESC, 
-          CASE 
-            WHEN r.month = 'Apr' THEN 1
-            WHEN r.month = 'May' THEN 2
-            WHEN r.month = 'Jun' THEN 3
-            WHEN r.month = 'Jul' THEN 4
-            WHEN r.month = 'Aug' THEN 5
-            WHEN r.month = 'Sep' THEN 6
-            WHEN r.month = 'Oct' THEN 7
-            WHEN r.month = 'Nov' THEN 8
-            WHEN r.month = 'Dec' THEN 9
-            WHEN r.month = 'Jan' THEN 10
-            WHEN r.month = 'Feb' THEN 11
-            WHEN r.month = 'Mar' THEN 12
-            ELSE 0
-          END DESC
-        LIMIT 1
-      `).catch(() => []);
-
-      if (maxDateRes && maxDateRes.length > 0) {
-        targetFY = params.fiscalYear || Number(maxDateRes[0].fiscalYear) || 2026;
-        targetMonth = params.month || maxDateRes[0].month || 'Aug';
-        targetDay = params.day || Number(maxDateRes[0].maxDay) || yesterdayDay;
+    // If targetMonth matches latestPeriod and day is not provided or exceeds maxDay, clamp to maxDay
+    if (latestPeriod && targetMonth === latestPeriod.month && targetFY === Number(latestPeriod.fiscalYear)) {
+      if (!params.day || targetDay > Number(latestPeriod.maxDay)) {
+        targetDay = Number(latestPeriod.maxDay);
       }
     }
 
@@ -1081,6 +1079,19 @@ export class DashboardService {
       };
     });
 
+    const availablePeriods = availablePeriodsRaw.map((p, idx) => {
+      const isLatest = idx === 0;
+      return {
+        fiscalYear: Number(p.fiscalYear),
+        month: p.month,
+        maxDay: Number(p.maxDay),
+        isLatest,
+        label: isLatest 
+          ? `${p.month} ${p.fiscalYear} (Latest As-Of ${p.maxDay} ${p.month})` 
+          : `${p.month} ${p.fiscalYear} (Full Month)`,
+      };
+    });
+
     const response = {
       asOf: {
         day: targetDay,
@@ -1089,7 +1100,9 @@ export class DashboardService {
         dateFormatted: `${targetDay}-${targetMonth}-${targetFY}`,
         quarter: quarterName,
         previousMonth: prevMonthName,
+        isLatestAvailable: latestPeriod ? (targetMonth === latestPeriod.month && targetFY === Number(latestPeriod.fiscalYear) && targetDay === Number(latestPeriod.maxDay)) : false,
       },
+      availablePeriods,
       kpis: {
         ftd: {
           key: 'FTD',
