@@ -64,9 +64,9 @@
 }
 
 @theme {
-  --font-sans: 'Poppins', var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Poppins', var(--font-poppins), sans-serif;
-  --font-mono: 'Roboto', var(--font-roboto), 'Poppins', var(--font-poppins), monospace;
+  --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: var(--font-inter), sans-serif;
+  --font-mono: var(--font-mono), monospace;
 
   /* Brand Palette Utilities */
   --color-primary: #053D3A;
@@ -89,46 +89,46 @@
   --color-selected: #FFF3DE;
 
   /* Text & Heading Utilities */
-  --color-txt: #111827;
-  --color-heading: #111827;
-  --color-txt-secondary: #374151;
-  --color-txt-muted: #4B5563;
-  --color-txt-placeholder: #6B7280;
-  --color-txt-disabled: #9CA3AF;
+  --color-txt: #0F172A;
+  --color-heading: #0F172A;
+  --color-txt-secondary: #334155;
+  --color-txt-muted: #64748B;
+  --color-txt-placeholder: #94A3B8;
+  --color-txt-disabled: #CBD5E1;
 
   /* Border Utilities */
-  --color-bdr: #D1D5DB;
-  --color-bdr-light: #E5E7EB;
-  --color-bdr-strong: #9CA3AF;
+  --color-bdr: #CBD5E1;
+  --color-bdr-light: #E2E8F0;
+  --color-bdr-strong: #94A3B8;
 
   /* Status Palette Utilities */
-  --color-status-success: #087443;
-  --color-status-success-bg: #DDF4E8;
+  --color-status-success: #057A55;
+  --color-status-success-bg: #DEF7EC;
   --color-status-warning: #9A6500;
-  --color-status-warning-bg: #FFF0D2;
-  --color-status-danger: #B42335;
-  --color-status-danger-bg: #FDE4E6;
-  --color-status-info: #1769AA;
-  --color-status-info-bg: #E3F0FF;
-  --color-status-neutral: #374151;
-  --color-status-neutral-bg: #E5E7EB;
+  --color-status-warning-bg: #FDF6B2;
+  --color-status-danger: #C81E1E;
+  --color-status-danger-bg: #FDE8E8;
+  --color-status-info: #1A56DB;
+  --color-status-info-bg: #E1EFFE;
+  --color-status-neutral: #475569;
+  --color-status-neutral-bg: #F1F5F9;
 }
 
 html {
-  font-family: 'Poppins', var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   scroll-behavior: smooth;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: 0;
+  letter-spacing: -0.011em;
   -webkit-text-size-adjust: 100%;
 }
 
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-family: 'Poppins', var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  letter-spacing: 0;
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
@@ -136,14 +136,13 @@ body {
 
 /* Crisp Typography & Legibility */
 h1, h2, h3, h4, h5, h6 {
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  font-weight: 700;
 }
 
-/* Ensure modal and card headings inside dark containers have bright text */
-.bg-slate-900 h1, .bg-slate-900 h2, .bg-slate-900 h3, .bg-slate-900 h4, .bg-slate-900 h5, .bg-slate-900 h6,
-.bg-slate-800 h1, .bg-slate-800 h2, .bg-slate-800 h3, .bg-slate-800 h4, .bg-slate-800 h5, .bg-slate-800 h6,
-.bg-[#032F2D] h1, .bg-[#032F2D] h2, .bg-[#032F2D] h3, .bg-[#032F2D] h4, .bg-[#032F2D] h5, .bg-[#032F2D] h6,
-.bg-[#053D3A] h1, .bg-[#053D3A] h2, .bg-[#053D3A] h3, .bg-[#053D3A] h4, .bg-[#053D3A] h5, .bg-[#053D3A] h6 {
+/* Dark container headings */
+.dark-header h1, .dark-header h2, .dark-header h3, .dark-header h4,
+header h1, header h2, header h3 {
   color: #ffffff;
 }
 
@@ -324,9 +323,10 @@ table th {
 /* ─── STANDARDIZED ENTERPRISE DATA TABLE SYSTEM ─── */
 .table-enterprise {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.75rem;
-  line-height: 1rem;
+  line-height: 1.125rem;
 }
 
 .table-enterprise thead tr {
@@ -335,18 +335,22 @@ table th {
 }
 
 .table-enterprise thead th {
-  padding: 0.625rem 0.75rem;
+  padding: 0.625rem 0.875rem;
   font-size: 0.6875rem;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  letter-spacing: 0.04em;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
   white-space: nowrap;
+}
+
+.table-enterprise thead th:last-child {
+  border-right: none;
 }
 
 .table-enterprise tbody tr {
   border-bottom: 1px solid #e2e8f0;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.12s ease;
 }
 
 .table-enterprise tbody tr:nth-child(even) {
@@ -358,9 +362,17 @@ table th {
 }
 
 .table-enterprise tbody td {
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid #e2e8f0;
   border-right: 1px solid #f1f5f9;
   vertical-align: middle;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.table-enterprise tbody td:last-child {
+  border-right: none;
 }
 
 /* Form Input Standardization */

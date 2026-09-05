@@ -11,7 +11,7 @@ import {
   Phone, Mail, Calendar, Compass
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { Button, Badge, StatCard, PageHeader } from '@/components/ui';
+import { Button, Badge, StatCard, Pagination } from '@/components/ui';
 
 const fetcher = (url: string) => api.get(url).then(r => r.data);
 
@@ -320,9 +320,11 @@ export default function OperationalLocationsMasterPage() {
   const [modalBranch, setModalBranch] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Filters
+  // Filters & Pagination
   const [regionFilter, setRegionFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data, mutate, isLoading } = useSWR('/branches?pageSize=100', fetcher);
   const branches: any[] = useMemo(() => {
@@ -357,6 +359,11 @@ export default function OperationalLocationsMasterPage() {
       return true;
     });
   }, [branches, regionFilter, searchQuery]);
+
+  const paginatedBranches = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredBranches.slice(start, start + pageSize);
+  }, [filteredBranches, currentPage, pageSize]);
 
   const stats = useMemo(() => {
     const total = branches.length;
@@ -430,61 +437,8 @@ export default function OperationalLocationsMasterPage() {
       )}
 
       <div className="space-y-4 max-w-full">
-        {/* Unified Page Header */}
-        <PageHeader
-          title="Operational Locations Master"
-          subtitle={`List of currently active and operational company branch networks (${branches.length} locations).`}
-        >
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Region Filter */}
-            <select
-              value={regionFilter}
-              onChange={(e) => setRegionFilter(e.target.value)}
-              className="input-enterprise h-9 text-xs font-semibold text-slate-700 cursor-pointer shadow-2xs"
-            >
-              {regionsList.map(r => (
-                <option key={r} value={r}>{r === 'ALL' ? 'All Regions' : r}</option>
-              ))}
-            </select>
-
-            {/* Search Input */}
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search Code, Name, Phone..."
-                className="input-enterprise h-9 w-48 sm:w-56 text-xs placeholder-slate-400 shadow-2xs"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={handleExport}
-              icon={<Download size={14} className="text-slate-500" />}
-            >
-              Export Excel
-            </Button>
-
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => { setModalBranch(null); setIsModalOpen(true); }}
-              icon={<Plus size={14} />}
-            >
-              Register Branch
-            </Button>
-          </div>
-        </PageHeader>
-
-        {/* Standardized KPI Stat Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* 1. Standardized KPI Stat Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3.5">
           <StatCard
             title="Total Locations"
             value={stats.total}
@@ -512,151 +466,200 @@ export default function OperationalLocationsMasterPage() {
           />
         </div>
 
-        {/* DATA TABLE (STANDARDIZED ENTERPRISE GRID) */}
+        {/* 2. Standardized Action & Filter Toolbar */}
+        <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+            {/* Region Filter */}
+            <div className="w-36 sm:w-44">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">REGION</label>
+              <select
+                value={regionFilter}
+                onChange={(e) => { setRegionFilter(e.target.value); setCurrentPage(1); }}
+                className="input-enterprise w-full text-xs cursor-pointer font-medium"
+              >
+                {regionsList.map(r => (
+                  <option key={r} value={r}>{r === 'ALL' ? 'All Regions' : r}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Search Input */}
+            <div className="flex-1 min-w-[200px] sm:min-w-[240px]">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">SEARCH LOCATIONS</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  placeholder="Search Code, Name, Incharge, Phone..."
+                  className="input-enterprise w-full placeholder-slate-400"
+                />
+                {searchQuery && (
+                  <button onClick={() => { setSearchQuery(''); setCurrentPage(1); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Reset Button */}
+            <div className="flex items-end pt-4 sm:pt-0">
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => { setRegionFilter('ALL'); setSearchQuery(''); setCurrentPage(1); }}
+                title="Reset Filters"
+                icon={<RotateCcw size={14} className="text-slate-500" />}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+
+          {/* Primary Page Actions */}
+          <div className="flex items-center gap-2 pt-2 sm:pt-4">
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={handleExport}
+              icon={<Download size={14} className="text-slate-500" />}
+            >
+              Export Excel
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => { setModalBranch(null); setIsModalOpen(true); }}
+              icon={<Plus size={14} />}
+            >
+              Register Branch
+            </Button>
+          </div>
+        </div>
+
+        {/* 3. DATA TABLE (STANDARDIZED ENTERPRISE GRID) */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="table-enterprise text-center align-middle">
               <thead>
                 <tr>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap border-r border-slate-700/80">CODE</th>
-                  <th className="px-2 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap text-center border-r border-slate-700/80">TYPE</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap border-r border-slate-700/80">CONSIGNEE</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase min-w-[180px] border-r border-slate-700/80">BRANCH NAME</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase min-w-[220px] border-r border-slate-700/80">ADDRESS</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap border-r border-slate-700/80">REGION</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap border-r border-slate-700/80">INCHARGE</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap border-r border-slate-700/80">MOBILE NO</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase min-w-[200px] border-r border-slate-700/80">EMAIL ADDRESS</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap text-center border-r border-slate-700/80">OPENING DATE</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap text-center border-r border-slate-700/80">AREA (SQ FT)</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap text-center border-r border-slate-700/80">LATITUDE</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap text-center border-r border-slate-700/80">LONGITUDE</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap text-center border-r border-slate-700/80">ALLOWED CATEGORIES</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap text-center border-r border-slate-700/80">ALLOWED PARTY TYPES</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap text-center border-r border-slate-700/80">STATUS</th>
-                  <th className="px-3 py-3 text-[11px] font-black text-white uppercase whitespace-nowrap text-center">ACTIONS</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap border-r border-white/10">CODE</th>
+                  <th className="px-2 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap text-center border-r border-white/10">TYPE</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap border-r border-white/10">CONSIGNEE</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase min-w-[180px] border-r border-white/10">BRANCH NAME</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase min-w-[220px] border-r border-white/10">ADDRESS</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap border-r border-white/10">REGION</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap border-r border-white/10">INCHARGE</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap border-r border-white/10">MOBILE NO</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase min-w-[200px] border-r border-white/10">EMAIL ADDRESS</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap text-center border-r border-white/10">OPENING DATE</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap text-center border-r border-white/10">AREA (SQ FT)</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap text-center border-r border-white/10">LATITUDE</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap text-center border-r border-white/10">LONGITUDE</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap text-center border-r border-white/10">ALLOWED CATEGORIES</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap text-center border-r border-white/10">ALLOWED PARTY TYPES</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap text-center border-r border-white/10">STATUS</th>
+                  <th className="px-3 py-3 text-[11px] font-bold text-white uppercase whitespace-nowrap text-center">ACTIONS</th>
                 </tr>
               </thead>
-
-              <tbody className="bg-white font-medium text-slate-800 align-middle">
+              <tbody className="divide-y divide-slate-100 text-xs text-slate-800">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={17} className="py-12 text-center align-middle text-slate-400 border-b border-slate-200">
+                    <td colSpan={17} className="py-12 text-center text-slate-400">
                       <div className="flex flex-col items-center gap-2">
-                        <RefreshCw size={24} className="animate-spin text-blue-500" />
-                        <span className="font-bold">Loading Operational Locations Master...</span>
+                        <RefreshCw size={24} className="animate-spin text-[#053D3A]" />
+                        <span className="font-bold text-xs">Loading operational branches...</span>
                       </div>
                     </td>
                   </tr>
-                ) : filteredBranches.length === 0 ? (
+                ) : paginatedBranches.length === 0 ? (
                   <tr>
-                    <td colSpan={17} className="py-12 text-center align-middle text-slate-400 border-b border-slate-200">
-                      <Building2 size={32} className="text-slate-200 mx-auto mb-2" />
-                      <p className="font-bold text-slate-600">No operational branch locations found.</p>
+                    <td colSpan={17} className="py-12 text-center text-slate-400">
+                      <Building2 size={32} className="text-slate-300 mx-auto mb-2" />
+                      <p className="font-bold text-slate-600">No operational locations found</p>
                     </td>
                   </tr>
                 ) : (
-                  filteredBranches.map((b, idx) => {
-                    const isAw = (b.type || 'RO').toUpperCase() === 'AW';
-                    const isMw = (b.type || 'RO').toUpperCase() === 'MW';
-                    const consignee = b.consignee || 'RJ06112';
-                    const incharge = b.incharge || 'LAXMI NARAYAN SHARMA';
-                    const phone = b.phone || '-';
-                    const email = b.email || '-';
-                    const area = b.area || '0';
-                    const region = b.region || 'Alwar Region';
-                    const lat = b.latitude || '-';
-                    const long = b.longitude || '-';
-                    const openingDateFormatted = b.openingDate
-                      ? new Date(b.openingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                      : '-';
-                    const allowedCategories = b.allowedCategories ? b.allowedCategories.split(',').map((c: string) => c.trim()) : ['AA', 'M'];
+                  paginatedBranches.map((b, idx) => {
+                    const categories: string[] = b.allowedCategories
+                      ? b.allowedCategories.split(',').map((c: string) => c.trim()).filter(Boolean)
+                      : ['AA', 'M'];
                     const allowedPartyTypes = b.allowedPartyTypes || 'INDEPENDENT WORKSHOP';
 
                     return (
-                      <tr key={b.code} className={`hover:bg-blue-50/60 transition-colors border-b border-slate-200 ${idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}`}>
-                        {/* 1. Code */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap font-mono font-semibold text-xs">
-                          <span className="px-2 py-0.5 bg-[#EAF5F3] text-[#053D3A] border border-[#DCEDEA] rounded-md font-bold">
-                            {b.code}
-                          </span>
+                      <tr key={b.code} className={`hover:bg-slate-50 transition ${idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}`}>
+                        {/* 1. Branch Code */}
+                        <td className="px-3 py-2.5 text-center align-middle font-mono font-bold text-[#053D3A] border-r border-slate-200">
+                          {b.code}
                         </td>
 
-                        {/* 2. Type Badge */}
-                        <td className="px-2 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
-                          <Badge variant={isMw ? 'info' : isAw ? 'accent' : 'brand'}>
+                        {/* 2. Type */}
+                        <td className="px-2 py-2.5 text-center align-middle border-r border-slate-200">
+                          <Badge variant="brand" size="sm" className="font-mono">
                             {b.type || 'RO'}
                           </Badge>
                         </td>
 
-                        {/* 3. Consignee */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap font-mono text-xs text-rose-600 font-semibold">
-                          {consignee}
+                        {/* 3. Consignee Code */}
+                        <td className="px-3 py-2.5 text-center align-middle font-mono text-slate-600 border-r border-slate-200">
+                          {b.consignee || 'RJ06112'}
                         </td>
 
                         {/* 4. Branch Name */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 font-semibold text-slate-900 uppercase text-xs whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-left align-middle font-bold text-slate-900 border-r border-slate-200">
                           {b.name}
                         </td>
 
                         {/* 5. Address */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 text-slate-800 text-[11px] font-semibold max-w-xs">
-                          {b.address || '-'}
+                        <td className="px-3 py-2.5 text-left align-middle text-slate-600 border-r border-slate-200 max-w-xs truncate" title={b.address}>
+                          {b.address || '—'}
                         </td>
 
                         {/* 6. Region */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap text-slate-800 font-semibold text-xs">
-                          {region}
+                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
+                          <span className="font-medium text-slate-700">{b.region || '—'}</span>
                         </td>
 
                         {/* 7. Incharge */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap font-semibold text-slate-900 uppercase text-xs">
-                          {incharge}
+                        <td className="px-3 py-2.5 text-center align-middle font-semibold text-slate-900 border-r border-slate-200 whitespace-nowrap">
+                          {b.incharge || '—'}
                         </td>
 
                         {/* 8. Mobile No */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap font-mono text-xs font-semibold text-slate-800">
-                          <span className="inline-flex items-center justify-center gap-1">
-                            <Phone size={11} className="text-emerald-600" />
-                            {phone}
-                          </span>
+                        <td className="px-3 py-2.5 text-center align-middle font-mono text-slate-600 border-r border-slate-200 whitespace-nowrap">
+                          {b.phone || '—'}
                         </td>
 
                         {/* 9. Email Address */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 font-mono text-[11px] text-blue-700 lowercase font-semibold">
-                          <span className="inline-flex items-center justify-center gap-1">
-                            <Mail size={11} className="text-blue-500" />
-                            {email}
-                          </span>
+                        <td className="px-3 py-2.5 text-left align-middle text-slate-600 border-r border-slate-200 truncate" title={b.email}>
+                          {b.email || '—'}
                         </td>
 
                         {/* 10. Opening Date */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap font-semibold text-slate-800 text-[11px]">
-                          <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-800">
-                            {openingDateFormatted}
-                          </span>
+                        <td className="px-3 py-2.5 text-center align-middle font-mono text-slate-600 border-r border-slate-200 whitespace-nowrap">
+                          {b.openingDate ? new Date(b.openingDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                         </td>
 
-                        {/* 11. Area */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap font-mono font-semibold text-slate-900 text-xs">
-                          {area}
+                        {/* 11. Area (Sq Ft) */}
+                        <td className="px-3 py-2.5 text-center align-middle font-mono font-bold text-slate-900 border-r border-slate-200 whitespace-nowrap">
+                          {b.area ? `${b.area} sq ft` : '—'}
                         </td>
 
                         {/* 12. Latitude */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap font-mono text-[11px] font-semibold text-slate-700">
-                          {lat}
+                        <td className="px-3 py-2.5 text-center align-middle font-mono text-[11px] text-slate-500 border-r border-slate-200">
+                          {b.latitude || '—'}
                         </td>
 
                         {/* 13. Longitude */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap font-mono text-[11px] font-semibold text-slate-700">
-                          {long}
+                        <td className="px-3 py-2.5 text-center align-middle font-mono text-[11px] text-slate-500 border-r border-slate-200">
+                          {b.longitude || '—'}
                         </td>
 
                         {/* 14. Allowed Categories */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-1">
-                            {allowedCategories.map((c: string) => (
-                              <Badge key={c} variant="neutral" size="sm">
+                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200">
+                          <div className="flex items-center justify-center flex-wrap gap-1">
+                            {categories.map((c) => (
+                              <Badge key={c} variant="accent" size="sm" className="font-mono">
                                 {c}
                               </Badge>
                             ))}
@@ -664,14 +667,14 @@ export default function OperationalLocationsMasterPage() {
                         </td>
 
                         {/* 15. Allowed Party Types */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200">
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-50 border border-slate-200 text-slate-800">
                             {allowedPartyTypes}
                           </span>
                         </td>
 
                         {/* 16. Status */}
-                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-center align-middle border-r border-slate-200">
                           <Badge variant={b.isActive !== false ? 'success' : 'danger'} dot>
                             {b.isActive !== false ? 'Active' : 'Inactive'}
                           </Badge>
@@ -679,18 +682,18 @@ export default function OperationalLocationsMasterPage() {
 
                         {/* 17. Actions */}
                         <td className="px-3 py-2.5 text-center whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-1">
+                          <div className="flex items-center justify-center gap-1.5">
                             <button
                               onClick={() => { setModalBranch(b); setIsModalOpen(true); }}
                               title="Edit Branch"
-                              className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded transition"
+                              className="p-1.5 text-slate-600 hover:text-[#053D3A] hover:bg-slate-100 rounded-lg transition border border-slate-200 cursor-pointer"
                             >
                               <Edit size={13} />
                             </button>
                             <button
                               onClick={() => handleDeleteBranch(b.code)}
                               title="Delete Branch"
-                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition border border-slate-200 cursor-pointer"
                             >
                               <Trash2 size={13} />
                             </button>
@@ -703,6 +706,19 @@ export default function OperationalLocationsMasterPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Unified Enterprise Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredBranches.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            itemName="locations"
+          />
         </div>
       </div>
     </AppShell>

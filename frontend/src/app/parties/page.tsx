@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button, Badge, StatCard, PageHeader } from '@/components/ui';
+import { Button, Badge, StatCard, Pagination } from '@/components/ui';
 
 const fetcher = (url: string) => api.get(url).then(r => r.data);
 
@@ -783,7 +783,8 @@ export default function PartyMasterRegistryPage() {
   const [executiveFilter, setExecutiveFilter] = useState('All Executives');
   const [partyTypeFilter, setPartyTypeFilter] = useState('All Types');
   const [searchQuery, setSearchQuery] = useState('');
-  const [pageSize, setPageSize] = useState(100);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [anchoredMenu, setAnchoredMenu] = useState<{
     party: any;
@@ -1017,11 +1018,12 @@ export default function PartyMasterRegistryPage() {
     return list;
   }, [filteredList, sortField, sortOrder]);
 
-  // Displayed records according to pageSize
+  // Displayed records according to currentPage & pageSize
   const displayedList = useMemo(() => {
     if (pageSize === 0) return sortedList; // All
-    return sortedList.slice(0, pageSize);
-  }, [sortedList, pageSize]);
+    const start = (currentPage - 1) * pageSize;
+    return sortedList.slice(start, start + pageSize);
+  }, [sortedList, currentPage, pageSize]);
 
   // Metrics computation for Stat Cards
   const stats = useMemo(() => {
@@ -1909,19 +1911,19 @@ export default function PartyMasterRegistryPage() {
             </table>
           </div>
 
-          {/* Table Footer with pagination info */}
-          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-500">
-            <div>
-              Showing <span className="font-bold text-slate-700">{displayedList.length}</span> of{' '}
-              <span className="font-bold text-slate-700">{filteredList.length.toLocaleString()}</span> filtered parties{' '}
-              (Total in system: <span className="font-bold text-slate-700">{stats.total.toLocaleString()}</span>)
-            </div>
-            {pageSize !== 0 && filteredList.length > pageSize && (
-              <div className="text-slate-400 text-[11px]">
-                Change SHOW dropdown above to view more records or all records.
-              </div>
-            )}
-          </div>
+          {/* Unified Enterprise Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredList.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            pageSizeOptions={[25, 50, 100, 200]}
+            itemName="parties"
+          />
         </div>
       </div>
 

@@ -12,7 +12,7 @@ import {
   Lock, Mail, Phone, RefreshCw, Zap, Trash2, Clock, Radio
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { Button, Badge, StatCard, PageHeader } from '@/components/ui';
+import { Button, Badge, StatCard, Pagination } from '@/components/ui';
 
 const fetcher = (url: string) => api.get(url).then(r => r.data);
 
@@ -328,6 +328,10 @@ export default function UserMasterPage() {
   const { data: rolesData } = useSWR(isSuperAdmin ? '/rbac/roles' : null, fetcher);
   const allRoles: any[] = useMemo(() => Array.isArray(rolesData) ? rolesData : [], [rolesData]);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   // Statistics
   const stats = useMemo(() => {
     const total = users.length;
@@ -362,6 +366,11 @@ export default function UserMasterPage() {
       return true;
     });
   }, [users, roleFilter, statusFilter, searchQuery, isUserOnline]);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredUsers.slice(start, start + pageSize);
+  }, [filteredUsers, currentPage, pageSize]);
 
   // Access Guard (placed AFTER all hooks to adhere to React Rules of Hooks)
   if (!isSuperAdmin) {
@@ -437,33 +446,8 @@ export default function UserMasterPage() {
       )}
 
       <div className="space-y-4 max-w-full">
-        {/* Unified Page Header */}
-        <PageHeader
-          title="User Master & Access Control"
-          subtitle="Enterprise identity administration, role-based permissions (RBAC), and branch security boundaries."
-        >
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={handleExport}
-              icon={<Download size={14} className="text-slate-500" />}
-            >
-              Export Excel
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => { setModalUser(null); setIsModalOpen(true); }}
-              icon={<Plus size={14} />}
-            >
-              Register User
-            </Button>
-          </div>
-        </PageHeader>
-
         {/* 1. STANDARDIZED STAT CARDS (WITH LIVE ONLINE PRESENCE) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-3.5">
           <StatCard
             title="Total Users"
             value={stats.total}
@@ -498,70 +482,92 @@ export default function UserMasterPage() {
           />
         </div>
 
-        {/* 2. STANDARDIZED FILTER TOOLBAR */}
-        <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs flex flex-wrap items-center gap-3">
-          {/* Role Filter */}
-          <div className="w-44">
-            <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">SECURITY ROLE</label>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="input-enterprise w-full text-xs cursor-pointer"
-            >
-              <option value="ALL">All Roles</option>
-              <option value="Super Admin">Super Admin</option>
-              <option value="HO Finance">HO Finance</option>
-              <option value="Branch Manager">Branch Manager</option>
-              <option value="Associate">Associate</option>
-              <option value="Auditor">Auditor</option>
-              <option value="Sales Executive">Sales Executive</option>
-            </select>
-          </div>
+        {/* 2. STANDARDIZED ACTION & FILTER TOOLBAR */}
+        <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+            {/* Role Filter */}
+            <div className="w-36 sm:w-44">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">SECURITY ROLE</label>
+              <select
+                value={roleFilter}
+                onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
+                className="input-enterprise w-full text-xs cursor-pointer"
+              >
+                <option value="ALL">All Roles</option>
+                <option value="Super Admin">Super Admin</option>
+                <option value="HO Finance">HO Finance</option>
+                <option value="Branch Manager">Branch Manager</option>
+                <option value="Associate">Associate</option>
+                <option value="Auditor">Auditor</option>
+                <option value="Sales Executive">Sales Executive</option>
+              </select>
+            </div>
 
-          {/* Status Filter */}
-          <div className="w-44">
-            <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">STATUS & PRESENCE</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="input-enterprise w-full text-xs cursor-pointer font-medium"
-            >
-              <option value="ALL">All Status</option>
-              <option value="ONLINE">🟢 Online Now ({stats.onlineNow})</option>
-              <option value="ACTIVE">Active Accounts ({stats.active})</option>
-              <option value="INACTIVE">Inactive Accounts ({stats.total - stats.active})</option>
-            </select>
-          </div>
+            {/* Status Filter */}
+            <div className="w-36 sm:w-44">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">STATUS & PRESENCE</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="input-enterprise w-full text-xs cursor-pointer font-medium"
+              >
+                <option value="ALL">All Status</option>
+                <option value="ONLINE">🟢 Online Now ({stats.onlineNow})</option>
+                <option value="ACTIVE">Active Accounts ({stats.active})</option>
+                <option value="INACTIVE">Inactive Accounts ({stats.total - stats.active})</option>
+              </select>
+            </div>
 
-          {/* Search */}
-          <div className="flex-1 min-w-[240px]">
-            <label className="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">SEARCH ACCOUNTS</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search Name, Username, Email, Phone..."
-                className="input-enterprise w-full placeholder-slate-400"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
-                  <X size={12} />
-                </button>
-              )}
+            {/* Search */}
+            <div className="flex-1 min-w-[200px] sm:min-w-[240px]">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">SEARCH ACCOUNTS</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  placeholder="Search Name, Username, Email, Phone..."
+                  className="input-enterprise w-full placeholder-slate-400"
+                />
+                {searchQuery && (
+                  <button onClick={() => { setSearchQuery(''); setCurrentPage(1); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Reset Filter Button */}
+            <div className="flex items-end pt-4 sm:pt-0">
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => { setRoleFilter('ALL'); setStatusFilter('ALL'); setSearchQuery(''); setCurrentPage(1); }}
+                title="Reset Filters"
+                icon={<RotateCcw size={14} className="text-slate-500" />}
+              >
+                Reset
+              </Button>
             </div>
           </div>
 
-          {/* Reset Filter Button */}
-          <div className="flex items-end pt-4 sm:pt-0">
+          {/* Primary Page Actions */}
+          <div className="flex items-center gap-2 pt-2 sm:pt-4">
             <Button
               variant="secondary"
               size="md"
-              onClick={() => { setRoleFilter('ALL'); setStatusFilter('ALL'); setSearchQuery(''); }}
-              title="Reset Filters"
-              icon={<RotateCcw size={14} className="text-slate-500" />}
+              onClick={handleExport}
+              icon={<Download size={14} className="text-slate-500" />}
             >
-              Reset
+              Export Excel
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => { setModalUser(null); setIsModalOpen(true); }}
+              icon={<Plus size={14} />}
+            >
+              Register User
             </Button>
           </div>
         </div>
@@ -593,7 +599,7 @@ export default function UserMasterPage() {
                       </div>
                     </td>
                   </tr>
-                ) : filteredUsers.length === 0 ? (
+                ) : paginatedUsers.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-12 text-center align-middle text-slate-400 border-b border-slate-200">
                       <UserCog size={32} className="text-slate-300 mx-auto mb-2" />
@@ -601,14 +607,14 @@ export default function UserMasterPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((u, idx) => {
+                  paginatedUsers.map((u, idx) => {
                     const roles: any[] = u.roles || [];
                     const branches: string[] = u.branches || [];
 
                     return (
                       <tr key={u.id} className={`hover:bg-slate-50 transition border-b border-slate-200 ${idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}`}>
                         <td className="px-3 py-3 text-center align-middle border-r border-slate-200 font-mono font-bold text-slate-700 text-xs">
-                          {idx + 1}
+                          {(currentPage - 1) * pageSize + idx + 1}
                         </td>
 
                         {/* Profile */}
@@ -761,6 +767,19 @@ export default function UserMasterPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Unified Enterprise Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredUsers.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setCurrentPage(1);
+            }}
+            itemName="users"
+          />
         </div>
       </div>
     </AppShell>

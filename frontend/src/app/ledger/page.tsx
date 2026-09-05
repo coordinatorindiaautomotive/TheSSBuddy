@@ -5,13 +5,15 @@ import api from '@/lib/api';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { BookOpen, Search, Download, TrendingUp, TrendingDown, ArrowDownLeft, ArrowUpRight, Scale } from 'lucide-react';
-import { Button, StatCard, PageHeader } from '@/components/ui';
+import { Button, StatCard, Pagination } from '@/components/ui';
 
 const fetcher = (url: string) => api.get(url).then(r => r.data);
 
 export default function LedgerPage() {
   const [partyId, setPartyId] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const { data: statement, isLoading } = useSWR(
     partyId ? `/ledger/statement/${partyId}` : null,
@@ -25,6 +27,7 @@ export default function LedgerPage() {
   const handleSearch = () => {
     if (!searchInput.trim()) return toast.error('Enter a party ID or select from dropdown');
     setPartyId(searchInput.trim());
+    setCurrentPage(1);
   };
 
   const exportExcel = async () => {
@@ -46,48 +49,46 @@ export default function LedgerPage() {
   const entries: any[] = Array.isArray(rawEntries) ? rawEntries : [];
   const summary = statement?.summary || {};
 
+  const paginatedEntries = entries.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   return (
     <AppShell title="Party Ledger" breadcrumb="Financial & Accounting">
       <div className="space-y-4 max-w-full">
-        {/* Unified Page Header */}
-        <PageHeader
-          title="Party Account Ledger"
-          subtitle="Real-time transaction statement, debits, credits, and running balance ledger."
-        >
-          {partyId && (
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={exportExcel}
-              icon={<Download size={14} className="text-slate-600" />}
-            >
-              Export Excel
-            </Button>
-          )}
-        </PageHeader>
-
         {/* Party Selector Toolbar */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-wrap items-center gap-3">
+        <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm border border-slate-200/90 flex flex-wrap items-center justify-between gap-3">
           <div className="flex-1 min-w-[280px]">
-            <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
               SELECT PARTY ACCOUNT
             </label>
             <select
               value={partyId}
-              onChange={e => setPartyId(e.target.value)}
-              className="input-enterprise w-full cursor-pointer"
+              onChange={e => { setPartyId(e.target.value); setCurrentPage(1); }}
+              className="input-enterprise w-full cursor-pointer font-medium"
             >
-              <option value="">— Select a party to view ledger —</option>
+              <option value="">— Select a party to view ledger statement —</option>
               {partyList.map((p: any) => (
                 <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
               ))}
             </select>
           </div>
+
+          {partyId && (
+            <div className="flex items-center gap-2 pt-2 sm:pt-4">
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={exportExcel}
+                icon={<Download size={14} className="text-slate-600" />}
+              >
+                Export Excel
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Summary Metric Cards */}
         {statement && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3.5">
             <StatCard
               title="Opening Balance"
               value={`₹${Number(summary.openingBalance ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
@@ -120,10 +121,10 @@ export default function LedgerPage() {
         {/* Ledger Table */}
         {partyId && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BookOpen size={16} className="text-[#053D3A]" />
-                <h2 className="font-extrabold text-slate-900 text-xs">Account Statement Ledger ({entries.length} records)</h2>
+                <h2 className="font-bold text-slate-900 text-xs">Account Statement Ledger ({entries.length} records)</h2>
               </div>
               {isLoading && <span className="text-xs text-[#053D3A] font-bold">Loading ledger...</span>}
             </div>
@@ -132,7 +133,7 @@ export default function LedgerPage() {
                 <thead className="select-none">
                   <tr>
                     {['Date', 'Description', 'Reference', 'Debit (₹)', 'Credit (₹)', 'Balance (₹)'].map((h, idx, arr) => (
-                      <th key={h} className={`px-4 py-3 text-center align-middle text-[11px] font-bold uppercase tracking-wider text-white ${idx < arr.length - 1 ? 'border-r border-slate-700/80' : ''}`}>
+                      <th key={h} className={`px-4 py-3 text-center align-middle text-[11px] font-bold uppercase tracking-wider text-white ${idx < arr.length - 1 ? 'border-r border-white/10' : ''}`}>
                         {h}
                       </th>
                     ))}
@@ -146,7 +147,7 @@ export default function LedgerPage() {
                         <p className="text-slate-600 font-semibold text-xs">{isLoading ? 'Loading ledger...' : 'No ledger entries found for this party.'}</p>
                       </td>
                     </tr>
-                  ) : entries.map((e: any, idx: number) => (
+                  ) : paginatedEntries.map((e: any, idx: number) => (
                     <tr key={e.id || idx} className={`hover:bg-slate-50 transition border-b border-slate-200 ${idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}`}>
                       <td className="px-4 py-2.5 text-center align-middle border-r border-slate-200 text-slate-700 font-mono font-semibold whitespace-nowrap">
                         {e.date ? new Date(e.date).toLocaleDateString('en-IN') : '—'}
@@ -167,6 +168,21 @@ export default function LedgerPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {entries.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalItems={entries.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setCurrentPage(1);
+                }}
+                itemName="entries"
+              />
+            )}
           </div>
         )}
 
