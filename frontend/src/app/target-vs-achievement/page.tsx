@@ -443,7 +443,7 @@ export default function TargetVsAchievementPage() {
           <div className="bg-white w-full max-w-xl h-full shadow-2xl border-l border-slate-200 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
             <div>
               {/* Header */}
-              <div className="p-6 text-white flex items-start justify-between border-b border-[#074B47] bg-[#032F2D]">
+              <div className="p-6 text-white flex items-start justify-between border-b border-[#003870] bg-[#001D3D]">
                 <div>
                   <div className="flex items-center gap-2">
                     <Calculator size={18} className="text-amber-400" />
@@ -652,7 +652,7 @@ export default function TargetVsAchievementPage() {
       {editModal.open && (
         <div className="fixed inset-0 bg-black/65 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D]">
+            <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#003870] bg-[#001D3D]">
               <div className="flex items-center gap-2.5">
                 <Target size={20} className="text-amber-400" />
                 <h3 className="font-extrabold text-sm text-white">Define Custom Admin Target</h3>
@@ -722,7 +722,7 @@ export default function TargetVsAchievementPage() {
       {bulkModal && (
         <div className="fixed inset-0 bg-black/65 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D]">
+            <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#003870] bg-[#001D3D]">
               <div className="flex items-center gap-2.5">
                 <Sliders size={20} className="text-cyan-400" />
                 <h3 className="font-extrabold text-sm text-white">Bulk Target Assignment</h3>
@@ -789,7 +789,7 @@ export default function TargetVsAchievementPage() {
           <div className="bg-white w-full max-w-lg h-full shadow-2xl border-l border-slate-200 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
             <div>
               {/* Drawer Header */}
-              <div className="p-6 text-white flex items-start justify-between border-b border-[#074B47] bg-[#032F2D]">
+              <div className="p-6 text-white flex items-start justify-between border-b border-[#003870] bg-[#001D3D]">
                 <div>
                   <span className="px-2.5 py-0.5 rounded bg-white/10 text-cyan-300 font-mono font-bold text-[10px] uppercase border border-white/20">
                     Dealer 360 Profile
@@ -1073,7 +1073,7 @@ export default function TargetVsAchievementPage() {
 
                       <button
                         onClick={() => setShowPartyTypeDropdown(false)}
-                        className="w-full py-1.5 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold rounded-xl text-center text-xs transition mt-2 shadow-2xs cursor-pointer"
+                        className="w-full py-1.5 bg-[#003366] hover:bg-[#002B55] text-white font-extrabold rounded-xl text-center text-xs transition mt-2 shadow-2xs cursor-pointer"
                       >
                         Apply Filter
                       </button>

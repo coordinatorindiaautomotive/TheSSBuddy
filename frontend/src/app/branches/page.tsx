@@ -5,17 +5,19 @@ import api from '@/lib/api';
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
+import { useAuth } from '@/contexts/AuthContext';
 import {
-  Building2, CheckCircle2, XCircle, Plus, Search, RotateCcw, Download,
-  Edit, Trash2, MapPin, Globe, Shield, RefreshCw, X, Users, Filter, Check,
-  Phone, Mail, Calendar, Compass
+  Building2, Plus, Search, RotateCcw, Download,
+  Edit, CheckCircle2, XCircle, X, MapPin, Globe,
+  Shield, Navigation, Calendar, Layers, Hash, Check,
+  RefreshCw, Trash2, ArrowUpDown
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Button, Badge, StatCard, Pagination } from '@/components/ui';
 
 const fetcher = (url: string) => api.get(url).then(r => r.data);
 
-// ─── REGISTER / EDIT BRANCH MODAL ─────────────────────────────────────────────
+// ─── 1. REGISTER / EDIT OPERATIONAL BRANCH MODAL ──────────────────────────────
 function RegisterBranchModal({
   branch,
   onClose,
@@ -33,20 +35,20 @@ function RegisterBranchModal({
       code: branch?.code || '',
       name: branch?.name || '',
       type: branch?.type || 'RO',
-      consignee: branch?.consignee || 'RJ06112',
-      region: branch?.region || 'Alwar Region',
+      consignee: branch?.consignee || '',
+      region: branch?.region || '',
       incharge: branch?.incharge || '',
       phone: branch?.phone || '',
       email: branch?.email || '',
       latitude: branch?.latitude || '',
       longitude: branch?.longitude || '',
-      openingDate: branch?.openingDate ? new Date(branch.openingDate).toISOString().slice(0, 10) : '',
-      area: branch?.area || '1,000',
+      openingDate: branch?.openingDate ? new Date(branch.openingDate).toISOString().split('T')[0] : '',
+      area: branch?.area || '',
       allowedCategories: branch?.allowedCategories || 'AA, M',
       allowedPartyTypes: branch?.allowedPartyTypes || 'INDEPENDENT WORKSHOP',
       address: branch?.address || '',
       isActive: branch?.isActive !== undefined ? String(branch.isActive) : 'true',
-    },
+    }
   });
 
   const onSubmit = async (data: any) => {
@@ -94,14 +96,19 @@ function RegisterBranchModal({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto border border-slate-200">
-        <div className="flex items-center justify-between px-6 py-4 bg-[#0d1b33] text-white">
-          <div className="flex items-center gap-2">
-            <span className="text-blue-400 font-bold text-base">🏢</span>
-            <h2 className="font-bold text-base tracking-wide">
-              {isEdit ? `Edit Operational Branch — ${branch.code}` : 'Register Operational Branch'}
-            </h2>
+        <div className="flex items-center justify-between px-6 py-4 bg-[#003366] border-b-[3px] border-[#ED1C24] text-white">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-[#002B55] border border-[#0041A3]">
+              <Building2 size={18} className="text-cyan-400" />
+            </div>
+            <div>
+              <h2 className="font-bold text-sm tracking-wide text-white">
+                {isEdit ? `Edit Operational Branch — ${branch.code}` : 'Register Operational Branch'}
+              </h2>
+              <p className="text-[11px] text-slate-300">Territory & Branch Boundary Configuration</p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition">
+          <button onClick={onClose} className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-[#002B55] transition">
             <X size={18} />
           </button>
         </div>
@@ -141,102 +148,89 @@ function RegisterBranchModal({
               <label className="block font-semibold text-slate-700 uppercase mb-1">Consignee Code</label>
               <input
                 {...register('consignee')}
-                placeholder="e.g. RJ06F91 or RJ06112"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono font-semibold"
+                placeholder="e.g. RJ06112"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono uppercase"
               />
             </div>
+          </div>
 
-            {/* Branch Name */}
-            <div className="col-span-2 sm:col-span-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Name */}
+            <div>
               <label className="block font-semibold text-slate-700 uppercase mb-1">
                 Branch Name <span className="text-rose-500">*</span>
               </label>
               <input
                 {...register('name', { required: 'Branch name is required' })}
-                placeholder="e.g. ALWAR-SPR or SIKAR ROAD-SPR"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-bold uppercase text-slate-800"
+                placeholder="e.g. Alwar Depot"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-semibold"
               />
               {errors.name && <p className="text-rose-500 text-[11px] mt-0.5">{String(errors.name.message)}</p>}
             </div>
 
             {/* Region */}
             <div>
-              <label className="block font-semibold text-slate-700 uppercase mb-1">Region</label>
+              <label className="block font-semibold text-slate-700 uppercase mb-1">Region / Zone</label>
               <input
                 {...register('region')}
-                placeholder="e.g. Alwar Region, Jaipur Region"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-medium"
+                placeholder="e.g. North Zone, Jaipur Cluster"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500"
               />
             </div>
+          </div>
 
+          {/* Address */}
+          <div>
+            <label className="block font-semibold text-slate-700 uppercase mb-1">Complete Physical Address</label>
+            <textarea
+              {...register('address')}
+              rows={2}
+              placeholder="Building No, Industrial Area, City, Pincode"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 resize-none font-medium"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {/* Incharge */}
             <div>
               <label className="block font-semibold text-slate-700 uppercase mb-1">Branch Incharge</label>
               <input
                 {...register('incharge')}
-                placeholder="e.g. LAXMI NARAYAN SHARMA"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-bold uppercase"
+                placeholder="e.g. Rajesh Sharma"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-semibold"
               />
             </div>
 
-            {/* Branch Opening Date */}
+            {/* Phone */}
             <div>
-              <label className="block font-semibold text-slate-700 uppercase mb-1 flex items-center gap-1">
-                <Calendar size={11} className="text-blue-600" /> Opening Date
-              </label>
-              <input
-                {...register('openingDate')}
-                type="date"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-medium bg-white"
-              />
-            </div>
-
-            {/* Mobile No */}
-            <div>
-              <label className="block font-semibold text-slate-700 uppercase mb-1 flex items-center gap-1">
-                <Phone size={11} className="text-emerald-600" /> Mobile No
-              </label>
+              <label className="block font-semibold text-slate-700 uppercase mb-1">Mobile / Phone</label>
               <input
                 {...register('phone')}
-                placeholder="e.g. 8239999056"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono font-semibold"
+                placeholder="e.g. +91 9876543210"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono"
               />
             </div>
 
-            {/* Email Address */}
-            <div className="col-span-2">
-              <label className="block font-semibold text-slate-700 uppercase mb-1 flex items-center gap-1">
-                <Mail size={11} className="text-blue-600" /> Email Address
-              </label>
+            {/* Email */}
+            <div>
+              <label className="block font-semibold text-slate-700 uppercase mb-1">Contact Email</label>
               <input
                 {...register('email')}
                 type="email"
-                placeholder="e.g. INDIAAUTOMOTIVESALWAR@GMAIL.COM"
+                placeholder="e.g. alwar@thessbuddy.com"
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono"
               />
             </div>
+          </div>
 
-            {/* Latitude */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Opening Date */}
             <div>
-              <label className="block font-semibold text-slate-700 uppercase mb-1 flex items-center gap-1">
-                <Compass size={11} className="text-indigo-600" /> Latitude (Lat)
-              </label>
+              <label className="block font-semibold text-slate-700 uppercase mb-1">Opening Date</label>
               <input
-                {...register('latitude')}
-                placeholder="e.g. 27.5596231"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono"
-              />
-            </div>
-
-            {/* Longitude */}
-            <div>
-              <label className="block font-semibold text-slate-700 uppercase mb-1 flex items-center gap-1">
-                <Compass size={11} className="text-indigo-600" /> Longitude (Long)
-              </label>
-              <input
-                {...register('longitude')}
-                placeholder="e.g. 76.6413275"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono"
+                {...register('openingDate')}
+                type="date"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono text-slate-800"
               />
             </div>
 
@@ -245,29 +239,42 @@ function RegisterBranchModal({
               <label className="block font-semibold text-slate-700 uppercase mb-1">Area (Sq Ft)</label>
               <input
                 {...register('area')}
-                placeholder="e.g. 4,500 or 1,400"
+                placeholder="e.g. 5000"
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono"
               />
             </div>
 
-            {/* Plot / Street Address */}
-            <div className="col-span-2 sm:col-span-3">
-              <label className="block font-semibold text-slate-700 uppercase mb-1">Plot / Street Address</label>
+            {/* Latitude */}
+            <div>
+              <label className="block font-semibold text-slate-700 uppercase mb-1">Latitude</label>
               <input
-                {...register('address')}
-                placeholder="e.g. PLOT NO.10-11 DAYANAND NAGAR MAIN ROAD ALWAR"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                {...register('latitude')}
+                placeholder="e.g. 27.5530"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono"
               />
             </div>
 
+            {/* Longitude */}
+            <div>
+              <label className="block font-semibold text-slate-700 uppercase mb-1">Longitude</label>
+              <input
+                {...register('longitude')}
+                placeholder="e.g. 76.6346"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Allowed Categories */}
             <div>
-              <label className="block font-semibold text-slate-700 uppercase mb-1">Allowed Categories</label>
+              <label className="block font-semibold text-slate-700 uppercase mb-1">Allowed Product Categories</label>
               <input
                 {...register('allowedCategories')}
-                placeholder="e.g. AA, M"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-semibold"
+                placeholder="e.g. AA, M, 2W"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono"
               />
+              <p className="text-[10px] text-slate-400 mt-0.5">Comma-separated list (e.g., AA, M)</p>
             </div>
 
             {/* Allowed Party Types */}
@@ -275,25 +282,39 @@ function RegisterBranchModal({
               <label className="block font-semibold text-slate-700 uppercase mb-1">Allowed Party Types</label>
               <input
                 {...register('allowedPartyTypes')}
-                placeholder="e.g. INDEPENDENT WORKSHOP"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-medium"
+                placeholder="e.g. INDEPENDENT WORKSHOP, BODYSHOP"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 uppercase"
               />
-            </div>
-
-            {/* Status */}
-            <div>
-              <label className="block font-semibold text-slate-700 uppercase mb-1">Status</label>
-              <select
-                {...register('isActive')}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 bg-white font-semibold"
-              >
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+          {/* Status */}
+          <div>
+            <label className="block font-semibold text-slate-700 uppercase mb-1">Operational Status</label>
+            <div className="flex items-center gap-4 pt-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="true"
+                  {...register('isActive')}
+                  className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span className="font-semibold text-emerald-700">Active Location</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="false"
+                  {...register('isActive')}
+                  className="w-4 h-4 text-rose-600 focus:ring-rose-500"
+                />
+                <span className="font-semibold text-rose-600">Inactive / Suspended</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Form Actions */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
             <Button
               type="button"
               variant="secondary"
@@ -305,8 +326,9 @@ function RegisterBranchModal({
               type="submit"
               variant="primary"
               isLoading={loading}
+              icon={<Check size={14} className="stroke-[3]" />}
             >
-              {isEdit ? 'Update Branch' : 'Register Branch'}
+              {isEdit ? 'Update Branch' : 'Save Branch'}
             </Button>
           </div>
         </form>
@@ -315,183 +337,231 @@ function RegisterBranchModal({
   );
 }
 
-// ─── MAIN OPERATIONAL LOCATIONS MASTER PAGE ───────────────────────────────────
-export default function OperationalLocationsMasterPage() {
+// ─── MAIN BRANCHES MANAGEMENT PAGE ────────────────────────────────────────────
+export default function BranchesPage() {
+  const { isSuperAdmin } = useAuth();
   const [modalBranch, setModalBranch] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  // Filters & Pagination
-  const [regionFilter, setRegionFilter] = useState('ALL');
+  // Filters state
   const [searchQuery, setSearchQuery] = useState('');
+  const [regionFilter, setRegionFilter] = useState('ALL');
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  const { data, mutate, isLoading } = useSWR('/branches?pageSize=100', fetcher);
-  const branches: any[] = useMemo(() => {
-    if (Array.isArray(data?.items)) return data.items;
-    if (Array.isArray(data?.data)) return data.data;
-    if (Array.isArray(data)) return data;
-    return [];
-  }, [data]);
+  const { data: branches, error, mutate, isLoading } = useSWR('/branches', fetcher, {
+    revalidateOnFocus: false,
+  });
 
-  // Distinct regions for filter
-  const regionsList = useMemo(() => {
-    const set = new Set<string>();
-    branches.forEach(b => { if (b.region) set.add(b.region); });
-    return ['ALL', ...Array.from(set).sort()];
+  const branchList = useMemo(() => {
+    if (!Array.isArray(branches)) return [];
+    return branches;
   }, [branches]);
 
-  // Filtered branches
+  // Distinct regions and types for filter dropdowns
+  const distinctRegions = useMemo(() => {
+    const set = new Set<string>();
+    branchList.forEach(b => { if (b.region) set.add(b.region); });
+    return Array.from(set).sort();
+  }, [branchList]);
+
+  const distinctTypes = useMemo(() => {
+    const set = new Set<string>();
+    branchList.forEach(b => { if (b.type) set.add(b.type); });
+    return Array.from(set).sort();
+  }, [branchList]);
+
+  // Filtered branch data
   const filteredBranches = useMemo(() => {
-    return branches.filter((b) => {
-      if (regionFilter !== 'ALL' && b.region !== regionFilter) return false;
+    return branchList.filter((b) => {
+      // 1. Search Query
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const code = (b.code || '').toLowerCase();
-        const name = (b.name || '').toLowerCase();
-        const incharge = (b.incharge || '').toLowerCase();
-        const phone = (b.phone || '').toLowerCase();
-        const email = (b.email || '').toLowerCase();
-        if (!code.includes(q) && !name.includes(q) && !incharge.includes(q) && !phone.includes(q) && !email.includes(q)) {
+        const q = searchQuery.toLowerCase();
+        const matchesCode = (b.code || '').toLowerCase().includes(q);
+        const matchesName = (b.name || '').toLowerCase().includes(q);
+        const matchesIncharge = (b.incharge || '').toLowerCase().includes(q);
+        const matchesRegion = (b.region || '').toLowerCase().includes(q);
+        const matchesConsignee = (b.consignee || '').toLowerCase().includes(q);
+        if (!matchesCode && !matchesName && !matchesIncharge && !matchesRegion && !matchesConsignee) {
           return false;
         }
       }
+
+      // 2. Region Filter
+      if (regionFilter !== 'ALL' && b.region !== regionFilter) {
+        return false;
+      }
+
+      // 3. Type Filter
+      if (typeFilter !== 'ALL' && b.type !== typeFilter) {
+        return false;
+      }
+
+      // 4. Status Filter
+      if (statusFilter === 'ACTIVE' && b.isActive === false) return false;
+      if (statusFilter === 'INACTIVE' && b.isActive !== false) return false;
+
       return true;
     });
-  }, [branches, regionFilter, searchQuery]);
+  }, [branchList, searchQuery, regionFilter, typeFilter, statusFilter]);
 
+  // Paginated records
   const paginatedBranches = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return filteredBranches.slice(start, start + pageSize);
   }, [filteredBranches, currentPage, pageSize]);
 
-  const stats = useMemo(() => {
-    const total = branches.length;
-    const active = branches.filter((b: any) => b.isActive !== false).length;
-    const regions = new Set(branches.map((b: any) => b.region).filter(Boolean)).size;
-    const totalArea = branches.reduce((sum: number, b: any) => {
-      const a = parseInt(String(b.area || '0').replace(/[^0-9]/g, ''), 10);
-      return sum + (isNaN(a) ? 0 : a);
-    }, 0);
-    return {
-      total,
-      active,
-      regions: regions || 1,
-      totalArea: totalArea > 0 ? totalArea.toLocaleString('en-IN') + ' sq ft' : '15,000+ sq ft',
-    };
-  }, [branches]);
+  // Summary Metrics
+  const activeCount = useMemo(() => branchList.filter(b => b.isActive !== false).length, [branchList]);
+  const regionalOfficesCount = useMemo(() => branchList.filter(b => b.type === 'RO').length, [branchList]);
+  const totalAreaSqFt = useMemo(() => {
+    return branchList.reduce((acc, b) => acc + (parseFloat(b.area) || 0), 0);
+  }, [branchList]);
 
-  // Delete Branch
+  // Delete / Deactivate Branch
   const handleDeleteBranch = async (code: string) => {
-    if (!confirm(`Are you sure you want to permanently delete branch "${code}"?`)) return;
+    if (!window.confirm(`Are you sure you want to deactivate operational branch ${code}?`)) return;
     try {
       await api.delete(`/branches/${encodeURIComponent(code)}`);
-      toast.success(`Branch ${code} deleted permanently!`);
+      toast.success(`Branch ${code} deactivated`);
       mutate();
     } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Failed to delete branch');
+      toast.error(e?.response?.data?.message || 'Failed to deactivate branch');
     }
   };
 
   // Export to Excel
   const handleExport = () => {
-    try {
-      const rows = filteredBranches.map((b, idx) => ({
-        '#': idx + 1,
-        'Code': b.code,
-        'Type': b.type || 'RO',
-        'Consignee': b.consignee || 'RJ06112',
-        'Branch Name': b.name,
-        'Address': b.address || '-',
-        'Region': b.region || 'Alwar Region',
-        'Incharge': b.incharge || '-',
-        'Mobile No': b.phone || '-',
-        'Email Address': b.email || '-',
-        'Opening Date': b.openingDate ? new Date(b.openingDate).toISOString().slice(0, 10) : '-',
-        'Area (Sq Ft)': b.area || '0',
-        'Latitude': b.latitude || '-',
-        'Longitude': b.longitude || '-',
-        'Allowed Categories': b.allowedCategories || 'AA, M',
-        'Allowed Party Types': b.allowedPartyTypes || 'INDEPENDENT WORKSHOP',
-        'Status': b.isActive !== false ? 'ACTIVE' : 'INACTIVE',
-      }));
-
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, 'Operational Locations');
-      XLSX.writeFile(wb, `Operational_Locations_Master_${new Date().toISOString().slice(0, 10)}.xlsx`);
-      toast.success('Operational locations exported to Excel!');
-    } catch {
-      toast.error('Export failed');
+    if (filteredBranches.length === 0) {
+      toast.error('No branch records to export');
+      return;
     }
+
+    const exportRows = filteredBranches.map(b => ({
+      'Branch Code': b.code,
+      'Type': b.type || 'RO',
+      'Consignee Code': b.consignee || '',
+      'Branch Name': b.name,
+      'Address': b.address || '',
+      'Region': b.region || '',
+      'Incharge': b.incharge || '',
+      'Mobile No': b.phone || '',
+      'Email Address': b.email || '',
+      'Opening Date': b.openingDate ? new Date(b.openingDate).toISOString().split('T')[0] : '',
+      'Area (Sq Ft)': b.area || '',
+      'Latitude': b.latitude || '',
+      'Longitude': b.longitude || '',
+      'Allowed Categories': b.allowedCategories || '',
+      'Allowed Party Types': b.allowedPartyTypes || '',
+      'Status': b.isActive !== false ? 'Active' : 'Inactive',
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Operational_Branches');
+    XLSX.writeFile(wb, `Branch_Master_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Branch master exported to Excel');
   };
 
   return (
-    <AppShell title="Branch Master" breadcrumb="Enterprise Administration">
+    <AppShell title="Operational Branch Master" breadcrumb="Administration / Branch Master">
       {isModalOpen && (
         <RegisterBranchModal
           branch={modalBranch}
-          onClose={() => { setIsModalOpen(false); setModalBranch(null); }}
+          onClose={() => setIsModalOpen(false)}
           onSuccess={() => mutate()}
         />
       )}
 
-      <div className="space-y-4 max-w-full">
-        {/* 1. Standardized KPI Stat Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3.5">
+      <div className="space-y-4">
+        {/* 1. TOP STATS BAR */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard
-            title="Total Locations"
-            value={stats.total}
-            subtitle="Registered branch network"
-            icon={<Building2 size={16} />}
+            label="Total Network Nodes"
+            value={branchList.length}
+            icon={<Building2 size={20} />}
+            trend={{ text: 'Full Network Scope', positive: true }}
           />
           <StatCard
-            title="Active Locations"
-            value={stats.active}
-            subtitle="Operational branches"
-            icon={<CheckCircle2 size={16} />}
-            trend={{ value: `${stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 100}% Active`, isPositive: true }}
+            label="Active Operational"
+            value={activeCount}
+            icon={<CheckCircle2 size={20} />}
+            trend={{ text: `${((activeCount / (branchList.length || 1)) * 100).toFixed(0)}% Online`, positive: true }}
           />
           <StatCard
-            title="Operational Regions"
-            value={stats.regions}
-            subtitle="Geographical distribution"
-            icon={<Globe size={16} />}
+            label="Regional Offices (RO)"
+            value={regionalOfficesCount}
+            icon={<Globe size={20} />}
+            trend={{ text: 'Hub Locations', positive: true }}
           />
           <StatCard
-            title="Total Floor Area"
-            value={stats.totalArea}
-            subtitle="Combined warehouse space"
-            icon={<MapPin size={16} />}
+            label="Warehouse Floor Space"
+            value={`${(totalAreaSqFt / 1000).toFixed(1)}k sqft`}
+            icon={<Layers size={20} />}
+            trend={{ text: 'Total Footprint', positive: true }}
           />
         </div>
 
-        {/* 2. Standardized Action & Filter Toolbar */}
-        <div className="bg-white rounded-2xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-0">
+        {/* 2. FILTER & SEARCH CONTROL STRIP */}
+        <div className="card-enterprise p-3 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 flex-1">
             {/* Region Filter */}
-            <div className="w-36 sm:w-44">
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">REGION</label>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Region / Zone</label>
               <select
                 value={regionFilter}
                 onChange={(e) => { setRegionFilter(e.target.value); setCurrentPage(1); }}
-                className="input-enterprise w-full text-xs cursor-pointer font-medium"
+                className="select-enterprise w-full"
               >
-                {regionsList.map(r => (
-                  <option key={r} value={r}>{r === 'ALL' ? 'All Regions' : r}</option>
+                <option value="ALL">All Regions ({distinctRegions.length})</option>
+                {distinctRegions.map(r => (
+                  <option key={r} value={r}>{r}</option>
                 ))}
               </select>
             </div>
 
-            {/* Search Input */}
-            <div className="flex-1 min-w-[200px] sm:min-w-[240px]">
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">SEARCH LOCATIONS</label>
+            {/* Type Filter */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Branch Type</label>
+              <select
+                value={typeFilter}
+                onChange={(e) => { setTypeFilter(e.target.value); setCurrentPage(1); }}
+                className="select-enterprise w-full"
+              >
+                <option value="ALL">All Types</option>
+                {distinctTypes.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Status</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="select-enterprise w-full"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="ACTIVE">Active Only</option>
+                <option value="INACTIVE">Inactive Only</option>
+              </select>
+            </div>
+
+            {/* Search Query */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Search Details</label>
               <div className="relative">
                 <input
                   type="text"
+                  placeholder="Code, Name, Incharge..."
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  placeholder="Search Code, Name, Incharge, Phone..."
                   className="input-enterprise w-full placeholder-slate-400"
                 />
                 {searchQuery && (
@@ -501,23 +571,19 @@ export default function OperationalLocationsMasterPage() {
                 )}
               </div>
             </div>
-
-            {/* Reset Button */}
-            <div className="flex items-end pt-4 sm:pt-0">
-              <Button
-                variant="secondary"
-                size="md"
-                onClick={() => { setRegionFilter('ALL'); setSearchQuery(''); setCurrentPage(1); }}
-                title="Reset Filters"
-                icon={<RotateCcw size={14} className="text-slate-500" />}
-              >
-                Reset
-              </Button>
-            </div>
           </div>
 
           {/* Primary Page Actions */}
           <div className="flex items-center gap-2 pt-2 sm:pt-4">
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => { setRegionFilter('ALL'); setTypeFilter('ALL'); setStatusFilter('ALL'); setSearchQuery(''); setCurrentPage(1); }}
+              title="Reset Filters"
+              icon={<RotateCcw size={14} className="text-slate-500" />}
+            >
+              Reset
+            </Button>
             <Button
               variant="secondary"
               size="md"
@@ -567,7 +633,7 @@ export default function OperationalLocationsMasterPage() {
                   <tr>
                     <td colSpan={17} className="py-12 text-center text-slate-400">
                       <div className="flex flex-col items-center gap-2">
-                        <RefreshCw size={24} className="animate-spin text-[#053D3A]" />
+                        <RefreshCw size={24} className="animate-spin text-[#0052CC]" />
                         <span className="font-bold text-xs">Loading operational branches...</span>
                       </div>
                     </td>
@@ -589,7 +655,7 @@ export default function OperationalLocationsMasterPage() {
                     return (
                       <tr key={b.code} className={`hover:bg-slate-50 transition ${idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}`}>
                         {/* 1. Branch Code */}
-                        <td className="px-3 py-2.5 text-center align-middle font-mono font-bold text-[#053D3A] border-r border-slate-200">
+                        <td className="px-3 py-2.5 text-center align-middle font-mono font-bold text-[#003366] border-r border-slate-200">
                           {b.code}
                         </td>
 
@@ -686,7 +752,7 @@ export default function OperationalLocationsMasterPage() {
                             <button
                               onClick={() => { setModalBranch(b); setIsModalOpen(true); }}
                               title="Edit Branch"
-                              className="p-1.5 text-slate-600 hover:text-[#053D3A] hover:bg-slate-100 rounded-lg transition border border-slate-200 cursor-pointer"
+                              className="p-1.5 text-slate-600 hover:text-[#003366] hover:bg-slate-100 rounded-lg transition border border-slate-200 cursor-pointer"
                             >
                               <Edit size={13} />
                             </button>

@@ -392,7 +392,7 @@ export default function AdvancedOutstandingRegistryPage() {
             {/* Period Selector — SuperAdmin Only */}
             {isSuperAdmin && (
               <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
-                <Calendar size={14} className="text-[#053D3A] shrink-0" />
+                <Calendar size={14} className="text-[#003366] shrink-0" />
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(Number(e.target.value))}
@@ -426,7 +426,7 @@ export default function AdvancedOutstandingRegistryPage() {
             {/* Branch Filter */}
             {isSuperAdmin ? (
               <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
-                <Building2 size={14} className="text-[#053D3A] shrink-0" />
+                <Building2 size={14} className="text-[#003366] shrink-0" />
                 <select
                   value={branchFilter}
                   onChange={(e) => setBranchFilter(e.target.value)}

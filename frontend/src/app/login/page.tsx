@@ -53,12 +53,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-[#F7F7F3]">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-[#F4F6FB]">
       {/* Centered White Card */}
-      <div className="w-full max-w-[420px] bg-white rounded-3xl p-8 sm:p-10 shadow-[0_10px_40px_rgba(0,0,0,0.06)] border border-slate-200/80 animate-in fade-in zoom-in-95 duration-200">
+      <div className="w-full max-w-[420px] bg-white rounded-3xl p-8 sm:p-10 shadow-[0_10px_40px_rgba(0,51,102,0.08)] border border-slate-200/90 animate-in fade-in zoom-in-95 duration-200 relative overflow-hidden">
+        {/* Suzuki Crimson Red Top Stripe Accent */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#ED1C24]" />
         
         {/* TheSSBuddy Logo */}
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-6 pt-2">
           <img
             src="/thessbuddy-logo.png"
             alt="TheSSBuddy Logo"
@@ -72,7 +74,7 @@ export default function LoginPage() {
 
         {/* Header Titles */}
         <div className="text-center mb-7">
-          <h1 className="text-2xl font-black text-[#053D3A] tracking-tight">
+          <h1 className="text-2xl font-black text-[#003366] tracking-tight">
             Welcome back
           </h1>
           <p className="text-sm text-slate-500 font-medium mt-1">
@@ -96,7 +98,7 @@ export default function LoginPage() {
                 type="text"
                 autoComplete="username"
                 placeholder="name@company.com"
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A] transition shadow-2xs font-medium"
+                className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] transition shadow-2xs font-medium"
               />
             </div>
             {errors.username && (
@@ -118,7 +120,7 @@ export default function LoginPage() {
                 type={showPass ? 'text' : 'password'}
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full pl-10 pr-11 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A] transition shadow-2xs font-medium"
+                className="w-full pl-10 pr-11 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] transition shadow-2xs font-medium"
               />
               <button
                 type="button"
@@ -141,7 +143,7 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-[#053D3A] focus:ring-[#053D3A] cursor-pointer accent-[#053D3A]"
+                className="w-4 h-4 rounded border-slate-300 text-[#0052CC] focus:ring-[#0052CC] cursor-pointer accent-[#0052CC]"
               />
               <span className="text-xs text-slate-600 font-medium">Remember me</span>
             </label>
@@ -154,7 +156,7 @@ export default function LoginPage() {
                   icon: 'ℹ️',
                 });
               }}
-              className="text-xs font-bold text-[#053D3A] hover:underline"
+              className="text-xs font-bold text-[#0052CC] hover:underline"
             >
               Forgot password?
             </a>
@@ -164,7 +166,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl bg-[#053D3A] hover:bg-[#074B47] text-white font-bold text-sm shadow-sm hover:shadow-md transition-all duration-150 active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer mt-2"
+            className="w-full py-3.5 rounded-xl bg-[#0052CC] hover:bg-[#0041A3] text-white font-bold text-sm shadow-sm hover:shadow-md transition-all duration-150 active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer mt-2"
           >
             {loading ? (
               <>
@@ -189,7 +191,7 @@ export default function LoginPage() {
                   icon: '🔐',
                 });
               }}
-              className="text-[#053D3A] font-bold hover:underline ml-0.5"
+              className="text-[#0052CC] font-bold hover:underline ml-0.5"
             >
               Sign up
             </a>

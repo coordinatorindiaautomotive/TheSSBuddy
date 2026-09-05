@@ -2,65 +2,69 @@
 @import "tailwindcss";
 
 :root {
-  /* Brand */
-  --color-primary: #053D3A;
-  --color-primary-hover: #074B47;
-  --color-primary-active: #032F2D;
+  /* Brand - Maruti Suzuki Corporate Deep Navy Blue */
+  --color-primary: #003366;
+  --color-primary-hover: #002244;
+  --color-primary-active: #001A33;
 
-  --color-primary-light: #DCEDEA;
-  --color-primary-soft: #EAF5F3;
+  --color-primary-light: #EBF2FA;
+  --color-primary-soft: #F4F7FB;
 
-  /* Accent */
-  --color-accent: #FFE2B8;
-  --color-accent-hover: #FFD49A;
-  --color-accent-light: #FFF3DE;
-  --color-accent-soft: #FFF8EC;
+  /* Accent - Maruti Suzuki Racing Red Stripe */
+  --color-accent: #ED1C24;
+  --color-accent-hover: #D0141B;
+  --color-accent-light: #FDE8E9;
+  --color-accent-soft: #FFF2F3;
 
-  /* Background - Executive Crisp Contrast */
-  --color-bg: #F4F6F9;
-  --color-bg-secondary: #EBF0F5;
+  /* Primary Action Blue */
+  --color-action: #0052CC;
+  --color-action-hover: #0041A3;
+
+  /* Background - Crisp Executive Contrast */
+  --color-bg: #F4F6FB;
+  --color-bg-secondary: #EBF0F8;
   --color-surface: #FFFFFF;
   --color-surface-hover: #F1F5F9;
-  --color-selected: #FFF3DE;
+  --color-selected: #EBF2FA;
 
   /* Deep High-Contrast Typography */
-  --color-text: #111827;
-  --color-heading: #111827;
-  --color-text-secondary: #374151;
-  --color-text-muted: #4B5563;
-  --color-text-placeholder: #6B7280;
-  --color-text-disabled: #9CA3AF;
+  --color-text: #0F172A;
+  --color-heading: #0F172A;
+  --color-text-secondary: #334155;
+  --color-text-muted: #64748B;
+  --color-text-placeholder: #94A3B8;
+  --color-text-disabled: #CBD5E1;
 
   /* Crisp Solid Borders */
-  --color-border: #D1D5DB;
-  --color-border-light: #E5E7EB;
-  --color-border-strong: #9CA3AF;
+  --color-border: #CBD5E1;
+  --color-border-light: #E2E8F0;
+  --color-border-strong: #94A3B8;
 
   /* Status */
-  --color-success: #087443;
-  --color-success-bg: #DDF4E8;
+  --color-success: #057A55;
+  --color-success-bg: #DEF7EC;
 
   --color-warning: #9A6500;
-  --color-warning-bg: #FFF0D2;
+  --color-warning-bg: #FDF6B2;
 
-  --color-danger: #B42335;
-  --color-danger-bg: #FDE4E6;
+  --color-danger: #C81E1E;
+  --color-danger-bg: #FDE8E8;
 
-  --color-info: #1769AA;
-  --color-info-bg: #E3F0FF;
+  --color-info: #0052CC;
+  --color-info-bg: #E1EFFE;
 
-  --color-neutral: #374151;
-  --color-neutral-bg: #E5E7EB;
+  --color-neutral: #475569;
+  --color-neutral-bg: #F1F5F9;
 
   /* Charts */
-  --chart-primary: #053D3A;
-  --chart-secondary: #2A716A;
-  --chart-tertiary: #66A9A0;
-  --chart-accent: #FFE2B8;
-  --chart-blue: #3B82C4;
-  --chart-purple: #7B61A8;
-  --chart-positive: #169B6B;
-  --chart-negative: #D9545D;
+  --chart-primary: #003366;
+  --chart-secondary: #0052CC;
+  --chart-tertiary: #00A3E0;
+  --chart-accent: #ED1C24;
+  --chart-blue: #3B82F6;
+  --chart-purple: #7C3AED;
+  --chart-positive: #10B981;
+  --chart-negative: #EF4444;
 }
 
 @theme {
@@ -69,24 +73,24 @@
   --font-mono: var(--font-mono), monospace;
 
   /* Brand Palette Utilities */
-  --color-primary: #053D3A;
-  --color-primary-hover: #074B47;
-  --color-primary-active: #032F2D;
-  --color-primary-light: #DCEDEA;
-  --color-primary-soft: #EAF5F3;
+  --color-primary: #003366;
+  --color-primary-hover: #002244;
+  --color-primary-active: #001A33;
+  --color-primary-light: #EBF2FA;
+  --color-primary-soft: #F4F7FB;
 
   /* Accent Utilities */
-  --color-accent: #FFE2B8;
-  --color-accent-hover: #FFD49A;
-  --color-accent-light: #FFF3DE;
-  --color-accent-soft: #FFF8EC;
+  --color-accent: #ED1C24;
+  --color-accent-hover: #D0141B;
+  --color-accent-light: #FDE8E9;
+  --color-accent-soft: #FFF2F3;
 
   /* Background & Surface Utilities */
-  --color-bg-main: #F4F6F9;
-  --color-bg-sub: #EBF0F5;
+  --color-bg-main: #F4F6FB;
+  --color-bg-sub: #EBF0F8;
   --color-surface: #FFFFFF;
   --color-surface-hover: #F1F5F9;
-  --color-selected: #FFF3DE;
+  --color-selected: #EBF2FA;
 
   /* Text & Heading Utilities */
   --color-txt: #0F172A;
@@ -108,7 +112,7 @@
   --color-status-warning-bg: #FDF6B2;
   --color-status-danger: #C81E1E;
   --color-status-danger-bg: #FDE8E8;
-  --color-status-info: #1A56DB;
+  --color-status-info: #0052CC;
   --color-status-info-bg: #E1EFFE;
   --color-status-neutral: #475569;
   --color-status-neutral-bg: #F1F5F9;
@@ -207,11 +211,11 @@ header h1, header h2, header h3 {
   animation: pulseSubtle 3s ease-in-out infinite;
 }
 
-/* Dark Forest Green Table Header with High Visibility Grid Borders (#053D3A) */
+/* Maruti Suzuki Corporate Table Header with High Visibility Grid Borders (#003366 with #ED1C24 Red Accent) */
 .table-header-navy {
-  background-color: #053D3A !important;
+  background-color: #003366 !important;
   color: #ffffff !important;
-  border-bottom: 2px solid #FFE2B8 !important;
+  border-bottom: 3px solid #ED1C24 !important;
 }
 
 .table-header-navy th,
@@ -245,7 +249,7 @@ header h1, header h2, header h3 {
 }
 
 .font-mono, code, pre, .tabular-nums {
-  font-family: 'Roboto', var(--font-roboto), 'Poppins', var(--font-poppins), sans-serif !important;
+  font-family: var(--font-mono), monospace !important;
 }
 
 /* Clean, crisp font weight mapping without synthetic blur */
@@ -262,14 +266,14 @@ b, strong {
 
 /* World-Class Enterprise Form Controls */
 input, select, textarea {
-  font-family: 'Poppins', var(--font-poppins), sans-serif;
+  font-family: var(--font-inter), sans-serif;
   color: #0f172a;
 }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
-  border-color: #053D3A !important;
-  box-shadow: 0 0 0 3px rgba(5, 61, 58, 0.12) !important;
+  border-color: #0052CC !important;
+  box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.15) !important;
 }
 
 /* Datagrid Table Cells */
@@ -320,7 +324,7 @@ table th {
   overflow-y: auto !important;
 }
 
-/* ─── STANDARDIZED ENTERPRISE DATA TABLE SYSTEM ─── */
+/* ─── STANDARDIZED ENTERPRISE DATA TABLE SYSTEM (MARUTI SUZUKI NAVY & RED) ─── */
 .table-enterprise {
   width: 100%;
   border-collapse: separate;
@@ -330,8 +334,9 @@ table th {
 }
 
 .table-enterprise thead tr {
-  background-color: #053D3A;
+  background-color: #003366;
   color: #ffffff;
+  border-bottom: 2.5px solid #ED1C24;
 }
 
 .table-enterprise thead th {
@@ -340,7 +345,7 @@ table th {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
   white-space: nowrap;
 }
 
@@ -358,7 +363,7 @@ table th {
 }
 
 .table-enterprise tbody tr:hover {
-  background-color: #eaf5f3 !important;
+  background-color: #f0f5fa !important;
 }
 
 .table-enterprise tbody td {
@@ -390,6 +395,6 @@ table th {
 
 .input-enterprise:focus {
   outline: none;
-  border-color: #053D3A;
-  box-shadow: 0 0 0 2px rgba(5, 61, 58, 0.2);
+  border-color: #0052CC;
+  box-shadow: 0 0 0 2px rgba(0, 82, 204, 0.2);
 }

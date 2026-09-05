@@ -134,9 +134,9 @@ export default function Topbar({
         />
       )}
 
-      {/* ─── CORPORATE TOPBAR WITH DARK FOREST GREEN BRANDING ─── */}
+      {/* ─── MARUTI SUZUKI CORPORATE TOPBAR (#003366 with #ED1C24 Red Stripe) ─── */}
       <header
-        className="h-16 flex items-center justify-between px-3 sm:px-6 sticky top-0 z-[100] shadow-md select-none text-white border-b border-[#074B47] bg-[#032F2D]"
+        className="h-16 flex items-center justify-between px-3 sm:px-6 sticky top-0 z-[100] shadow-md select-none text-white border-b-[3px] border-[#ED1C24] bg-[#003366]"
       >
         {/* Left: Sidebar Toggle (Mobile Hamburger / Desktop Collapse) + Title */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -144,7 +144,7 @@ export default function Topbar({
           {onToggleMobileSidebar && (
             <button
               onClick={onToggleMobileSidebar}
-              className="lg:hidden p-2 rounded-xl text-[#FFE2B8] hover:text-white hover:bg-[#074B47] transition border border-[#074B47] bg-[#053D3A] shrink-0"
+              className="lg:hidden p-2 rounded-xl text-cyan-400 hover:text-white hover:bg-[#002244] transition border border-blue-400/20 bg-[#002B55] shrink-0"
               title="Open Navigation Menu"
               aria-label="Open Navigation Menu"
             >
@@ -156,15 +156,15 @@ export default function Topbar({
           {onToggleSidebar && (
             <button
               onClick={onToggleSidebar}
-              className="hidden lg:flex p-1.5 rounded-xl text-[#DCEDEA] hover:text-white hover:bg-[#074B47] transition border border-[#074B47] bg-[#053D3A] shrink-0"
+              className="hidden lg:flex p-1.5 rounded-xl text-cyan-400 hover:text-white hover:bg-[#002244] transition border border-blue-400/20 bg-[#002B55] shrink-0"
               title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
             >
-              <PanelLeft size={18} className="text-[#FFE2B8]" />
+              <PanelLeft size={18} className="text-cyan-400" />
             </button>
           )}
 
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-[#DCEDEA] font-medium text-xs sm:text-sm hidden sm:inline shrink-0">TheSSBuddy ›</span>
+            <span className="text-blue-200 font-medium text-xs sm:text-sm hidden sm:inline shrink-0">TheSSBuddy ›</span>
             <h1 className="text-sm sm:text-base font-bold text-white tracking-tight truncate max-w-[140px] sm:max-w-[240px] md:max-w-none">
               {title}
             </h1>
@@ -178,19 +178,19 @@ export default function Topbar({
             type="button"
             onClick={() => setDatePickerOpen(true)}
             title="Click to open Global Date & Period Selector"
-            className="hidden xl:flex items-center gap-2 bg-[#053D3A] hover:bg-[#074B47] border border-[#074B47] text-white text-xs font-mono font-medium px-3 py-1.5 rounded-xl shadow-2xs cursor-pointer transition active:scale-95 group"
+            className="hidden xl:flex items-center gap-2 bg-[#002B55] hover:bg-[#002244] border border-blue-400/20 text-white text-xs font-mono font-medium px-3 py-1.5 rounded-xl shadow-2xs cursor-pointer transition active:scale-95 group"
           >
-            <Calendar size={13} className="text-[#FFE2B8] group-hover:scale-105 transition-transform" />
+            <Calendar size={13} className="text-cyan-400 group-hover:scale-105 transition-transform" />
             <span className="tracking-wide text-white text-[11px]">{currentTime || '19 Aug 2026 09:59:05 AM'}</span>
           </button>
 
           {/* Search Input (Tablet & Desktop) */}
           <div className="relative hidden md:block w-44 lg:w-56">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#FFE2B8]" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400" />
             <input
               type="text"
               placeholder="Search anything..."
-              className="w-full pl-8 pr-3 py-1.5 bg-[#053D3A] border border-[#074B47] rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#FFE2B8] text-white placeholder-slate-300 font-medium transition"
+              className="w-full pl-8 pr-3 py-1.5 bg-[#002B55] border border-blue-400/20 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-cyan-400 text-white placeholder-blue-200 font-medium transition"
             />
           </div>
 
@@ -201,11 +201,11 @@ export default function Topbar({
                 setNotifMenuOpen(!notifMenuOpen);
                 setUserMenuOpen(false);
               }}
-              className="relative w-8.5 h-8.5 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-white bg-[#053D3A] hover:bg-[#074B47] transition-colors border border-[#074B47] shadow-2xs"
+              className="relative w-8.5 h-8.5 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl text-white bg-[#002B55] hover:bg-[#002244] transition-colors border border-blue-400/20 shadow-2xs"
             >
-              <Bell size={15} className="text-[#DCEDEA]" />
+              <Bell size={15} className="text-cyan-400" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-[#B42335] text-white rounded-full text-[9px] font-black flex items-center justify-center shadow animate-pulse">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-[#ED1C24] text-white rounded-full text-[9px] font-bold flex items-center justify-center shadow animate-pulse">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -213,29 +213,25 @@ export default function Topbar({
 
             {/* Notifications Dropdown Panel */}
             {notifMenuOpen && (
-              <div className="absolute right-0 mt-2.5 w-[calc(100vw-24px)] sm:w-96 max-w-[380px] bg-white rounded-2xl shadow-2xl border border-slate-200/90 z-[110] animate-in fade-in zoom-in-95 duration-150 overflow-hidden text-slate-800">
-                <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border-2 border-slate-200 z-[110] overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-slate-800">
+                {/* Header */}
+                <div className="px-4 py-3 bg-[#003366] text-white flex items-center justify-between border-b-[3px] border-[#ED1C24]">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-[#053D3A]/10 text-[#053D3A] flex items-center justify-center">
-                      <Bell size={13} className="text-[#053D3A]" />
-                    </div>
-                    <span className="font-bold text-xs text-slate-900">
-                      Notifications & Alerts
-                    </span>
+                    <Bell size={15} className="text-cyan-400" />
+                    <span className="font-bold text-xs uppercase tracking-wider text-white">System Inbox</span>
                     {unreadCount > 0 && (
-                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-bold">
-                        {unreadCount} new
+                      <span className="px-1.5 py-0.5 bg-[#ED1C24] text-white text-[10px] font-bold rounded-full">
+                        {unreadCount}
                       </span>
                     )}
                   </div>
-
                   <div className="flex items-center gap-1.5">
-                    {allNotifs.length > 0 && (
+                    {unreadCount > 0 && (
                       <button
                         onClick={handleClearAll}
                         disabled={isClearing}
-                        className="px-2 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg flex items-center gap-1 transition disabled:opacity-50"
-                        title="Clear All Notifications"
+                        className="text-[11px] text-blue-200 hover:text-white flex items-center gap-1 px-2 py-0.5 rounded-lg hover:bg-white/10 transition font-medium cursor-pointer"
+                        title="Clear all unread"
                       >
                         <Trash2 size={12} />
                         <span>Clear</span>
@@ -243,7 +239,7 @@ export default function Topbar({
                     )}
                     <button
                       onClick={() => setNotifMenuOpen(false)}
-                      className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition"
+                      className="text-blue-200 hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
                       title="Close"
                     >
                       <X size={14} />
@@ -255,7 +251,7 @@ export default function Topbar({
                 <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs">
                   {allNotifs.length === 0 ? (
                     <div className="py-8 px-4 text-center">
-                      <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center mb-2 border border-emerald-200">
+                      <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 mx-auto flex items-center justify-center mb-2 border border-blue-200">
                         <CheckCheck size={18} />
                       </div>
                       <p className="font-bold text-xs text-slate-900">All Caught Up</p>
@@ -266,18 +262,18 @@ export default function Topbar({
                       <div
                         key={n.id || idx}
                         className={`p-3.5 hover:bg-slate-50 transition flex items-start gap-3 group relative ${
-                          !n.read ? 'bg-emerald-50/30' : ''
+                          !n.read ? 'bg-blue-50/40' : ''
                         }`}
                       >
-                        <div className="w-7 h-7 rounded-lg bg-[#053D3A]/10 text-[#053D3A] flex items-center justify-center shrink-0 mt-0.5 border border-[#053D3A]/20">
-                          {n.isAnnouncement ? <Sparkles size={13} className="text-amber-600" /> : <Bell size={13} className="text-[#053D3A]" />}
+                        <div className="w-7 h-7 rounded-lg bg-[#003366]/10 text-[#003366] flex items-center justify-center shrink-0 mt-0.5 border border-[#003366]/20">
+                          {n.isAnnouncement ? <Sparkles size={13} className="text-amber-600" /> : <Bell size={13} className="text-[#003366]" />}
                         </div>
                         <div className="flex-1 min-w-0 pr-5">
                           {n.link ? (
                             <Link
                               href={n.link}
                               onClick={() => setNotifMenuOpen(false)}
-                              className="font-bold text-slate-900 hover:text-[#053D3A] text-xs block truncate transition"
+                              className="font-bold text-slate-900 hover:text-[#003366] text-xs block truncate transition"
                             >
                               {n.title || n.subject || 'System Notification'}
                             </Link>
@@ -317,13 +313,13 @@ export default function Topbar({
                 setUserMenuOpen(!userMenuOpen);
                 setNotifMenuOpen(false);
               }}
-              className="flex items-center gap-2.5 p-1 pl-2 bg-[#053D3A] hover:bg-[#074B47] border border-[#074B47] rounded-2xl transition shadow-sm cursor-pointer"
+              className="flex items-center gap-2.5 p-1 pl-2 bg-[#002B55] hover:bg-[#002244] border border-blue-400/20 rounded-2xl transition shadow-sm cursor-pointer"
             >
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-[#053D3A] font-black text-xs shadow-sm bg-[#FFE2B8] border border-[#FFD49A]">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-xs shadow-sm bg-[#0052CC] border border-blue-400/30">
                 {(displayName || 'S')[0].toUpperCase()}
               </div>
               <div className="hidden sm:block text-left pr-1">
-                <p className="font-extrabold text-xs text-white leading-tight">
+                <p className="font-bold text-xs text-white leading-tight">
                   {displayName}
                 </p>
                 <p className="text-[10px] text-[#DCEDEA] font-mono">

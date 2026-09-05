@@ -52,9 +52,9 @@ export default function AppShell({ children, title, breadcrumb }: AppShellProps)
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F7F7F3]">
+      <div className="min-h-screen flex items-center justify-center bg-[#F4F6FB]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-[#053D3A] border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-[#003366] border-t-[#ED1C24] rounded-full animate-spin" />
           <p className="text-slate-600 text-sm font-bold">Connecting to TheSSBuddy...</p>
         </div>
       </div>

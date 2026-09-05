@@ -14,12 +14,12 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-[#053D3A] hover:bg-[#074B47] active:bg-[#032F2D] text-white font-extrabold shadow-sm border border-[#053D3A]/90',
-  secondary: 'bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-bold border border-slate-200/90 shadow-2xs',
-  accent: 'bg-[#2563eb] hover:bg-blue-700 active:bg-blue-800 text-white font-extrabold shadow-sm border border-blue-600',
-  danger: 'bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-extrabold shadow-sm border border-rose-600',
-  ghost: 'bg-transparent hover:bg-slate-100 text-slate-600 font-bold',
-  outline: 'bg-transparent hover:bg-slate-50 text-slate-700 font-bold border border-slate-300',
+  primary: 'bg-[#0052CC] hover:bg-[#0041A3] active:bg-[#003380] text-white font-bold shadow-sm border border-[#0052CC]/90',
+  secondary: 'bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-semibold border border-slate-200/90 shadow-2xs',
+  accent: 'bg-[#ED1C24] hover:bg-[#D0141B] active:bg-[#B70F16] text-white font-bold shadow-sm border border-[#ED1C24]',
+  danger: 'bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white font-bold shadow-sm border border-rose-600',
+  ghost: 'bg-transparent hover:bg-slate-100 text-slate-600 font-medium',
+  outline: 'bg-transparent hover:bg-slate-50 text-slate-700 font-semibold border border-slate-300',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

@@ -79,10 +79,10 @@ function QuickPreviewModal({ party, onClose }: { party: any; onClose: () => void
       <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-slate-200 m-auto flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white rounded-t-2xl">
+          <div className="flex items-center justify-between px-6 py-4 bg-[#003366] border-b-[3px] border-[#ED1C24] text-white rounded-t-2xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center">
-                <Building2 size={20} className="text-blue-400" />
+              <div className="w-10 h-10 rounded-xl bg-[#002B55] border border-[#0041A3] flex items-center justify-center">
+                <Building2 size={20} className="text-cyan-400" />
               </div>
               <div>
                 <h2 className="font-bold text-lg leading-tight text-white">{party.name || party.consPartyName || 'Party Details'}</h2>
@@ -313,19 +313,21 @@ function EditPartyModal({
     <ClientPortal>
       <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] overflow-y-auto border border-slate-200 m-auto flex flex-col">
-          <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white rounded-t-2xl">
+          <div className="flex items-center justify-between px-6 py-4 bg-[#003366] border-b-[3px] border-[#ED1C24] text-white rounded-t-2xl">
             <div className="flex items-center gap-2.5">
-              {isSuperAdmin ? (
-                <Edit size={18} className="text-blue-400" />
-              ) : (
-                <CreditCard size={18} className="text-emerald-400" />
-              )}
+              <div className="p-1.5 rounded-lg bg-[#002B55] border border-[#0041A3]">
+                {isSuperAdmin ? (
+                  <Edit size={18} className="text-cyan-400" />
+                ) : (
+                  <CreditCard size={18} className="text-cyan-400" />
+                )}
+              </div>
               <div>
                 <h2 className="font-bold text-base text-white">
                   {isSuperAdmin ? `Edit Party — ${currentCode}` : `Bank & KYC Setup — ${currentName || currentCode}`}
                 </h2>
                 {!isSuperAdmin && (
-                  <p className="text-[10px] text-emerald-300 font-mono">Branch Manager Mode: Bank Detail & KYC Setup</p>
+                  <p className="text-[10px] text-cyan-300 font-mono">Branch Manager Mode: Bank Detail & KYC Setup</p>
                 )}
               </div>
             </div>
@@ -736,38 +738,42 @@ function AssignExecutiveModal({ party, onClose, onSuccess }: { party: any; onClo
   return (
     <ClientPortal>
       <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto p-6 border border-slate-200 m-auto flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <UserCheck size={18} className="text-blue-600" />
-              <h2 className="font-bold text-slate-800 text-base">Assign Sales Executive</h2>
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto border border-slate-200 m-auto flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 bg-[#003366] border-b-[3px] border-[#ED1C24] text-white">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-[#002B55] border border-[#0041A3]">
+                <UserCheck size={18} className="text-cyan-400" />
+              </div>
+              <h2 className="font-bold text-white text-base">Assign Sales Executive</h2>
             </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+            <button onClick={onClose} className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-[#002B55] transition"><X size={18} /></button>
           </div>
 
-          <div className="p-3 bg-slate-50 rounded-xl mb-4 text-xs">
-            <p className="text-slate-500 font-semibold">Party:</p>
-            <p className="font-bold text-slate-800 mt-0.5">{party?.name || party?.consPartyName}</p>
-            <p className="text-slate-400 font-mono mt-0.5">Code: {party?.code || party?.consPartyCode}</p>
-          </div>
+          <div className="p-6 space-y-4">
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+              <p className="text-slate-500 font-semibold">Party:</p>
+              <p className="font-bold text-slate-800 mt-0.5">{party?.name || party?.consPartyName}</p>
+              <p className="text-slate-500 font-mono mt-0.5">Code: {party?.code || party?.consPartyCode}</p>
+            </div>
 
-          <div className="mb-5">
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Executive Name</label>
-            <input
-              type="text"
-              value={executive}
-              onChange={(e) => setExecutive(e.target.value)}
-              placeholder="Enter Sales Executive Name"
-              className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-blue-500 text-slate-800"
-              autoFocus
-            />
-          </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Executive Name</label>
+              <input
+                type="text"
+                value={executive}
+                onChange={(e) => setExecutive(e.target.value)}
+                placeholder="Enter Sales Executive Name"
+                className="input-enterprise w-full text-xs"
+                autoFocus
+              />
+            </div>
 
-          <div className="flex gap-2">
-            <button onClick={onClose} className="flex-1 py-2 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50">Cancel</button>
-            <button onClick={handleSave} disabled={loading} className="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition disabled:opacity-60">
-              {loading ? 'Assigning...' : 'Assign'}
-            </button>
+            <div className="flex gap-2 pt-2">
+              <Button type="button" variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
+              <Button type="button" variant="primary" onClick={handleSave} isLoading={loading} className="flex-1">
+                Assign Executive
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -1074,7 +1080,7 @@ export default function PartyMasterRegistryPage() {
       const titleCell = worksheet.getCell('A1');
       titleCell.value = 'THE SS BUDDY — MARUTI SUZUKI DEALER & PARTY MASTER REGISTRY';
       titleCell.font = { name: 'Segoe UI', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
-      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF053D3A' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF003366' } };
       titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
       worksheet.getRow(1).height = 34;
 
@@ -1083,8 +1089,8 @@ export default function PartyMasterRegistryPage() {
       const metaCell = worksheet.getCell('A2');
       const nowStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
       metaCell.value = `Export As-Of: ${nowStr}  |  Total Parties: ${filteredList.length.toLocaleString('en-IN')}  |  Location: ${locationFilter}  |  Party Type: ${partyTypeFilter}  |  Executive: ${executiveFilter}`;
-      metaCell.font = { name: 'Segoe UI', size: 9.5, italic: true, bold: true, color: { argb: 'FF053D3A' } };
-      metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F4F1' } };
+      metaCell.font = { name: 'Segoe UI', size: 9.5, italic: true, bold: true, color: { argb: 'FF003366' } };
+      metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEBF2FA' } };
       metaCell.alignment = { vertical: 'middle', horizontal: 'center' };
       worksheet.getRow(2).height = 22;
 
@@ -1117,7 +1123,7 @@ export default function PartyMasterRegistryPage() {
       headerRow.values = headers.map(h => h.header);
       headerRow.height = 28;
       headerRow.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
-      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF053D3A' } };
+      headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF003366' } };
       headerRow.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
 
       const thinBorder: any = {
@@ -1220,12 +1226,12 @@ export default function PartyMasterRegistryPage() {
       ]);
 
       totalRow.height = 25;
-      totalRow.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF053D3A' } };
+      totalRow.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF003366' } };
       totalRow.eachCell((cell, colNumber) => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
         cell.border = {
-          top: { style: 'thin', color: { argb: 'FF053D3A' } },
-          bottom: { style: 'double', color: { argb: 'FF053D3A' } },
+          top: { style: 'thin', color: { argb: 'FF003366' } },
+          bottom: { style: 'double', color: { argb: 'FF003366' } },
           left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
           right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
         };
@@ -1423,7 +1429,7 @@ export default function PartyMasterRegistryPage() {
           {/* Location Dropdown */}
           <div className="flex-1 min-w-[150px]">
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-              <MapPin size={12} className="text-[#053D3A]" /> LOCATION
+              <MapPin size={12} className="text-[#0052CC]" /> LOCATION
             </label>
             {isBranchUser && userBranch ? (
               <div className="w-full px-3 py-2 bg-amber-400 text-slate-950 border border-amber-300 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 shadow-2xs">
@@ -1434,7 +1440,7 @@ export default function PartyMasterRegistryPage() {
               <select
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A] shadow-2xs"
+                className="select-enterprise w-full"
               >
                 {branchesList.map((b) => (
                   <option key={b} value={b} className="bg-white text-slate-900 font-bold">
@@ -1448,12 +1454,12 @@ export default function PartyMasterRegistryPage() {
           {/* Executive Dropdown */}
           <div className="flex-1 min-w-[150px]">
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-              <UserCheck size={12} className="text-[#053D3A]" /> EXECUTIVE
+              <UserCheck size={12} className="text-[#0052CC]" /> EXECUTIVE
             </label>
             <select
               value={executiveFilter}
               onChange={(e) => setExecutiveFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A] shadow-2xs"
+              className="select-enterprise w-full"
             >
               {executivesList.map((ex) => (
                 <option key={ex} value={ex} className="bg-white text-slate-900 font-bold">
@@ -1466,12 +1472,12 @@ export default function PartyMasterRegistryPage() {
           {/* Party Type Dropdown */}
           <div className="flex-1 min-w-[150px]">
             <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-              <Layers size={12} className="text-[#053D3A]" /> PARTY TYPE
+              <Layers size={12} className="text-[#0052CC]" /> PARTY TYPE
             </label>
             <select
               value={partyTypeFilter}
               onChange={(e) => setPartyTypeFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A] shadow-2xs"
+              className="select-enterprise w-full"
             >
               {partyTypesList.map((c) => (
                 <option key={c} value={c} className="bg-white text-slate-900 font-bold">
@@ -1484,7 +1490,7 @@ export default function PartyMasterRegistryPage() {
           {/* Search Input */}
           <div className="flex-[1.5] min-w-[220px]">
             <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-              <Search size={12} className="text-[#053D3A]" /> SEARCH
+              <Search size={12} className="text-[#0052CC]" /> SEARCH
             </label>
             <div className="relative">
               <input
@@ -1575,8 +1581,8 @@ export default function PartyMasterRegistryPage() {
         <div className="bg-white rounded-2xl shadow-md border border-slate-200/90 relative overflow-hidden">
           <div className="w-full max-h-[72vh] overflow-y-auto pb-20">
             <table className="w-full text-[10px] text-center align-middle border-collapse">
-              {/* Dark Forest Green Sticky Header */}
-              <thead className="sticky top-0 z-20 bg-[#053D3A] text-white select-none shadow-sm">
+              {/* Maruti Suzuki Navy Sticky Header */}
+              <thead className="sticky top-0 z-20 bg-[#003366] text-white select-none shadow-sm border-b-[2.5px] border-[#ED1C24]">
                 <tr className="border-b border-slate-800">
                   <th className="px-1.5 py-2.5 text-center align-middle border-r border-slate-700/60 whitespace-nowrap">
                     <input

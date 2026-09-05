@@ -123,10 +123,10 @@ export default function LedgerPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <BookOpen size={16} className="text-[#053D3A]" />
+                <BookOpen size={16} className="text-[#003366]" />
                 <h2 className="font-bold text-slate-900 text-xs">Account Statement Ledger ({entries.length} records)</h2>
               </div>
-              {isLoading && <span className="text-xs text-[#053D3A] font-bold">Loading ledger...</span>}
+              {isLoading && <span className="text-xs text-[#003366] font-bold">Loading ledger...</span>}
             </div>
             <div className="overflow-x-auto">
               <table className="table-enterprise text-center align-middle">
@@ -160,7 +160,7 @@ export default function LedgerPage() {
                       <td className="px-4 py-2.5 text-center align-middle border-r border-slate-200 text-emerald-700 font-mono font-bold">
                         {e.credit > 0 ? Number(e.credit).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '—'}
                       </td>
-                      <td className={`px-4 py-2.5 text-center align-middle font-mono font-bold ${Number(e.balance) >= 0 ? 'text-[#053D3A]' : 'text-rose-700'}`}>
+                      <td className={`px-4 py-2.5 text-center align-middle font-mono font-bold ${Number(e.balance) >= 0 ? 'text-[#003366]' : 'text-rose-700'}`}>
                         {e.balance != null ? Number(e.balance).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '—'}
                       </td>
                     </tr>

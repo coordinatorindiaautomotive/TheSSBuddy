@@ -288,7 +288,7 @@ export default function HelpdeskPage() {
                   setTicketCategory(categories[0]?.code || 'INCENTIVE_QUERY');
                   setTicketModal(true);
                 }}
-                className="px-4 py-2 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold rounded-2xl text-xs flex items-center gap-1.5 transition shadow-sm active:scale-95 cursor-pointer"
+                className="px-4 py-2 bg-[#003366] hover:bg-[#002B55] text-white font-extrabold rounded-2xl text-xs flex items-center gap-1.5 transition shadow-sm active:scale-95 cursor-pointer"
               >
                 <Plus size={15} />
                 <span>Create Support Ticket</span>
@@ -654,8 +654,11 @@ export default function HelpdeskPage() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
             >
-              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D]">
-                <h3 className="font-extrabold text-sm text-white">Create New Support Ticket</h3>
+              <div className="px-6 py-4 text-white flex items-center justify-between border-b-[3px] border-[#ED1C24] bg-[#003366]">
+                <div className="flex items-center gap-2.5">
+                  <LifeBuoy size={20} className="text-cyan-400" />
+                  <h3 className="font-extrabold text-sm text-white">Create New Support Ticket</h3>
+                </div>
                 <button onClick={() => setTicketModal(false)} className="p-1.5 text-slate-300 hover:text-white rounded-xl hover:bg-white/10 transition">
                   <X size={20} />
                 </button>
@@ -727,7 +730,7 @@ export default function HelpdeskPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2 bg-[#053D3A] hover:bg-[#074B47] text-white font-bold rounded-xl shadow-2xs disabled:opacity-60 cursor-pointer"
+                    className="px-5 py-2 bg-[#003366] hover:bg-[#002B55] text-white font-bold rounded-xl shadow-2xs disabled:opacity-60 cursor-pointer"
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Ticket'}
                   </button>
@@ -749,20 +752,20 @@ export default function HelpdeskPage() {
             >
               <div>
                 {/* Header with Dark Forest Green Styling */}
-                <div className="p-6 text-white flex items-start justify-between border-b border-[#074B47] bg-[#032F2D] relative z-20 shadow-md">
+                <div className="p-6 text-white flex items-start justify-between border-b border-[#003870] bg-[#001D3D] relative z-20 shadow-md">
                   <div className="pr-4">
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded bg-white/10 text-[#FFE2B8] font-mono font-bold text-[10px] uppercase border border-white/20">
+                      <span className="px-2.5 py-0.5 rounded bg-white/10 text-cyan-400 font-mono font-bold text-[10px] uppercase border border-white/20">
                         {activeTicket.ticketNo}
                       </span>
-                      <span className="text-[10.5px] font-bold text-[#DCEDEA]">
+                      <span className="text-[10.5px] font-bold text-slate-300">
                         {activeTicket.priority} Priority
                       </span>
                     </div>
                     <h3 className="text-lg font-black text-white mt-1.5 leading-snug">
                       {activeTicket.title}
                     </h3>
-                    <p className="text-xs text-[#DCEDEA] font-mono mt-1">
+                    <p className="text-xs text-slate-300 font-mono mt-1">
                       Reported by <strong>{activeTicket.createdByName || 'Staff'}</strong> • {new Date(activeTicket.createdAt).toLocaleString()}
                     </p>
                   </div>
@@ -785,7 +788,7 @@ export default function HelpdeskPage() {
                         onClick={() => handleUpdateStatus(activeTicket.id, st)}
                         className={`px-2.5 py-1 rounded-xl text-[10.5px] font-bold transition cursor-pointer ${
                           activeTicket.status === st
-                            ? 'bg-[#053D3A] text-white shadow-2xs border border-[#074B47]'
+                            ? 'bg-[#003366] text-white shadow-2xs border border-[#003870]'
                             : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
                         }`}
                       >

@@ -198,7 +198,7 @@ function CashMultiEntryModal({
                   type="date"
                   value={paymentDate}
                   onChange={(e) => setPaymentDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A] transition"
+                  className="w-full px-3 py-2 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#003366] transition"
                 />
               </div>
             </div>
@@ -211,7 +211,7 @@ function CashMultiEntryModal({
                 <select
                   value={selectedBranch}
                   onChange={(e) => setSelectedBranch(e.target.value)}
-                  className="w-full px-3 py-2 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A] transition"
+                  className="w-full px-3 py-2 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#003366] transition"
                 >
                   {branches.map((b) => (
                     <option key={b.code} value={b.code}>
@@ -221,7 +221,7 @@ function CashMultiEntryModal({
                 </select>
               ) : (
                 <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg border border-slate-300 text-xs font-bold text-slate-900 select-none">
-                  <Building2 size={15} className="text-[#053D3A]" />
+                  <Building2 size={15} className="text-[#003366]" />
                   <span>
                     {userBranchName || userBranch || selectedBranch} ({userBranch || selectedBranch})
                   </span>
@@ -275,7 +275,7 @@ function CashMultiEntryModal({
                       <select
                         value={entry.category}
                         onChange={(e) => handleEntryChange(entry.id, 'category', e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       >
                         {categories.map((c) => (
                           <option key={c} value={c}>
@@ -296,7 +296,7 @@ function CashMultiEntryModal({
                         placeholder="0.00"
                         value={entry.amount}
                         onChange={(e) => handleEntryChange(entry.id, 'amount', e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-slate-300 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-slate-300 text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
 
@@ -308,7 +308,7 @@ function CashMultiEntryModal({
                       <select
                         value={entry.paymentMode}
                         onChange={(e) => handleEntryChange(entry.id, 'paymentMode', e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       >
                         {paymentModes.map((m) => (
                           <option key={m} value={m}>
@@ -328,7 +328,7 @@ function CashMultiEntryModal({
                         placeholder="Payment details..."
                         value={entry.narration}
                         onChange={(e) => handleEntryChange(entry.id, 'narration', e.target.value)}
-                        className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-2.5 py-1.5 bg-white rounded-lg border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
 
@@ -464,15 +464,15 @@ function ManageCategoriesModal({
     <div className="portal-modal-backdrop">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="bg-[#053D3A] text-white px-5 py-4 flex items-center justify-between">
+        <div className="bg-[#003366] text-white px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <Settings size={18} className="text-[#FFE2B8]" />
+            <Settings size={18} className="text-cyan-400" />
             <div>
               <h2 className="font-bold text-sm text-white">Dropdown & Category Master</h2>
-              <p className="text-[11px] text-[#DCEDEA]">Configure categories that appear in Cash Out / Cash In dropdowns</p>
+              <p className="text-[11px] text-slate-300">Configure categories that appear in Cash Out / Cash In dropdowns</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer">
+          <button onClick={onClose} className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer">
             <X size={18} />
           </button>
         </div>
@@ -489,7 +489,7 @@ function ManageCategoriesModal({
               onClick={() => setActiveTab(tab.key as any)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 activeTab === tab.key
-                  ? 'bg-[#053D3A] text-white shadow-xs'
+                  ? 'bg-[#003366] text-white shadow-xs'
                   : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
               }`}
             >
@@ -507,12 +507,12 @@ function ManageCategoriesModal({
               placeholder={`Enter new ${activeTab === 'EXPENSE_CATEGORY' ? 'Expense Category' : activeTab === 'RECEIPT_TYPE' ? 'Receipt Type' : 'Payment Mode'}...`}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="flex-1 px-3 py-2 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A]"
+              className="flex-1 px-3 py-2 bg-white rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#003366]"
             />
             <button
               type="submit"
               disabled={saving || !newName.trim()}
-              className="px-4 py-2 bg-[#053D3A] hover:bg-[#074B47] text-white font-bold text-xs rounded-lg transition disabled:opacity-50 cursor-pointer shrink-0"
+              className="px-4 py-2 bg-[#003366] hover:bg-[#002B55] text-white font-bold text-xs rounded-lg transition disabled:opacity-50 cursor-pointer shrink-0"
             >
               {saving ? 'Adding...' : '+ Add'}
             </button>
@@ -840,7 +840,7 @@ export default function CashManagementPage() {
               variant="secondary"
               size="md"
               onClick={() => setCategoryModalOpen(true)}
-              icon={<Settings size={15} className="text-[#053D3A]" />}
+              icon={<Settings size={15} className="text-[#003366]" />}
             >
               Manage Dropdowns
             </Button>

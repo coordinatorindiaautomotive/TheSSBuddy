@@ -22,7 +22,7 @@ const mono = JetBrains_Mono({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${mono.variable}`}>
-      <body className={`${inter.className} font-sans antialiased text-slate-900 selection:bg-[#053D3A] selection:text-white`}>
+      <body className={`${inter.className} font-sans antialiased text-slate-900 selection:bg-[#003366] selection:text-white`}>
         <SWRConfig
           value={{
             revalidateOnFocus: false,

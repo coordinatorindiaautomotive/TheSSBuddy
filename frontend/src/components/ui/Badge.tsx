@@ -43,12 +43,12 @@ const variantStyles: Record<BadgeVariant, { container: string; dot: string }> = 
     dot: 'bg-slate-500',
   },
   brand: {
-    container: 'bg-[#EAF5F3] text-[#053D3A] border-[#DCEDEA] hover:bg-[#DCEDEA]/80 font-semibold',
-    dot: 'bg-[#053D3A]',
+    container: 'bg-[#EBF2FA] text-[#003366] border-[#CBD5E1] hover:bg-[#DDE9F6] font-semibold',
+    dot: 'bg-[#003366]',
   },
   accent: {
-    container: 'bg-[#FFF8EC] text-[#9A6500] border-[#FFE2B8] hover:bg-[#FFE2B8]/70 font-semibold',
-    dot: 'bg-[#9A6500]',
+    container: 'bg-[#FFF2F3] text-[#D0141B] border-[#FDE8E9] hover:bg-[#FDE8E9] font-semibold',
+    dot: 'bg-[#ED1C24]',
   },
 };
 

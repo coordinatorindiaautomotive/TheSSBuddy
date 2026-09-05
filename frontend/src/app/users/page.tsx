@@ -127,16 +127,21 @@ function RegisterUserModal({
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200">
-        {/* Dark Navy Header with Lightning icon */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#0d1b33] text-white">
-          <div className="flex items-center gap-2">
-            <span className="text-amber-400 font-bold text-base">⚡</span>
-            <h2 className="font-bold text-base tracking-wide">
-              {isEdit ? `Edit User — ${user.username}` : 'Register New User'}
-            </h2>
+        {/* Maruti Suzuki Navy & Red Header */}
+        <div className="flex items-center justify-between px-6 py-4 bg-[#003366] border-b-[3px] border-[#ED1C24] text-white">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-lg bg-[#002B55] border border-[#0041A3]">
+              <UserCog size={18} className="text-cyan-400" />
+            </div>
+            <div>
+              <h2 className="font-bold text-sm tracking-wide text-white">
+                {isEdit ? `Edit User — ${user.username}` : 'Register New User'}
+              </h2>
+              <p className="text-[11px] text-slate-300">Identity & Role-Based Access Governance</p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition">
-            <X size={20} />
+          <button onClick={onClose} className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-[#002B55] transition">
+            <X size={18} />
           </button>
         </div>
 
@@ -594,7 +599,7 @@ export default function UserMasterPage() {
                   <tr>
                     <td colSpan={8} className="py-12 text-center align-middle text-slate-400 border-b border-slate-200">
                       <div className="flex flex-col items-center gap-2">
-                        <RefreshCw size={24} className="animate-spin text-[#053D3A]" />
+                        <RefreshCw size={24} className="animate-spin text-[#0052CC]" />
                         <span className="font-bold text-xs">Loading User Master & RBAC...</span>
                       </div>
                     </td>
@@ -620,7 +625,7 @@ export default function UserMasterPage() {
                         {/* Profile */}
                         <td className="px-4 py-3 text-left align-middle border-r border-slate-200">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#053D3A] text-[#FFE2B8] font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs">
+                            <div className="w-8 h-8 rounded-full bg-[#003366] text-cyan-300 font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs border border-[#0052CC]/30">
                               {u.fullName?.charAt(0) || u.username?.charAt(0) || 'U'}
                             </div>
                             <div className="min-w-0">
@@ -747,7 +752,7 @@ export default function UserMasterPage() {
                             <button
                               onClick={() => { setModalUser(u); setIsModalOpen(true); }}
                               title="Edit User Profile & Access"
-                              className="p-1.5 text-slate-600 hover:text-[#053D3A] hover:bg-slate-100 rounded-lg transition border border-slate-200 cursor-pointer"
+                              className="p-1.5 text-slate-600 hover:text-[#003366] hover:bg-slate-100 rounded-lg transition border border-slate-200 cursor-pointer"
                             >
                               <Edit size={13} />
                             </button>

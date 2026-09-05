@@ -148,12 +148,12 @@ function PremiumKPICard({
   const styles = {
     ftd: {
       bg: 'bg-white border-slate-200/90',
-      iconBg: 'bg-[#053D3A] text-white',
+      iconBg: 'bg-[#003366] text-white',
       accentText: 'text-slate-900',
     },
     mtd: {
       bg: 'bg-white border-slate-200/90',
-      iconBg: 'bg-[#053D3A] text-white',
+      iconBg: 'bg-[#003366] text-white',
       accentText: 'text-slate-900',
     },
     qtd: {
@@ -162,7 +162,7 @@ function PremiumKPICard({
       accentText: 'text-slate-900',
     },
     ytd: {
-      bg: 'bg-[#FFF8EC] border-[#FFE2B8]',
+      bg: 'bg-[#FFF8EC] border-[#0052CC]',
       iconBg: 'bg-[#9A6500] text-white',
       accentText: 'text-amber-950',
     },
@@ -341,7 +341,7 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
         <div>
           <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
-            <Building2 size={20} className="text-[#053D3A]" />
+            <Building2 size={20} className="text-[#003366]" />
             Location-Wise Executive Performance DataGrid
             <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-slate-100 text-slate-900 border border-slate-200">
               {filteredData.length} Locations
@@ -361,7 +361,7 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
               placeholder="Search location code or name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 text-slate-900 text-xs font-bold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A] transition"
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 text-slate-900 text-xs font-bold rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#003366] transition"
             />
           </div>
 
@@ -382,10 +382,10 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
           <thead className="sticky top-0 z-20 shadow-md">
             {/* Top Group Header */}
             <tr className="text-white font-extrabold text-[11px] uppercase tracking-wider">
-              <th colSpan={2} className="py-2.5 px-3 border-b-2 border-[#053D3A] border-r border-[#074B47] text-center align-middle bg-[#053D3A]">
+              <th colSpan={2} className="py-2.5 px-3 border-b-2 border-[#003366] border-r border-[#003870] text-center align-middle bg-[#003366]">
                 Location Info
               </th>
-              <th colSpan={5} className="py-2.5 px-3 border-b-2 border-[#053D3A] border-r border-[#074B47] text-center align-middle bg-[#053D3A]">
+              <th colSpan={5} className="py-2.5 px-3 border-b-2 border-[#003366] border-r border-[#003870] text-center align-middle bg-[#003366]">
                 FTD ({asOf?.day ? `${asOf.day}-${asOf.month}-${asOf.fiscalYear}` : 'Trading Date'})
               </th>
               <th colSpan={5} className="py-2.5 px-3 border-b-2 border-[#2A716A] border-r border-[#1B5751] text-center align-middle bg-[#2A716A]">
@@ -400,34 +400,34 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
             </tr>
 
             {/* Column Headers */}
-            <tr className="bg-[#032F2D] text-slate-100 font-bold text-[10px] uppercase tracking-wider">
-              <th className="py-2.5 px-3 border-r border-[#074B47] text-center align-middle">Loc Code</th>
-              <th className="py-2.5 px-3 border-r border-[#074B47] min-w-[130px] text-center align-middle">Branch Name</th>
+            <tr className="bg-[#001D3D] text-slate-100 font-bold text-[10px] uppercase tracking-wider">
+              <th className="py-2.5 px-3 border-r border-[#003870] text-center align-middle">Loc Code</th>
+              <th className="py-2.5 px-3 border-r border-[#003870] min-w-[130px] text-center align-middle">Branch Name</th>
 
               {/* FTD */}
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">FTD</th>
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LM FTD</th>
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LY FTD</th>
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LM %</th>
-              <th className="py-2.5 px-3 text-center align-middle border-r border-[#074B47]">LY %</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">FTD</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">LM FTD</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">LY FTD</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">LM %</th>
+              <th className="py-2.5 px-3 text-center align-middle border-r border-[#003870]">LY %</th>
 
               {/* MTD */}
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">MTD</th>
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LM MTD</th>
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LY MTD</th>
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LM %</th>
-              <th className="py-2.5 px-3 text-center align-middle border-r border-[#074B47]">LY %</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">MTD</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">LM MTD</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">LY MTD</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">LM %</th>
+              <th className="py-2.5 px-3 text-center align-middle border-r border-[#003870]">LY %</th>
 
               {/* QTD */}
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">QTD</th>
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LQ QTD</th>
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LY QTD</th>
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LQ %</th>
-              <th className="py-2.5 px-3 text-center align-middle border-r border-[#074B47]">LY %</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">QTD</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">LQ QTD</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">LY QTD</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">LQ %</th>
+              <th className="py-2.5 px-3 text-center align-middle border-r border-[#003870]">LY %</th>
 
               {/* YTD */}
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">YTD</th>
-              <th className="py-2.5 px-3 border-r border-[#074B47]/60 text-center align-middle">LY YTD</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">YTD</th>
+              <th className="py-2.5 px-3 border-r border-[#003870]/60 text-center align-middle">LY YTD</th>
               <th className="py-2.5 px-3 text-center align-middle">YoY %</th>
             </tr>
           </thead>
@@ -523,10 +523,10 @@ function LocationGridTable({ locationGrid, asOf }: { locationGrid: any[]; asOf?:
             )}
           </tbody>
           {/* Sticky Total Footer Row */}
-          <tfoot className="sticky bottom-0 z-10 bg-[#032F2D] text-white font-bold text-xs border-t-2 border-[#FFE2B8]/40 align-middle">
+          <tfoot className="sticky bottom-0 z-10 bg-[#001D3D] text-white font-bold text-xs border-t-2 border-[#0052CC]/40 align-middle">
             <tr>
-              <td className="py-3 px-3 uppercase tracking-wider text-[#FFE2B8] border-r border-[#074B47] text-center align-middle font-extrabold">TOTAL</td>
-              <td className="py-3 px-3 font-extrabold text-[#DCEDEA] border-r border-[#074B47] text-center align-middle">Consolidated</td>
+              <td className="py-3 px-3 uppercase tracking-wider text-cyan-400 border-r border-[#003870] text-center align-middle font-extrabold">TOTAL</td>
+              <td className="py-3 px-3 font-extrabold text-slate-300 border-r border-[#003870] text-center align-middle">Consolidated</td>
 
               {/* FTD Totals */}
               <td className="py-3 px-3 text-center align-middle font-mono text-white text-xs">{formatVal(totals.ftd)}</td>
@@ -828,7 +828,7 @@ export default function DashboardPage() {
               {/* Branch Network Dropdown */}
               {isSuperAdmin ? (
                 <div className="flex items-center gap-1.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3.5 py-2 shadow-2xs">
-                  <Building2 size={15} className="text-[#053D3A] shrink-0" />
+                  <Building2 size={15} className="text-[#003366] shrink-0" />
                   <select
                     value={branchCode}
                     onChange={(e) => setBranchCode(e.target.value)}
@@ -850,7 +850,7 @@ export default function DashboardPage() {
               )}
               {/* As-Of Period / Month Dropdown */}
               <div className="flex items-center gap-1.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3 py-2 shadow-2xs">
-                <Calendar size={15} className="text-[#053D3A] shrink-0" />
+                <Calendar size={15} className="text-[#003366] shrink-0" />
                 <select
                   value={month}
                   onChange={(e) => {
@@ -887,7 +887,7 @@ export default function DashboardPage() {
                   max={31}
                   value={day}
                   onChange={(e) => setDay(Math.min(31, Math.max(1, parseInt(e.target.value) || 1)))}
-                  className="w-8 bg-transparent text-xs font-bold font-mono text-[#053D3A] focus:outline-none text-center"
+                  className="w-8 bg-transparent text-xs font-bold font-mono text-[#003366] focus:outline-none text-center"
                 />
               </div>
 
@@ -898,7 +898,7 @@ export default function DashboardPage() {
                   onClick={() => setShowPartyTypeDropdown(!showPartyTypeDropdown)}
                   className="flex items-center gap-2 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold hover:bg-slate-100 transition shadow-2xs cursor-pointer"
                 >
-                  <Users size={15} className="text-[#053D3A]" />
+                  <Users size={15} className="text-[#003366]" />
                   <span>
                     Party Types: <strong className="text-[#087443] font-mono">({selectedPartyTypes.length} Active)</strong>
                   </span>
@@ -913,7 +913,7 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-2 text-[10px]">
                         <button
                           onClick={resetPartyTypesToDefault}
-                          className="text-[#053D3A] hover:underline font-bold"
+                          className="text-[#003366] hover:underline font-bold"
                         >
                           Default 4
                         </button>
@@ -936,14 +936,14 @@ export default function DashboardPage() {
                           <label
                             key={pt}
                             className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl cursor-pointer transition ${
-                              isSelected ? 'bg-teal-50 text-[#053D3A] font-extrabold' : 'hover:bg-slate-100 text-slate-700 font-semibold'
+                              isSelected ? 'bg-teal-50 text-[#003366] font-extrabold' : 'hover:bg-slate-100 text-slate-700 font-semibold'
                             }`}
                           >
                             <input
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => togglePartyType(pt)}
-                              className="rounded text-[#053D3A] focus:ring-0 cursor-pointer"
+                              className="rounded text-[#003366] focus:ring-0 cursor-pointer"
                             />
                             <span className="truncate flex-1">{pt}</span>
                             {isDefault && (
@@ -958,7 +958,7 @@ export default function DashboardPage() {
 
                     <button
                       onClick={() => setShowPartyTypeDropdown(false)}
-                      className="w-full py-2 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold rounded-xl text-center text-xs transition mt-2 shadow-xs cursor-pointer"
+                      className="w-full py-2 bg-[#003366] hover:bg-[#002B55] text-white font-extrabold rounded-xl text-center text-xs transition mt-2 shadow-xs cursor-pointer"
                     >
                       Apply Filter
                     </button>
@@ -968,7 +968,7 @@ export default function DashboardPage() {
 
               {/* Part Category Filter */}
               <div className="flex items-center gap-1.5 bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3.5 py-2 shadow-2xs">
-                <Layers size={15} className="text-[#053D3A] shrink-0" />
+                <Layers size={15} className="text-[#003366] shrink-0" />
                 <select
                   value={partCategory}
                   onChange={(e) => setPartCategory(e.target.value)}
@@ -988,9 +988,9 @@ export default function DashboardPage() {
               {isSuperAdmin && (
                 <button
                   onClick={() => setShowDaxPanel(!showDaxPanel)}
-                  className="px-4 py-2 rounded-xl bg-[#FFE2B8] hover:bg-[#FFD49A] text-[#053D3A] font-extrabold text-xs flex items-center gap-2 transition shadow-2xs cursor-pointer border border-[#FFD49A]"
+                  className="px-4 py-2 rounded-xl bg-[#0052CC] hover:bg-[#FFD49A] text-[#003366] font-extrabold text-xs flex items-center gap-2 transition shadow-2xs cursor-pointer border border-[#FFD49A]"
                 >
-                  <Code2 size={15} className="text-[#053D3A]" />
+                  <Code2 size={15} className="text-[#003366]" />
                   <span>Power BI / DAX Studio</span>
                   {showDaxPanel ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </button>
@@ -999,10 +999,10 @@ export default function DashboardPage() {
               <button
                 onClick={handleRefresh}
                 disabled={isLoading || isRefreshing}
-                className="px-3.5 py-2 rounded-xl bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-2xs cursor-pointer disabled:opacity-60"
+                className="px-3.5 py-2 rounded-xl bg-[#003366] hover:bg-[#002B55] text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-2xs cursor-pointer disabled:opacity-60"
                 title="Refresh Live KPIs from Database"
               >
-                <RefreshCw size={14} className={isLoading || isRefreshing ? 'animate-spin text-[#FFE2B8]' : 'text-[#FFE2B8]'} />
+                <RefreshCw size={14} className={isLoading || isRefreshing ? 'animate-spin text-cyan-400' : 'text-cyan-400'} />
                 <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
               </button>
             </div>
@@ -1024,7 +1024,7 @@ export default function DashboardPage() {
             )}
             <span className="text-slate-300 mx-1">|</span>
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">PART CATEGORY:</span>
-            <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-teal-50 text-[#053D3A] border border-teal-200 rounded-md text-[10px] font-extrabold uppercase shadow-2xs">
+            <span className="inline-flex items-center gap-1 px-3 py-0.5 bg-teal-50 text-[#003366] border border-teal-200 rounded-md text-[10px] font-extrabold uppercase shadow-2xs">
               {partCategory === 'M'
                 ? 'MGP Parts (M)'
                 : partCategory === 'AA'
@@ -1150,14 +1150,14 @@ export default function DashboardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
               <div>
                 <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-                  <BarChart3 size={18} className="text-[#053D3A]" />
+                  <BarChart3 size={18} className="text-[#003366]" />
                   Multi-Year Sales Trajectory (FY24 vs FY25 vs FY26)
                 </h3>
                 <p className="text-xs text-slate-400">Net Retail Turnover in ₹ Crores with Monthly YoY Growth % Conditional Formatting</p>
               </div>
               <div className="flex items-center gap-3 text-xs">
-                <span className="flex items-center gap-1.5 text-[#053D3A] font-extrabold">
-                  <span className="w-3 h-3 rounded-md bg-[#053D3A] shadow-xs"></span> FY26
+                <span className="flex items-center gap-1.5 text-[#003366] font-extrabold">
+                  <span className="w-3 h-3 rounded-md bg-[#003366] shadow-xs"></span> FY26
                 </span>
                 <span className="flex items-center gap-1.5 text-[#2A716A] font-bold">
                   <span className="w-3 h-3 rounded-md bg-[#2A716A] shadow-xs"></span> FY25
@@ -1215,7 +1215,7 @@ export default function DashboardPage() {
                   />
                   <Bar dataKey="FY24" fill="#cbd5e1" name="FY 2024" radius={[4, 4, 0, 0]} maxBarSize={16} />
                   <Bar dataKey="FY25" fill="#2A716A" name="FY 2025" radius={[4, 4, 0, 0]} maxBarSize={16} />
-                  <Bar dataKey="FY26" fill="#053D3A" name="FY 2026" radius={[4, 4, 0, 0]} maxBarSize={16}>
+                  <Bar dataKey="FY26" fill="#003366" name="FY 2026" radius={[4, 4, 0, 0]} maxBarSize={16}>
                     <LabelList
                       dataKey="FY26"
                       position="top"
@@ -1226,7 +1226,7 @@ export default function DashboardPage() {
                           <text
                             x={x + width / 2}
                             y={y - 6}
-                            fill="#053D3A"
+                            fill="#003366"
                             textAnchor="middle"
                             fontSize={10}
                             fontWeight={800}
@@ -1278,7 +1278,7 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center justify-between">
                 <h3 className="font-extrabold text-slate-800 text-sm flex items-center gap-2 mb-1">
-                  <BarChart3 size={18} className="text-[#053D3A]" />
+                  <BarChart3 size={18} className="text-[#003366]" />
                   Party Type Sales & YoY Growth
                 </h3>
                 <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">

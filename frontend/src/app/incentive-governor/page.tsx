@@ -254,10 +254,10 @@ const PeriodMultiSelectDropdown = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-2 bg-white border border-slate-300 hover:border-[#053D3A] rounded-xl px-3 py-1.5 text-xs font-extrabold text-slate-900 shadow-2xs transition cursor-pointer w-full sm:w-auto"
+        className="flex items-center justify-between gap-2 bg-white border border-slate-300 hover:border-[#003366] rounded-xl px-3 py-1.5 text-xs font-extrabold text-slate-900 shadow-2xs transition cursor-pointer w-full sm:w-auto"
       >
         <div className="flex items-center gap-2 min-w-0">
-          <Calendar size={14} className="text-[#053D3A] shrink-0" />
+          <Calendar size={14} className="text-[#003366] shrink-0" />
           <span className="max-w-[140px] sm:max-w-[210px] truncate">{displayText}</span>
         </div>
         <ChevronDown size={14} className={`text-slate-500 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
@@ -270,7 +270,7 @@ const PeriodMultiSelectDropdown = ({
           <div className="p-3 bg-slate-50 border-b border-slate-200 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Calendar size={12} className="text-[#053D3A]" />
+                <Calendar size={12} className="text-[#003366]" />
                 Period Filter
               </span>
               <span className="text-[10px] font-bold text-slate-600 font-mono bg-white px-2 py-0.5 rounded-md border border-slate-200">
@@ -324,7 +324,7 @@ const PeriodMultiSelectDropdown = ({
                     onClick={() => setActiveYear(yr)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
                       isActive
-                        ? 'bg-[#053D3A] text-white shadow-xs'
+                        ? 'bg-[#003366] text-white shadow-xs'
                         : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                     }`}
                   >
@@ -332,7 +332,7 @@ const PeriodMultiSelectDropdown = ({
                     {count > 0 && (
                       <span
                         className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full font-black ${
-                          isActive ? 'bg-[#FFE2B8] text-[#053D3A]' : 'bg-slate-300 text-slate-800'
+                          isActive ? 'bg-[#0052CC] text-[#003366]' : 'bg-slate-300 text-slate-800'
                         }`}
                       >
                         {count}
@@ -357,7 +357,7 @@ const PeriodMultiSelectDropdown = ({
               <button
                 type="button"
                 onClick={() => handleToggleYear(activeYear, !isAllActiveYearSelected)}
-                className="text-[11px] font-bold text-[#053D3A] hover:underline cursor-pointer"
+                className="text-[11px] font-bold text-[#003366] hover:underline cursor-pointer"
               >
                 {isAllActiveYearSelected ? 'Clear Year' : `Select All ${activeYear}`}
               </button>
@@ -378,7 +378,7 @@ const PeriodMultiSelectDropdown = ({
                     onClick={() => handleToggleMonth(m, activeYear)}
                     className={`h-11 rounded-xl flex flex-col items-center justify-center p-1 border transition-all cursor-pointer relative select-none ${
                       isSelected
-                        ? 'bg-[#053D3A] text-white border-[#053D3A] shadow-xs scale-[1.02]'
+                        ? 'bg-[#003366] text-white border-[#003366] shadow-xs scale-[1.02]'
                         : hasData
                         ? 'bg-white hover:bg-slate-50 text-slate-900 border-slate-200 hover:border-slate-300'
                         : 'bg-slate-50/70 hover:bg-slate-100 text-slate-400 border-slate-200/60'
@@ -388,7 +388,7 @@ const PeriodMultiSelectDropdown = ({
                     {hasData && (
                       <span
                         className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
-                          isSelected ? 'bg-emerald-400 ring-2 ring-[#053D3A]' : 'bg-emerald-500'
+                          isSelected ? 'bg-emerald-400 ring-2 ring-[#003366]' : 'bg-emerald-500'
                         }`}
                         title="Register data available"
                       />
@@ -408,7 +408,7 @@ const PeriodMultiSelectDropdown = ({
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="px-4 py-1.5 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold rounded-xl text-xs transition shadow-2xs cursor-pointer"
+              className="px-4 py-1.5 bg-[#003366] hover:bg-[#002B55] text-white font-extrabold rounded-xl text-xs transition shadow-2xs cursor-pointer"
             >
               Done / Apply
             </button>
@@ -1030,7 +1030,7 @@ function IncentiveGovernorContent() {
     return (
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white border-t border-slate-200 text-xs text-slate-600 font-semibold rounded-b-2xl select-none">
         <div className="flex items-center gap-2">
-          <span>Showing <strong className="text-slate-900">{filteredRecords.length === 0 ? 0 : startIdx}</strong> to <strong className="text-slate-900">{endIdx}</strong> of <strong className="text-[#053D3A]">{filteredRecords.length.toLocaleString()}</strong> records</span>
+          <span>Showing <strong className="text-slate-900">{filteredRecords.length === 0 ? 0 : startIdx}</strong> to <strong className="text-slate-900">{endIdx}</strong> of <strong className="text-[#003366]">{filteredRecords.length.toLocaleString()}</strong> records</span>
         </div>
 
         <div className="flex items-center gap-3">
@@ -1042,7 +1042,7 @@ function IncentiveGovernorContent() {
                 setPageSize(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-800 focus:ring-1 focus:ring-[#053D3A] cursor-pointer"
+              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-800 focus:ring-1 focus:ring-[#0052CC] cursor-pointer"
             >
               <option value={50}>50</option>
               <option value={100}>100</option>
@@ -1072,7 +1072,7 @@ function IncentiveGovernorContent() {
               >
                 ‹
               </button>
-              <span className="px-3 py-1 bg-[#053D3A]/5 text-[#053D3A] font-extrabold rounded-lg border border-[#053D3A]/10">
+              <span className="px-3 py-1 bg-[#003366]/5 text-[#003366] font-extrabold rounded-lg border border-[#003366]/10">
                 Page {currentPage} of {totalPages}
               </span>
               <button
@@ -1114,11 +1114,11 @@ function IncentiveGovernorContent() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3 mb-4">
             <div>
               <div className="flex items-center gap-2.5">
-                <span className="p-2 rounded-xl bg-[#053D3A] text-[#FFE2B8] shadow-2xs">
+                <span className="p-2 rounded-xl bg-[#003366] text-cyan-400 shadow-2xs">
                   <Sliders size={18} />
                 </span>
                 <div>
-                  <h2 className="text-base font-black text-[#053D3A] tracking-tight">
+                  <h2 className="text-base font-black text-[#003366] tracking-tight">
                     Incentive Governor Control Center
                   </h2>
                   <p className="text-xs text-slate-500 font-medium">
@@ -1171,7 +1171,7 @@ function IncentiveGovernorContent() {
                 key={idx}
                 className={`p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1 transition ${
                   st.done
-                    ? 'bg-[#053D3A]/5 border-[#053D3A]/30 text-[#053D3A]'
+                    ? 'bg-[#003366]/5 border-[#003366]/30 text-[#003366]'
                     : st.active
                     ? 'bg-amber-50 border-amber-300 text-amber-800 font-bold'
                     : 'bg-slate-50 border-slate-200 text-slate-400'
@@ -1193,7 +1193,7 @@ function IncentiveGovernorContent() {
                 onClick={() => setActiveTab('GOVERNOR')}
                 className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition cursor-pointer ${
                   activeTab === 'GOVERNOR'
-                    ? 'bg-[#053D3A] text-white shadow-sm'
+                    ? 'bg-[#003366] text-white shadow-sm'
                     : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
                 }`}
               >
@@ -1219,7 +1219,7 @@ function IncentiveGovernorContent() {
               </button>
             </div>
 
-            <div className="text-xs font-extrabold text-[#053D3A] px-3.5 py-1.5 bg-[#053D3A]/5 rounded-xl border border-[#053D3A]/10 hidden md:block">
+            <div className="text-xs font-extrabold text-[#003366] px-3.5 py-1.5 bg-[#003366]/5 rounded-xl border border-[#003366]/10 hidden md:block">
               Governor Rules & Live Preview Engine
             </div>
           </div>
@@ -1244,7 +1244,7 @@ function IncentiveGovernorContent() {
                 onClick={() => setProcessingMethod('DYNAMIC')}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   processingMethod === 'DYNAMIC'
-                    ? 'bg-[#053D3A] text-white shadow-2xs'
+                    ? 'bg-[#003366] text-white shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -1255,7 +1255,7 @@ function IncentiveGovernorContent() {
                 onClick={() => setProcessingMethod('PRE_CALCULATED')}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   processingMethod === 'PRE_CALCULATED'
-                    ? 'bg-[#053D3A] text-white shadow-2xs'
+                    ? 'bg-[#003366] text-white shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -1269,7 +1269,7 @@ function IncentiveGovernorContent() {
             onClick={() => setShowAuditDrawer(true)}
             className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold flex items-center gap-1.5 border border-slate-300 transition cursor-pointer"
           >
-            <History size={14} className="text-[#053D3A]" />
+            <History size={14} className="text-[#003366]" />
             <span>Audit Trail Log</span>
           </button>
         </div>
@@ -1279,11 +1279,11 @@ function IncentiveGovernorContent() {
           <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-[#053D3A]/10 text-[#053D3A] font-bold">
+                <div className="p-2.5 rounded-xl bg-[#003366]/10 text-[#003366] font-bold">
                   <Building2 size={22} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-[#053D3A] flex items-center gap-2">
+                  <h3 className="text-sm font-extrabold text-[#003366] flex items-center gap-2">
                     <span>Governor Multi-Branch Configuration Rules</span>
                     <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black">
                       {rules.length} Branches Configured
@@ -1299,10 +1299,10 @@ function IncentiveGovernorContent() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowRulesModal(true)}
-                    className="px-4.5 py-2.5 bg-[#053D3A] hover:bg-[#074B47] text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition.all shadow-sm hover:shadow-md cursor-pointer border border-[#053D3A]/40 group"
+                    className="px-4.5 py-2.5 bg-[#003366] hover:bg-[#002B55] text-white text-xs font-extrabold rounded-xl flex items-center gap-2 transition.all shadow-sm hover:shadow-md cursor-pointer border border-[#003366]/40 group"
                   >
                     <span className="p-1 rounded-lg bg-white/10 group-hover:bg-white/20 transition">
-                      <SlidersHorizontal size={15} className="text-[#FFE2B8]" />
+                      <SlidersHorizontal size={15} className="text-cyan-400" />
                     </span>
                     <span>Configure Branch Rules ({rules.length} Branches)</span>
                   </button>
@@ -1315,7 +1315,7 @@ function IncentiveGovernorContent() {
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[11px] font-bold text-slate-500 uppercase mr-1">Active Branches:</span>
                 {rules.slice(0, 10).map((r, i) => (
-                  <span key={i} className="px-2 py-0.5 rounded bg-white border border-slate-300 font-mono text-[11px] font-bold text-[#053D3A]">
+                  <span key={i} className="px-2 py-0.5 rounded bg-white border border-slate-300 font-mono text-[11px] font-bold text-[#003366]">
                     {r.branch}
                   </span>
                 ))}
@@ -1330,7 +1330,7 @@ function IncentiveGovernorContent() {
                 <button
                   onClick={handleExecuteCalculation}
                   disabled={calculating}
-                  className="px-5 py-2.5 bg-gradient-to-r from-[#053D3A] to-[#085C57] hover:from-[#074B47] hover:to-[#0A6E68] text-white font-extrabold text-xs rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-60 shrink-0 border border-emerald-600/30 group"
+                  className="px-5 py-2.5 bg-gradient-to-r from-[#003366] to-[#085C57] hover:from-[#002B55] hover:to-[#0A6E68] text-white font-extrabold text-xs rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-60 shrink-0 border border-emerald-600/30 group"
                 >
                   {calculating ? (
                     <>
@@ -1362,9 +1362,9 @@ function IncentiveGovernorContent() {
               className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
             >
               {/* Modal Header */}
-              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D] shrink-0">
+              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#003870] bg-[#001D3D] shrink-0">
                 <div className="flex items-center gap-3">
-                  <span className="p-2 rounded-xl bg-[#053D3A] text-[#FFE2B8]">
+                  <span className="p-2 rounded-xl bg-[#003366] text-cyan-400">
                     <Sliders size={20} />
                   </span>
                   <div>
@@ -1398,9 +1398,9 @@ function IncentiveGovernorContent() {
                       );
                       toast.success(`Populated all ${availableBranches.length} branches (Default: M, AA & INDEPENDENT WORKSHOP)!`);
                     }}
-                    className="px-3 py-1.5 bg-[#053D3A] hover:bg-[#074B47] text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
+                    className="px-3 py-1.5 bg-[#003366] hover:bg-[#002B55] text-white text-xs font-extrabold rounded-xl flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
                   >
-                    <Sliders size={14} className="text-[#FFE2B8]" />
+                    <Sliders size={14} className="text-cyan-400" />
                     <span>Reset All to Default (M, AA & INDEPENDENT WORKSHOP)</span>
                   </button>
 
@@ -1432,7 +1432,7 @@ function IncentiveGovernorContent() {
               <div className="overflow-y-auto p-4 flex-1">
                 <div className="overflow-x-auto border border-slate-200 rounded-2xl">
                   <table className="w-full text-xs text-left border-collapse">
-                    <thead className="sticky top-0 z-10 bg-[#053D3A] text-white uppercase text-[10px] tracking-wider select-none">
+                    <thead className="sticky top-0 z-10 bg-[#003366] text-white uppercase text-[10px] tracking-wider select-none">
                       <tr>
                         <th className="px-3.5 py-2.5 border-r border-white/10 w-12">#</th>
                         <th className="px-3.5 py-2.5 border-r border-white/10 min-w-[140px]">Party Master Base Branch</th>
@@ -1449,7 +1449,7 @@ function IncentiveGovernorContent() {
                             <select
                               value={rule.branch}
                               onChange={(e) => handleRuleChange(index, 'branch', e.target.value)}
-                              className="w-full px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                              className="w-full px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                               disabled={isLocked}
                             >
                               {availableBranches.map((b) => (
@@ -1470,7 +1470,7 @@ function IncentiveGovernorContent() {
                                   }
                                   className={`px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer ${
                                     rule.categories.includes(cat)
-                                      ? 'bg-[#053D3A] text-white border-[#053D3A]'
+                                      ? 'bg-[#003366] text-white border-[#003366]'
                                       : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
                                   }`}
                                   disabled={isLocked}
@@ -1537,7 +1537,7 @@ function IncentiveGovernorContent() {
                       setShowRulesModal(false);
                       toast.success(`Applied ${rules.length} Governor Branch Rules!`);
                     }}
-                    className="px-5 py-2 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold text-xs rounded-xl shadow-sm transition active:scale-95 cursor-pointer"
+                    className="px-5 py-2 bg-[#003366] hover:bg-[#002B55] text-white font-extrabold text-xs rounded-xl shadow-sm transition active:scale-95 cursor-pointer"
                   >
                     Save & Apply Rules
                   </button>
@@ -1552,8 +1552,8 @@ function IncentiveGovernorContent() {
           <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-extrabold text-[#053D3A] flex items-center gap-2">
-                  <FileSpreadsheet size={18} className="text-[#053D3A]" />
+                <h3 className="text-sm font-extrabold text-[#003366] flex items-center gap-2">
+                  <FileSpreadsheet size={18} className="text-[#003366]" />
                   <span>Pre-Calculated Incentive Upload Workflow ({MONTH_NAMES_SHORT[selectedMonth - 1]} {selectedYear})</span>
                 </h3>
                 <p className="text-xs text-slate-500 font-medium">
@@ -1570,7 +1570,7 @@ function IncentiveGovernorContent() {
               </button>
             </div>
 
-            <div className="border-2 border-dashed border-slate-300 hover:border-[#053D3A] rounded-2xl p-8 text-center bg-slate-50 hover:bg-slate-100/80 transition cursor-pointer relative">
+            <div className="border-2 border-dashed border-slate-300 hover:border-[#003366] rounded-2xl p-8 text-center bg-slate-50 hover:bg-slate-100/80 transition cursor-pointer relative">
               <input
                 type="file"
                 accept=".xlsx,.xls,.csv"
@@ -1584,14 +1584,14 @@ function IncentiveGovernorContent() {
                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                 disabled={isLocked || isUploadingPreCalc}
               />
-              <Upload size={32} className="mx-auto text-[#053D3A] mb-2" />
+              <Upload size={32} className="mx-auto text-[#003366] mb-2" />
               <p className="text-xs font-bold text-slate-800">
                 {preCalcFile ? preCalcFile.name : `Click or Drag & Drop Pre-Calculated Excel File for ${MONTH_NAMES_SHORT[selectedMonth - 1]} ${selectedYear}`}
               </p>
               <p className="text-[11px] text-slate-500 mt-1">Supports .XLSX, .XLS, or .CSV formats</p>
               <button
                 type="button"
-                className="mt-4 px-5 py-2 bg-[#053D3A] hover:bg-[#074B47] text-white text-xs font-bold rounded-xl shadow-2xs transition cursor-pointer pointer-events-none"
+                className="mt-4 px-5 py-2 bg-[#003366] hover:bg-[#002B55] text-white text-xs font-bold rounded-xl shadow-2xs transition cursor-pointer pointer-events-none"
               >
                 {isUploadingPreCalc ? 'Uploading & Processing...' : 'Select File & Process Preview'}
               </button>
@@ -1654,7 +1654,7 @@ function IncentiveGovernorContent() {
                   placeholder="Search code, name, branch..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                  className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                 />
               </div>
 
@@ -1729,7 +1729,7 @@ function IncentiveGovernorContent() {
                 <button
                   onClick={() => setShowCommitModal(true)}
                   disabled={filteredRecords.length === 0}
-                  className="px-4.5 py-2.5 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold text-xs rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-60 border border-teal-600/40"
+                  className="px-4.5 py-2.5 bg-[#003366] hover:bg-[#002B55] text-white font-extrabold text-xs rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-60 border border-teal-600/40"
                 >
                   <CheckCircle2 size={16} className="text-white" />
                   <span>Commit & Lock Incentive Register</span>
@@ -1757,7 +1757,7 @@ function IncentiveGovernorContent() {
                           setSelectedRecordIds([]);
                         }
                       }}
-                      className="rounded accent-[#053D3A] cursor-pointer"
+                      className="rounded accent-[#003366] cursor-pointer"
                     />
                   </th>
                   <th className="px-3.5 py-2.5 text-center align-middle border-r border-white/10 whitespace-nowrap">Month / Year</th>
@@ -1793,15 +1793,15 @@ function IncentiveGovernorContent() {
                               prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
                             );
                           }}
-                          className="rounded accent-[#053D3A] cursor-pointer"
+                          className="rounded accent-[#003366] cursor-pointer"
                         />
                       </td>
                       <td className="px-3.5 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono font-bold text-[#053D3A]">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono font-bold text-[#003366]">
                           {MONTH_NAMES_SHORT[selectedMonth - 1] || 'Jun'} {selectedYear}
                         </span>
                       </td>
-                      <td className="px-3.5 py-2.5 text-center align-middle font-bold font-mono text-[#053D3A] border-r border-slate-200">
+                      <td className="px-3.5 py-2.5 text-center align-middle font-bold font-mono text-[#003366] border-r border-slate-200">
                         {rec.originalPartyCode}
                       </td>
                       <td className="px-3.5 py-2.5 text-left align-middle font-bold text-slate-900 border-r border-slate-200">
@@ -1824,7 +1824,7 @@ function IncentiveGovernorContent() {
                       <td className="px-3.5 py-2.5 text-center align-middle border-r border-slate-200">
                         {renderIncentiveRuleBadge(rec)}
                       </td>
-                      <td className="px-3.5 py-2.5 text-center align-middle font-mono font-black text-[#053D3A] border-r border-slate-200">
+                      <td className="px-3.5 py-2.5 text-center align-middle font-mono font-black text-[#003366] border-r border-slate-200">
                         ₹{Math.round(rec.finalIncentive).toLocaleString()}
                       </td>
                       <td className="px-3.5 py-2.5 text-center border-r border-slate-200">
@@ -1839,7 +1839,7 @@ function IncentiveGovernorContent() {
                       <td className="px-3.5 py-2.5 text-center">
                         <button
                           onClick={() => setCalcModalRecord(rec)}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-[#053D3A] hover:text-white text-slate-800 rounded-lg text-[11px] font-bold border border-slate-300 transition cursor-pointer"
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-[#002B55] hover:text-white text-slate-800 rounded-lg text-[11px] font-bold border border-slate-300 transition cursor-pointer"
                         >
                           View Calc
                         </button>
@@ -1864,7 +1864,7 @@ function IncentiveGovernorContent() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 <div className="bg-white rounded-2xl p-3.5 border border-slate-200/90 shadow-2xs">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Active Transacting Parties</span>
-                  <p className="text-lg font-black text-[#053D3A] mt-1 font-mono">{filteredRecords.length.toLocaleString()}</p>
+                  <p className="text-lg font-black text-[#003366] mt-1 font-mono">{filteredRecords.length.toLocaleString()}</p>
                   <p className="text-[10px] font-semibold text-slate-400 mt-0.5">out of {records.length.toLocaleString()} Master Parties</p>
                 </div>
 
@@ -1886,9 +1886,9 @@ function IncentiveGovernorContent() {
                   <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Pre-discount slab</p>
                 </div>
 
-                <div className="bg-[#FFF8EC] rounded-2xl p-3.5 border border-[#FFE2B8] shadow-2xs">
+                <div className="bg-[#FFF8EC] rounded-2xl p-3.5 border border-[#0052CC] shadow-2xs">
                   <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">Final Net Payable</span>
-                  <p className="text-lg font-black text-[#053D3A] mt-1 font-mono">₹{Math.round(totalFinalIncentive).toLocaleString()}</p>
+                  <p className="text-lg font-black text-[#003366] mt-1 font-mono">₹{Math.round(totalFinalIncentive).toLocaleString()}</p>
                   <p className="text-[10px] font-semibold text-amber-700 mt-0.5">Net payable incentive</p>
                 </div>
               </div>
@@ -1963,7 +1963,7 @@ function IncentiveGovernorContent() {
                       placeholder="Search code, name..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                     />
                   </div>
 
@@ -2024,7 +2024,7 @@ function IncentiveGovernorContent() {
                         setPayoutResult(null);
                         setShowPayoutModal(true);
                       }}
-                      className="px-4 py-2 bg-[#053D3A] hover:bg-[#074D49] text-white font-extrabold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2 transition cursor-pointer border border-[#053D3A]/40 shrink-0"
+                      className="px-4 py-2 bg-[#003366] hover:bg-[#074D49] text-white font-extrabold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2 transition cursor-pointer border border-[#003366]/40 shrink-0"
                     >
                       <Upload size={15} />
                       <span>Upload Bank Transfer Excel</span>
@@ -2069,11 +2069,11 @@ function IncentiveGovernorContent() {
                       <tr key={rec.id || idx} className="hover:bg-slate-50 transition">
                         <td className="px-3.5 py-2.5 text-center align-middle font-bold font-mono text-slate-600 border-r border-slate-200">{rowNumber}</td>
                         <td className="px-3.5 py-2.5 text-center align-middle border-r border-slate-200 whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono font-bold text-[#053D3A]">
+                          <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono font-bold text-[#003366]">
                             {MONTH_NAMES_SHORT[(rec.month || selectedMonth) - 1] || 'Jun'} {rec.year || selectedYear}
                           </span>
                         </td>
-                        <td className="px-3.5 py-2.5 text-center align-middle font-bold font-mono text-[#053D3A] border-r border-slate-200">{rec.originalPartyCode}</td>
+                        <td className="px-3.5 py-2.5 text-center align-middle font-bold font-mono text-[#003366] border-r border-slate-200">{rec.originalPartyCode}</td>
                         <td className="px-3.5 py-2.5 text-left align-middle font-bold text-slate-900 border-r border-slate-200">{rec.partyName}</td>
                         <td className="px-3.5 py-2.5 text-center align-middle font-bold text-slate-800 border-r border-slate-200">
                           <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">{rec.baseBranch}</span>
@@ -2084,7 +2084,7 @@ function IncentiveGovernorContent() {
                         <td className="px-3.5 py-2.5 text-center align-middle border-r border-slate-200">
                           {renderIncentiveRuleBadge(rec)}
                         </td>
-                        <td className="px-3.5 py-2.5 text-center align-middle font-mono font-black text-[#053D3A] border-r border-slate-200">₹{Math.round(rec.finalIncentive).toLocaleString()}</td>
+                        <td className="px-3.5 py-2.5 text-center align-middle font-mono font-black text-[#003366] border-r border-slate-200">₹{Math.round(rec.finalIncentive).toLocaleString()}</td>
                         <td className="px-3.5 py-2.5 text-center align-middle border-r border-slate-200">
                           {rec.payoutStatus ? (
                             <span className={`px-2 py-0.5 rounded text-[11px] font-extrabold uppercase border ${
@@ -2142,9 +2142,9 @@ function IncentiveGovernorContent() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
             >
-              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D]">
+              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#003870] bg-[#001D3D]">
                 <div className="flex items-center gap-2">
-                  <Calculator size={18} className="text-[#FFE2B8]" />
+                  <Calculator size={18} className="text-cyan-400" />
                   <h3 className="font-black text-sm text-white">Calculation Breakdown</h3>
                 </div>
                 <button
@@ -2182,7 +2182,7 @@ function IncentiveGovernorContent() {
                   </div>
                 </div>
 
-                <div className="p-4 bg-[#FFF8EC] border border-[#FFE2B8] rounded-2xl flex items-center justify-between text-[#053D3A]">
+                <div className="p-4 bg-[#FFF8EC] border border-[#0052CC] rounded-2xl flex items-center justify-between text-[#003366]">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-amber-900">Final Payable Incentive</span>
                     <p className="text-xs text-slate-600 font-mono">Formula: MAX(Gross - Discount, 0)</p>
@@ -2218,9 +2218,9 @@ function IncentiveGovernorContent() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
             >
-              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D]">
+              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#003870] bg-[#001D3D]">
                 <div className="flex items-center gap-2">
-                  <Lock size={18} className="text-[#FFE2B8]" />
+                  <Lock size={18} className="text-cyan-400" />
                   <h3 className="font-black text-sm text-white">Confirm Period Lock & Commit</h3>
                 </div>
                 <button
@@ -2259,7 +2259,7 @@ function IncentiveGovernorContent() {
                     <span>Gross Incentive:</span>
                     <span className="font-mono">₹{Math.round(totalGrossIncentive).toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-[#053D3A] font-black text-sm pt-2 border-t border-slate-200">
+                  <div className="flex justify-between text-[#003366] font-black text-sm pt-2 border-t border-slate-200">
                     <span>Final Payable Incentive:</span>
                     <span className="font-mono">₹{Math.round(totalFinalIncentive).toLocaleString()}</span>
                   </div>
@@ -2275,7 +2275,7 @@ function IncentiveGovernorContent() {
                   <button
                     onClick={handleCommitPeriod}
                     disabled={committing}
-                    className="px-5 py-2 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold rounded-xl shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-60"
+                    className="px-5 py-2 bg-[#003366] hover:bg-[#002B55] text-white font-extrabold rounded-xl shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-60"
                   >
                     {committing ? 'Locking Period...' : 'Confirm & Lock Period'}
                   </button>
@@ -2295,7 +2295,7 @@ function IncentiveGovernorContent() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
             >
-              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D]">
+              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#003870] bg-[#001D3D]">
                 <div className="flex items-center gap-2">
                   <Unlock size={18} className="text-amber-400" />
                   <h3 className="font-black text-sm text-white">Reopen Incentive Period</h3>
@@ -2322,7 +2322,7 @@ function IncentiveGovernorContent() {
                     value={reopenReason}
                     onChange={(e) => setReopenReason(e.target.value)}
                     placeholder="Provide detailed business justification for unlocking this period..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                   />
                 </div>
 
@@ -2355,7 +2355,7 @@ function IncentiveGovernorContent() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200"
             >
-              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#074B47] bg-[#032F2D]">
+              <div className="px-6 py-4 text-white flex items-center justify-between border-b border-[#003870] bg-[#001D3D]">
                 <div className="flex items-center gap-2">
                   <Upload size={18} className="text-emerald-400" />
                   <h3 className="font-black text-sm text-white">Upload Bank Incentive Transfer Excel</h3>
@@ -2386,7 +2386,7 @@ function IncentiveGovernorContent() {
                     <select
                       value={payoutMonth}
                       onChange={(e) => setPayoutMonth(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                     >
                       {MONTH_NAMES_SHORT.map((name, idx) => (
                         <option key={idx + 1} value={idx + 1}>
@@ -2401,7 +2401,7 @@ function IncentiveGovernorContent() {
                     <select
                       value={payoutYear}
                       onChange={(e) => setPayoutYear(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                     >
                       <option value={2026}>2026</option>
                       <option value={2025}>2025</option>
@@ -2412,7 +2412,7 @@ function IncentiveGovernorContent() {
                 {/* File Dropzone */}
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">Select Bank Payout Excel File</label>
-                  <div className="border-2 border-dashed border-slate-300 hover:border-[#053D3A] rounded-2xl p-4 text-center bg-slate-50 hover:bg-slate-100/50 transition cursor-pointer relative">
+                  <div className="border-2 border-dashed border-slate-300 hover:border-[#003366] rounded-2xl p-4 text-center bg-slate-50 hover:bg-slate-100/50 transition cursor-pointer relative">
                     <input
                       type="file"
                       accept=".xlsx,.xls"
@@ -2424,7 +2424,7 @@ function IncentiveGovernorContent() {
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
-                    <FileSpreadsheet size={28} className="mx-auto text-[#053D3A] mb-1" />
+                    <FileSpreadsheet size={28} className="mx-auto text-[#003366] mb-1" />
                     {payoutFile ? (
                       <div>
                         <p className="font-bold text-slate-900">{payoutFile.name}</p>
@@ -2481,7 +2481,7 @@ function IncentiveGovernorContent() {
                   <button
                     onClick={handleUploadPayoutFile}
                     disabled={isUploadingPayout || !payoutFile}
-                    className="px-5 py-2 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold rounded-xl shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-60 flex items-center gap-2"
+                    className="px-5 py-2 bg-[#003366] hover:bg-[#002B55] text-white font-extrabold rounded-xl shadow-sm transition active:scale-95 cursor-pointer disabled:opacity-60 flex items-center gap-2"
                   >
                     {isUploadingPayout ? (
                       <>
@@ -2507,7 +2507,7 @@ function IncentiveGovernorContent() {
 
 export default function IncentiveGovernorPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-[#053D3A] font-bold">Loading Incentive Governor...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-[#003366] font-bold">Loading Incentive Governor...</div>}>
       <IncentiveGovernorContent />
     </Suspense>
   );

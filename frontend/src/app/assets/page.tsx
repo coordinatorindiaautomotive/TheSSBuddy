@@ -43,7 +43,7 @@ const getCategoryIcon = (iconName?: string) => {
 };
 
 const CATEGORY_COLORS = [
-  '#2563eb', '#087443', '#7c3aed', '#053D3A',
+  '#2563eb', '#087443', '#7c3aed', '#003366',
   '#d97706', '#4b5563', '#0284c7', '#dc2626',
   '#0d9488', '#e11d48'
 ];
@@ -461,11 +461,11 @@ export default function AssetManagerPage() {
               onClick={() => setSelectedCategory('ALL')}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition cursor-pointer ${
                 selectedCategory === 'ALL'
-                  ? 'bg-[#053D3A] text-white shadow-sm'
+                  ? 'bg-[#003366] text-white shadow-sm'
                   : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/70'
               }`}
             >
-              <Boxes size={14} className={selectedCategory === 'ALL' ? 'text-[#FFE2B8]' : 'text-slate-500'} />
+              <Boxes size={14} className={selectedCategory === 'ALL' ? 'text-cyan-400' : 'text-slate-500'} />
               <span>All Categories</span>
               <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
                 selectedCategory === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
@@ -483,11 +483,11 @@ export default function AssetManagerPage() {
                   onClick={() => setSelectedCategory(cat.code)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition cursor-pointer ${
                     isSelected
-                      ? 'bg-[#053D3A] text-white shadow-sm'
+                      ? 'bg-[#003366] text-white shadow-sm'
                       : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/70'
                   }`}
                 >
-                  <IconComp size={14} style={{ color: isSelected ? '#FFE2B8' : cat.color || '#2563eb' }} />
+                  <IconComp size={14} style={{ color: isSelected ? '#0052CC' : cat.color || '#2563eb' }} />
                   <span>{cat.name}</span>
                   <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
                     isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
@@ -557,7 +557,7 @@ export default function AssetManagerPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search code, name, serial, user..."
-                  className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                  className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 font-bold focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                 />
                 {search && (
                   <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
@@ -622,7 +622,7 @@ export default function AssetManagerPage() {
                 variant="primary"
                 size="md"
                 onClick={() => handleOpenAssetModal()}
-                icon={<Plus size={14} className="text-[#FFE2B8]" />}
+                icon={<Plus size={14} className="text-cyan-400" />}
               >
                 Register Asset
               </Button>
@@ -634,7 +634,7 @@ export default function AssetManagerPage() {
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
           <div className="p-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Boxes size={15} className="text-[#053D3A]" />
+              <Boxes size={15} className="text-[#003366]" />
               <span className="font-extrabold text-xs text-slate-900">
                 Asset Inventory Records ({assets.length})
               </span>
@@ -664,7 +664,7 @@ export default function AssetManagerPage() {
                 {isLoading ? (
                   <tr>
                     <td colSpan={9} className="py-16 text-center text-slate-400">
-                      <RefreshCw size={24} className="animate-spin text-[#053D3A] mx-auto mb-2" />
+                      <RefreshCw size={24} className="animate-spin text-[#003366] mx-auto mb-2" />
                       <span className="font-bold">Loading enterprise asset records...</span>
                     </td>
                   </tr>
@@ -693,7 +693,7 @@ export default function AssetManagerPage() {
 
                         {/* Code & Tag */}
                         <td className="px-3.5 py-2.5 border-r border-slate-200">
-                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[#053D3A] font-mono font-black text-xs border border-slate-200 shadow-2xs">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-[#003366] font-mono font-black text-xs border border-slate-200 shadow-2xs">
                             {a.code}
                           </span>
                           {a.serialNumber && (
@@ -716,9 +716,9 @@ export default function AssetManagerPage() {
                           <span
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border"
                             style={{
-                              backgroundColor: `${catObj?.color || '#053D3A'}15`,
-                              color: catObj?.color || '#053D3A',
-                              borderColor: `${catObj?.color || '#053D3A'}30`,
+                              backgroundColor: `${catObj?.color || '#003366'}15`,
+                              color: catObj?.color || '#003366',
+                              borderColor: `${catObj?.color || '#003366'}30`,
                             }}
                           >
                             <CatIcon size={11} />
@@ -770,7 +770,7 @@ export default function AssetManagerPage() {
                             {/* View Details / Timeline Drawer */}
                             <button
                               onClick={() => setDetailsDrawer({ open: true, asset: a, activeTab: 'OVERVIEW' })}
-                              className="p-1 text-slate-600 hover:text-[#053D3A] hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                              className="p-1 text-slate-600 hover:text-[#003366] hover:bg-slate-100 rounded-lg transition cursor-pointer"
                               title="View Details & History Timeline"
                             >
                               <Eye size={14} />
@@ -839,17 +839,19 @@ export default function AssetManagerPage() {
         {categoryModal && (
           <div className="portal-modal-backdrop">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
-              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47]">
+              <div className="bg-[#003366] text-white px-5 py-4 flex items-center justify-between border-b-[3px] border-[#ED1C24]">
                 <div className="flex items-center gap-2.5">
-                  <Tag size={17} className="text-[#FFE2B8]" />
+                  <div className="p-1.5 rounded-lg bg-[#002B55] border border-[#0041A3]">
+                    <Tag size={17} className="text-cyan-400" />
+                  </div>
                   <div>
                     <h2 className="font-extrabold text-sm text-white">Dynamic Asset Categories</h2>
-                    <p className="text-[11px] text-[#DCEDEA]">Manage company-wide infrastructure categories</p>
+                    <p className="text-[11px] text-slate-300">Manage company-wide infrastructure categories</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setCategoryModal(false)}
-                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition cursor-pointer"
+                  className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-[#002B55] transition cursor-pointer"
                 >
                   <X size={16} />
                 </button>
@@ -883,7 +885,7 @@ export default function AssetManagerPage() {
                         placeholder="e.g. CCTV, SERVER"
                         value={catCode}
                         onChange={(e) => setCatCode(e.target.value.toUpperCase())}
-                        className="w-full px-3 py-1.5 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-3 py-1.5 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
 
@@ -896,7 +898,7 @@ export default function AssetManagerPage() {
                         placeholder="e.g. Security & Surveillance"
                         value={catName}
                         onChange={(e) => setCatName(e.target.value)}
-                        className="w-full px-3 py-1.5 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-3 py-1.5 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
                   </div>
@@ -910,7 +912,7 @@ export default function AssetManagerPage() {
                       placeholder="Brief details about items in this category"
                       value={catDesc}
                       onChange={(e) => setCatDesc(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      className="w-full px-3 py-1.5 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                     />
                   </div>
 
@@ -925,7 +927,7 @@ export default function AssetManagerPage() {
                             type="button"
                             onClick={() => setCatColor(col)}
                             className={`w-6 h-6 rounded-full transition-transform cursor-pointer ${
-                              catColor === col ? 'scale-125 ring-2 ring-[#053D3A]' : 'hover:scale-110'
+                              catColor === col ? 'scale-125 ring-2 ring-[#003366]' : 'hover:scale-110'
                             }`}
                             style={{ backgroundColor: col }}
                           />
@@ -936,7 +938,7 @@ export default function AssetManagerPage() {
                     <button
                       type="submit"
                       disabled={savingCategory || !catCode.trim() || !catName.trim()}
-                      className="px-4 py-2 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold text-xs rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer shrink-0 mt-3"
+                      className="px-4 py-2 bg-[#003366] hover:bg-[#002B55] text-white font-extrabold text-xs rounded-xl shadow-xs transition disabled:opacity-50 cursor-pointer shrink-0 mt-3"
                     >
                       {savingCategory ? 'Saving...' : editingCatId ? 'Update Category' : '+ Add Category'}
                     </button>
@@ -1020,19 +1022,21 @@ export default function AssetManagerPage() {
         {assetModal.open && (
           <div className="portal-modal-backdrop">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
-              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47]">
+              <div className="bg-[#003366] text-white px-5 py-4 flex items-center justify-between border-b-[3px] border-[#ED1C24]">
                 <div className="flex items-center gap-2.5">
-                  <Boxes size={17} className="text-[#FFE2B8]" />
+                  <div className="p-1.5 rounded-lg bg-[#002B55] border border-[#0041A3]">
+                    <Boxes size={17} className="text-cyan-400" />
+                  </div>
                   <div>
                     <h2 className="font-extrabold text-sm text-white">
                       {assetModal.isEdit ? 'Edit Asset Record' : 'Register New Enterprise Asset'}
                     </h2>
-                    <p className="text-[11px] text-[#DCEDEA]">Track specifications, financial valuation, and warranty</p>
+                    <p className="text-[11px] text-slate-300">Track specifications, financial valuation, and warranty</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setAssetModal({ open: false, isEdit: false })}
-                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition cursor-pointer"
+                  className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-[#002B55] transition cursor-pointer"
                 >
                   <X size={16} />
                 </button>
@@ -1051,7 +1055,7 @@ export default function AssetManagerPage() {
                         value={formData.code}
                         onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                         placeholder="AST-100234"
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#003366]"
                       />
                     </div>
 
@@ -1062,7 +1066,7 @@ export default function AssetManagerPage() {
                       <select
                         value={formData.category}
                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#003366]"
                       >
                         {categories.map((c: any) => (
                           <option key={c.id || c.code} value={c.code}>
@@ -1083,7 +1087,7 @@ export default function AssetManagerPage() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g. Dell Latitude 5420 i7 16GB"
-                      className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A]"
+                      className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#003366]"
                     />
                   </div>
 
@@ -1096,7 +1100,7 @@ export default function AssetManagerPage() {
                         value={formData.serialNumber}
                         onChange={(e) => setFormData({ ...formData, serialNumber: e.target.value })}
                         placeholder="e.g. SN-98234872"
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
 
@@ -1107,7 +1111,7 @@ export default function AssetManagerPage() {
                         value={formData.modelNumber}
                         onChange={(e) => setFormData({ ...formData, modelNumber: e.target.value })}
                         placeholder="e.g. Latitude-5420"
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
                   </div>
@@ -1121,7 +1125,7 @@ export default function AssetManagerPage() {
                       <select
                         value={formData.allocatedToBranch}
                         onChange={(e) => setFormData({ ...formData, allocatedToBranch: e.target.value })}
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#053D3A]/20 focus:border-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#003366]"
                       >
                         <option value="">Select Branch ({branches.length} available)</option>
                         {branches.map((b) => (
@@ -1139,7 +1143,7 @@ export default function AssetManagerPage() {
                         value={formData.allocatedToUserName}
                         onChange={(e) => setFormData({ ...formData, allocatedToUserName: e.target.value })}
                         placeholder="e.g. Rajesh Kumar"
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
                   </div>
@@ -1152,7 +1156,7 @@ export default function AssetManagerPage() {
                         type="date"
                         value={formData.purchaseDate}
                         onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
 
@@ -1162,7 +1166,7 @@ export default function AssetManagerPage() {
                         type="number"
                         value={formData.purchaseCost}
                         onChange={(e) => setFormData({ ...formData, purchaseCost: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
 
@@ -1172,7 +1176,7 @@ export default function AssetManagerPage() {
                         type="number"
                         value={formData.depreciationRate}
                         onChange={(e) => setFormData({ ...formData, depreciationRate: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
                   </div>
@@ -1186,7 +1190,7 @@ export default function AssetManagerPage() {
                         value={formData.vendorName}
                         onChange={(e) => setFormData({ ...formData, vendorName: e.target.value })}
                         placeholder="e.g. Infotech Solutions Pvt Ltd"
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
 
@@ -1196,7 +1200,7 @@ export default function AssetManagerPage() {
                         type="date"
                         value={formData.warrantyExpiry}
                         onChange={(e) => setFormData({ ...formData, warrantyExpiry: e.target.value })}
-                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                        className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                       />
                     </div>
                   </div>
@@ -1212,7 +1216,7 @@ export default function AssetManagerPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-[#053D3A] hover:bg-[#074B47] text-white font-extrabold rounded-xl text-xs shadow-sm transition cursor-pointer"
+                    className="px-5 py-2 bg-[#003366] hover:bg-[#002B55] text-white font-extrabold rounded-xl text-xs shadow-sm transition cursor-pointer"
                   >
                     {assetModal.isEdit ? 'Save Changes' : 'Register Asset'}
                   </button>
@@ -1226,14 +1230,16 @@ export default function AssetManagerPage() {
         {allocateModal.open && (
           <div className="portal-modal-backdrop">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
-              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47]">
+              <div className="bg-[#003366] text-white px-5 py-4 flex items-center justify-between border-b-[3px] border-[#ED1C24]">
                 <div className="flex items-center gap-2">
-                  <UserCheck size={16} className="text-[#FFE2B8]" />
+                  <div className="p-1.5 rounded-lg bg-[#002B55] border border-[#0041A3]">
+                    <UserCheck size={16} className="text-cyan-400" />
+                  </div>
                   <h2 className="font-extrabold text-sm text-white">Allocate / Reassign Asset</h2>
                 </div>
                 <button
                   onClick={() => setAllocateModal({ open: false })}
-                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition"
+                  className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-[#002B55] transition"
                 >
                   <X size={16} />
                 </button>
@@ -1242,7 +1248,7 @@ export default function AssetManagerPage() {
               <form onSubmit={handleAllocateSubmit} className="p-5 space-y-4">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <p className="font-extrabold text-xs text-slate-900">{allocateModal.asset?.name}</p>
-                  <p className="font-mono text-[10px] text-[#053D3A] font-bold mt-0.5">{allocateModal.asset?.code}</p>
+                  <p className="font-mono text-[10px] text-[#003366] font-bold mt-0.5">{allocateModal.asset?.code}</p>
                 </div>
 
                 <div>
@@ -1252,7 +1258,7 @@ export default function AssetManagerPage() {
                   <select
                     value={allocBranch}
                     onChange={(e) => setAllocBranch(e.target.value)}
-                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                   >
                     <option value="">Select Branch ({branches.length} available)</option>
                     {branches.map((b) => (
@@ -1270,7 +1276,7 @@ export default function AssetManagerPage() {
                     value={allocUserName}
                     onChange={(e) => setAllocUserName(e.target.value)}
                     placeholder="e.g. Ramesh Sharma"
-                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                   />
                 </div>
 
@@ -1281,7 +1287,7 @@ export default function AssetManagerPage() {
                     value={allocRemarks}
                     onChange={(e) => setAllocRemarks(e.target.value)}
                     placeholder="e.g. Issued for Regional Sales visit"
-                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                   />
                 </div>
 
@@ -1295,7 +1301,7 @@ export default function AssetManagerPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-indigo-700 hover:bg-indigo-800 text-white font-extrabold text-xs rounded-xl shadow-sm"
+                    className="px-4 py-2 bg-[#0052CC] hover:bg-[#0041A3] text-white font-extrabold text-xs rounded-xl shadow-sm"
                   >
                     Confirm Allocation
                   </button>
@@ -1309,14 +1315,16 @@ export default function AssetManagerPage() {
         {returnModal.open && (
           <div className="portal-modal-backdrop">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
-              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47]">
+              <div className="bg-[#003366] text-white px-5 py-4 flex items-center justify-between border-b-[3px] border-[#ED1C24]">
                 <div className="flex items-center gap-2">
-                  <RotateCcw size={16} className="text-[#FFE2B8]" />
+                  <div className="p-1.5 rounded-lg bg-[#002B55] border border-[#0041A3]">
+                    <RotateCcw size={16} className="text-cyan-400" />
+                  </div>
                   <h2 className="font-extrabold text-sm text-white">Return Asset to Storage</h2>
                 </div>
                 <button
                   onClick={() => setReturnModal({ open: false })}
-                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition"
+                  className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-[#002B55] transition"
                 >
                   <X size={16} />
                 </button>
@@ -1325,7 +1333,7 @@ export default function AssetManagerPage() {
               <form onSubmit={handleReturnSubmit} className="p-5 space-y-4">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <p className="font-extrabold text-xs text-slate-900">{returnModal.asset?.name}</p>
-                  <p className="font-mono text-[10px] text-[#053D3A] font-bold mt-0.5">{returnModal.asset?.code}</p>
+                  <p className="font-mono text-[10px] text-[#003366] font-bold mt-0.5">{returnModal.asset?.code}</p>
                   <p className="text-[11px] text-slate-500 mt-1">
                     Current Holder: <strong>{returnModal.asset?.allocatedToUserName || 'Branch'}</strong>
                   </p>
@@ -1338,7 +1346,7 @@ export default function AssetManagerPage() {
                     value={returnRemarks}
                     onChange={(e) => setReturnRemarks(e.target.value)}
                     placeholder="e.g. Returned in good working condition"
-                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                   />
                 </div>
 
@@ -1352,7 +1360,7 @@ export default function AssetManagerPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl shadow-sm"
+                    className="px-4 py-2 bg-[#0052CC] hover:bg-[#0041A3] text-white font-extrabold text-xs rounded-xl shadow-sm"
                   >
                     Confirm Return
                   </button>
@@ -1366,14 +1374,16 @@ export default function AssetManagerPage() {
         {maintenanceModal.open && (
           <div className="portal-modal-backdrop">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
-              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47]">
+              <div className="bg-[#003366] text-white px-5 py-4 flex items-center justify-between border-b-[3px] border-[#ED1C24]">
                 <div className="flex items-center gap-2">
-                  <Wrench size={16} className="text-[#FFE2B8]" />
+                  <div className="p-1.5 rounded-lg bg-[#002B55] border border-[#0041A3]">
+                    <Wrench size={16} className="text-cyan-400" />
+                  </div>
                   <h2 className="font-extrabold text-sm text-white">Log Asset Maintenance</h2>
                 </div>
                 <button
                   onClick={() => setMaintenanceModal({ open: false })}
-                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition"
+                  className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-[#002B55] transition"
                 >
                   <X size={16} />
                 </button>
@@ -1382,7 +1392,7 @@ export default function AssetManagerPage() {
               <form onSubmit={handleMaintenanceSubmit} className="p-5 space-y-4">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <p className="font-extrabold text-xs text-slate-900">{maintenanceModal.asset?.name}</p>
-                  <p className="font-mono text-[10px] text-[#053D3A] font-bold mt-0.5">{maintenanceModal.asset?.code}</p>
+                  <p className="font-mono text-[10px] text-[#003366] font-bold mt-0.5">{maintenanceModal.asset?.code}</p>
                 </div>
 
                 <div>
@@ -1390,7 +1400,7 @@ export default function AssetManagerPage() {
                   <select
                     value={maintType}
                     onChange={(e) => setMaintType(e.target.value)}
-                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                   >
                     <option value="REPAIR">Hardware Repair</option>
                     <option value="SERVICE">Preventive Service / Calibration</option>
@@ -1408,7 +1418,7 @@ export default function AssetManagerPage() {
                     value={maintDesc}
                     onChange={(e) => setMaintDesc(e.target.value)}
                     placeholder="Describe the issue, parts replaced, or service details..."
-                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                    className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                   />
                 </div>
 
@@ -1419,7 +1429,7 @@ export default function AssetManagerPage() {
                       type="number"
                       value={maintCost}
                       onChange={(e) => setMaintCost(parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                     />
                   </div>
 
@@ -1430,7 +1440,7 @@ export default function AssetManagerPage() {
                       value={maintTech}
                       onChange={(e) => setMaintTech(e.target.value)}
                       placeholder="e.g. Dell Authorized Tech"
-                      className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#053D3A]"
+                      className="w-full px-3 py-2 bg-white rounded-xl border border-slate-300 text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0052CC]"
                     />
                   </div>
                 </div>
@@ -1445,7 +1455,7 @@ export default function AssetManagerPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white font-extrabold text-xs rounded-xl shadow-sm"
+                    className="px-4 py-2 bg-[#0052CC] hover:bg-[#0041A3] text-white font-extrabold text-xs rounded-xl shadow-sm"
                   >
                     Save Service Record
                   </button>
@@ -1460,20 +1470,20 @@ export default function AssetManagerPage() {
           <div className="portal-modal-backdrop">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[85vh]">
               {/* Header */}
-              <div className="bg-[#032F2D] text-white px-5 py-4 flex items-center justify-between border-b border-[#074B47] shrink-0">
+              <div className="bg-[#003366] text-white px-5 py-4 flex items-center justify-between border-b-[3px] border-[#ED1C24] shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-[#053D3A] border border-[#074B47] flex items-center justify-center text-[#FFE2B8]">
+                  <div className="w-8 h-8 rounded-xl bg-[#002B55] border border-[#0041A3] flex items-center justify-center text-cyan-400">
                     <QrCode size={18} />
                   </div>
                   <div>
                     <h2 className="font-extrabold text-sm text-white">{detailsDrawer.asset.name}</h2>
-                    <p className="font-mono text-xs text-[#FFE2B8] font-bold">{detailsDrawer.asset.code}</p>
+                    <p className="font-mono text-xs text-cyan-400 font-bold">{detailsDrawer.asset.code}</p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setDetailsDrawer({ open: false, activeTab: 'OVERVIEW' })}
-                  className="text-[#DCEDEA] hover:text-white p-1 rounded-lg hover:bg-[#053D3A] transition cursor-pointer"
+                  className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-[#002B55] transition cursor-pointer"
                 >
                   <X size={16} />
                 </button>
@@ -1484,7 +1494,7 @@ export default function AssetManagerPage() {
                 <button
                   onClick={() => setDetailsDrawer({ ...detailsDrawer, activeTab: 'OVERVIEW' })}
                   className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition ${
-                    detailsDrawer.activeTab === 'OVERVIEW' ? 'bg-[#053D3A] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
+                    detailsDrawer.activeTab === 'OVERVIEW' ? 'bg-[#003366] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   Overview & Specs
@@ -1493,7 +1503,7 @@ export default function AssetManagerPage() {
                 <button
                   onClick={() => setDetailsDrawer({ ...detailsDrawer, activeTab: 'HISTORY' })}
                   className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 ${
-                    detailsDrawer.activeTab === 'HISTORY' ? 'bg-[#053D3A] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
+                    detailsDrawer.activeTab === 'HISTORY' ? 'bg-[#003366] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   <History size={13} />
@@ -1503,7 +1513,7 @@ export default function AssetManagerPage() {
                 <button
                   onClick={() => setDetailsDrawer({ ...detailsDrawer, activeTab: 'MAINTENANCE' })}
                   className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 ${
-                    detailsDrawer.activeTab === 'MAINTENANCE' ? 'bg-[#053D3A] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
+                    detailsDrawer.activeTab === 'MAINTENANCE' ? 'bg-[#003366] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   <Wrench size={13} />
@@ -1547,7 +1557,7 @@ export default function AssetManagerPage() {
                         </div>
                         <div>
                           <span className="text-slate-500 block text-[10px] font-semibold">Book Value:</span>
-                          <span className="font-mono font-bold text-[#053D3A] text-xs">
+                          <span className="font-mono font-bold text-[#003366] text-xs">
                             ₹{Math.round(detailsDrawer.asset.currentValue || detailsDrawer.asset.purchaseCost || 0).toLocaleString('en-IN')}
                           </span>
                         </div>
