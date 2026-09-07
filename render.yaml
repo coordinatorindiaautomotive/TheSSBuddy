@@ -1,0 +1,55 @@
+services:
+  # ─── NESTJS BACKEND WEB SERVICE ───
+  - type: web
+    name: thessbuddy-backend
+    runtime: node
+    plan: starter
+    region: singapore # or oregon / frankfurt
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: thessbuddy-postgres
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+
+  # ─── NEXTJS FRONTEND WEB SERVICE ───
+  - type: web
+    name: thessbuddy-frontend
+    runtime: node
+    plan: starter
+    region: singapore
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: thessbuddy-backend
+          property: host
+          transform: "https://{{value}}/api"
+      - key: BACKEND_URL
+        fromService:
+          type: web
+          name: thessbuddy-backend
+          property: host
+          transform: "https://{{value}}"
+
+databases:
+  # ─── POSTGRESQL DATABASE ───
+  - name: thessbuddy-postgres
+    plan: starter
+    region: singapore
+    databaseName: thessbuddy
+    user: thessbuddy_user
