@@ -7,14 +7,15 @@ import { BranchIsolationService } from '../branch-isolation/branch-isolation.ser
 const INITIAL_CATEGORIES = [
   { code: 'LAPTOP', name: 'Laptops & Workstations', description: 'Desktops, Laptops, MacBooks, and Workstations', icon: 'Laptop', color: '#2563eb', sortOrder: 1 },
   { code: 'PRINTER', name: 'Printers & Scanners', description: 'Thermal barcode printers, LaserJet printers, and flatbed scanners', icon: 'Printer', color: '#087443', sortOrder: 2 },
-  { code: 'NETWORK', name: 'Networking & WiFi', description: 'Routers, Switches, Access Points, and Firewalls', icon: 'Wifi', color: '#7c3aed', sortOrder: 3 },
-  { code: 'SERVER', name: 'Servers & Storage', description: 'On-premise servers, NAS devices, and SAN arrays', icon: 'Server', color: '#053D3A', sortOrder: 4 },
-  { code: 'MOBILE', name: 'Mobile & Handhelds', description: 'Tablets, Handheld Stock Terminals, and Mobile Phones', icon: 'Smartphone', color: '#d97706', sortOrder: 5 },
-  { code: 'FURNITURE', name: 'Office Furniture', description: 'Desks, Chairs, Filing Cabinets, and Executive Tables', icon: 'Armchair', color: '#4b5563', sortOrder: 6 },
-  { code: 'VEHICLE', name: 'Company Vehicles', description: 'Logistics vans, two-wheelers, and executive cars', icon: 'Car', color: '#0284c7', sortOrder: 7 },
-  { code: 'SOFTWARE', name: 'Software & Licenses', description: 'Operating systems, ERP licenses, and productivity suites', icon: 'Code', color: '#dc2626', sortOrder: 8 },
-  { code: 'CCTV', name: 'Security & Surveillance', description: 'CCTV cameras, NVRs, DVRs, and biometric machines', icon: 'Shield', color: '#0d9488', sortOrder: 9 },
-  { code: 'OTHER', name: 'General Capital Assets', description: 'Miscellaneous office equipment and appliances', icon: 'Boxes', color: '#64748b', sortOrder: 10 },
+  { code: 'SCANNER', name: 'Barcode & QR Scanners', description: 'Handheld, Bluetooth, Cradle, and 2D Barcode Scanners', icon: 'QrCode', color: '#0284c7', sortOrder: 3 },
+  { code: 'NETWORK', name: 'Networking & WiFi', description: 'Routers, Switches, Access Points, and Firewalls', icon: 'Wifi', color: '#7c3aed', sortOrder: 4 },
+  { code: 'SERVER', name: 'Servers & Storage', description: 'On-premise servers, NAS devices, and SAN arrays', icon: 'Server', color: '#053D3A', sortOrder: 5 },
+  { code: 'MOBILE', name: 'Mobile & Handhelds', description: 'Tablets, Handheld Stock Terminals, and Mobile Phones', icon: 'Smartphone', color: '#d97706', sortOrder: 6 },
+  { code: 'FURNITURE', name: 'Office Furniture', description: 'Desks, Chairs, Filing Cabinets, and Executive Tables', icon: 'Armchair', color: '#4b5563', sortOrder: 7 },
+  { code: 'VEHICLE', name: 'Company Vehicles', description: 'Logistics vans, two-wheelers, and executive cars', icon: 'Car', color: '#0891b2', sortOrder: 8 },
+  { code: 'SOFTWARE', name: 'Software & Licenses', description: 'Operating systems, ERP licenses, and productivity suites', icon: 'Code', color: '#dc2626', sortOrder: 9 },
+  { code: 'CCTV', name: 'Security & Surveillance', description: 'CCTV cameras, NVRs, DVRs, and biometric machines', icon: 'Shield', color: '#0d9488', sortOrder: 10 },
+  { code: 'OTHER', name: 'General Capital Assets', description: 'Miscellaneous office equipment and appliances', icon: 'Boxes', color: '#64748b', sortOrder: 11 },
 ];
 
 @Injectable()

@@ -24,6 +24,8 @@ const getCategoryIcon = (iconName?: string) => {
   switch ((iconName || '').toLowerCase()) {
     case 'laptop': return Laptop;
     case 'printer': return Printer;
+    case 'scanner':
+    case 'qrcode': return QrCode;
     case 'wifi':
     case 'network': return Wifi;
     case 'server': return Server;
