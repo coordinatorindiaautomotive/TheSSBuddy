@@ -53,14 +53,14 @@ export const PartyFilterToolbar: React.FC<PartyFilterToolbarProps> = ({
   onAddParty,
 }) => {
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/90 flex flex-wrap items-center gap-3 text-slate-800">
-      {/* Location Dropdown */}
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/90 flex flex-wrap items-end gap-3 text-slate-800">
+      {/* 1. Location Dropdown */}
       <div className="flex-1 min-w-[150px]">
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
           <MapPin size={13} className="text-[#0052CC]" /> LOCATION
         </label>
         {isBranchUser && userBranch ? (
-          <div className="w-full px-3 py-2 bg-amber-400 text-slate-950 border border-amber-300 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 shadow-2xs">
+          <div className="w-full h-9 px-3 bg-amber-400 text-slate-950 border border-amber-300 rounded-xl text-xs font-bold font-mono flex items-center gap-1.5 shadow-2xs">
             <Lock size={13} className="text-slate-950" />
             <span>Branch: {userBranch}</span>
           </div>
@@ -68,10 +68,10 @@ export const PartyFilterToolbar: React.FC<PartyFilterToolbarProps> = ({
           <select
             value={locationFilter}
             onChange={(e) => setLocationFilter(e.target.value)}
-            className="select-enterprise w-full text-xs"
+            className="w-full h-9 px-3 bg-white border border-slate-300 hover:border-slate-400 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-2xs transition-colors cursor-pointer"
           >
             {branchesList.map((b) => (
-              <option key={b} value={b} className="bg-white text-slate-900 font-bold">
+              <option key={b} value={b} className="bg-white text-slate-900 font-semibold">
                 {b}
               </option>
             ))}
@@ -79,45 +79,45 @@ export const PartyFilterToolbar: React.FC<PartyFilterToolbarProps> = ({
         )}
       </div>
 
-      {/* Executive Dropdown */}
+      {/* 2. Executive Dropdown */}
       <div className="flex-1 min-w-[150px]">
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
           <UserCheck size={13} className="text-[#0052CC]" /> EXECUTIVE
         </label>
         <select
           value={executiveFilter}
           onChange={(e) => setExecutiveFilter(e.target.value)}
-          className="select-enterprise w-full text-xs"
+          className="w-full h-9 px-3 bg-white border border-slate-300 hover:border-slate-400 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-2xs transition-colors cursor-pointer"
         >
           {executivesList.map((ex) => (
-            <option key={ex} value={ex} className="bg-white text-slate-900 font-bold">
+            <option key={ex} value={ex} className="bg-white text-slate-900 font-semibold">
               {ex}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Party Type Dropdown */}
+      {/* 3. Party Type Dropdown */}
       <div className="flex-1 min-w-[150px]">
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
           <Layers size={13} className="text-[#0052CC]" /> PARTY TYPE
         </label>
         <select
           value={partyTypeFilter}
           onChange={(e) => setPartyTypeFilter(e.target.value)}
-          className="select-enterprise w-full text-xs"
+          className="w-full h-9 px-3 bg-white border border-slate-300 hover:border-slate-400 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-2xs transition-colors cursor-pointer"
         >
           {partyTypesList.map((c) => (
-            <option key={c} value={c} className="bg-white text-slate-900 font-bold">
+            <option key={c} value={c} className="bg-white text-slate-900 font-semibold">
               {c}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Search Input */}
+      {/* 4. Search Input */}
       <div className="flex-[1.5] min-w-[220px]">
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
           <Search size={13} className="text-[#0052CC]" /> SEARCH
         </label>
         <div className="relative">
@@ -126,12 +126,14 @@ export const PartyFilterToolbar: React.FC<PartyFilterToolbarProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search Code, Name, Mobile, GST..."
-            className="input-enterprise w-full placeholder-slate-400 text-xs"
+            className="w-full h-9 pl-3 pr-8 bg-white border border-slate-300 hover:border-slate-400 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-2xs transition-colors"
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+              title="Clear search"
             >
               <X size={14} />
             </button>
@@ -139,35 +141,35 @@ export const PartyFilterToolbar: React.FC<PartyFilterToolbarProps> = ({
         </div>
       </div>
 
-      {/* Show count dropdown */}
+      {/* 5. Show count dropdown */}
       <div className="w-24">
-        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">SHOW</label>
+        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">SHOW</label>
         <select
           value={pageSize}
           onChange={(e) => setPageSize(Number(e.target.value))}
-          className="input-enterprise w-full cursor-pointer text-xs"
+          className="w-full h-9 px-3 bg-white border border-slate-300 hover:border-slate-400 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-2xs transition-colors cursor-pointer"
         >
-          <option value={25} className="bg-white text-slate-900 font-bold">25</option>
-          <option value={50} className="bg-white text-slate-900 font-bold">50</option>
-          <option value={100} className="bg-white text-slate-900 font-bold">100</option>
-          <option value={0} className="bg-white text-slate-900 font-bold">All</option>
+          <option value={25} className="bg-white text-slate-900 font-semibold">25</option>
+          <option value={50} className="bg-white text-slate-900 font-semibold">50</option>
+          <option value={100} className="bg-white text-slate-900 font-semibold">100</option>
+          <option value={0} className="bg-white text-slate-900 font-semibold">All</option>
         </select>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-end gap-2 pt-4 sm:pt-0">
+      {/* 6. Action Buttons */}
+      <div className="flex items-center gap-2 shrink-0">
         <Button
           variant="secondary"
-          size="md"
+          size="icon"
           onClick={onResetFilters}
           title="Reset Filters"
-          icon={<RotateCcw size={14} className="text-slate-500" />}
+          icon={<RotateCcw size={14} className="text-slate-600" />}
         />
 
         {isSuperAdmin && (
           <Button
             variant="secondary"
-            size="md"
+            size="icon"
             onClick={onSync}
             disabled={isSyncing}
             isLoading={isSyncing}
@@ -185,7 +187,7 @@ export const PartyFilterToolbar: React.FC<PartyFilterToolbarProps> = ({
           title="Export filtered records with rich formatting to Excel"
           icon={<Download size={14} className="text-slate-600" />}
         >
-          <span className="hidden sm:inline">Export</span>
+          <span className="hidden sm:inline font-bold">Export</span>
         </Button>
 
         {isSuperAdmin && (
@@ -195,7 +197,7 @@ export const PartyFilterToolbar: React.FC<PartyFilterToolbarProps> = ({
             onClick={onAddParty}
             icon={<Plus size={14} />}
           >
-            Party
+            <span className="font-bold">Party</span>
           </Button>
         )}
       </div>
