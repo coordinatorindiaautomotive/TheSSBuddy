@@ -206,8 +206,8 @@ function UploadOutstandingModal({
 // ─── MAIN ADVANCED OUTSTANDING REGISTRY COMPONENT ─────────────────────────────
 export default function AdvancedOutstandingRegistryPage() {
   const { isBranchUser, userBranch, isSuperAdmin, user } = useAuth();
-  const [selectedMonth, setSelectedMonth] = useState(8);
-  const [selectedYear, setSelectedYear] = useState(2026);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [branchFilter, setBranchFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [minOutstanding, setMinOutstanding] = useState('');
@@ -389,39 +389,37 @@ export default function AdvancedOutstandingRegistryPage() {
         {/* 2. ADVANCED TOOLBAR & FILTERS */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/90 flex flex-wrap items-center justify-between gap-3 text-slate-800">
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Period Selector — SuperAdmin Only */}
-            {isSuperAdmin && (
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
-                <Calendar size={14} className="text-[#003366] shrink-0" />
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
-                >
-                  <option value={1}>Jan</option>
-                  <option value={2}>Feb</option>
-                  <option value={3}>Mar</option>
-                  <option value={4}>Apr</option>
-                  <option value={5}>May</option>
-                  <option value={6}>Jun</option>
-                  <option value={7}>Jul</option>
-                  <option value={8}>Aug</option>
-                  <option value={9}>Sep</option>
-                  <option value={10}>Oct</option>
-                  <option value={11}>Nov</option>
-                  <option value={12}>Dec</option>
-                </select>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
-                >
-                  <option value={2026}>2026</option>
-                  <option value={2025}>2025</option>
-                  <option value={2024}>2024</option>
-                </select>
-              </div>
-            )}
+            {/* Period Selector */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs shadow-2xs">
+              <Calendar size={14} className="text-[#003366] shrink-0" />
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
+              >
+                <option value={1}>Jan</option>
+                <option value={2}>Feb</option>
+                <option value={3}>Mar</option>
+                <option value={4}>Apr</option>
+                <option value={5}>May</option>
+                <option value={6}>Jun</option>
+                <option value={7}>Jul</option>
+                <option value={8}>Aug</option>
+                <option value={9}>Sep</option>
+                <option value={10}>Oct</option>
+                <option value={11}>Nov</option>
+                <option value={12}>Dec</option>
+              </select>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
+              >
+                <option value={2026}>2026</option>
+                <option value={2025}>2025</option>
+                <option value={2024}>2024</option>
+              </select>
+            </div>
 
             {/* Branch Filter */}
             {isSuperAdmin ? (

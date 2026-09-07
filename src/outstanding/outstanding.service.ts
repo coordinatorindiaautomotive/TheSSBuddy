@@ -46,17 +46,30 @@ export class OutstandingService {
       orderBy: { partyCode: 'asc' },
     });
 
-    // Pair items with branch names
+    // Pair items with branch names and official party master names
     const branchCodes = Array.from(new Set(items.map(it => it.branchCode)));
-    const branches = await this.prisma.branch.findMany({
-      where: { code: { in: branchCodes } },
-      select: { code: true, name: true },
-    });
+    const partyCodes = Array.from(new Set(items.map(it => (it.partyCode || '').toUpperCase())));
+
+    const [branches, parties] = await Promise.all([
+      this.prisma.branch.findMany({
+        where: { code: { in: branchCodes } },
+        select: { code: true, name: true },
+      }),
+      this.prisma.party.findMany({
+        where: { code: { in: partyCodes } },
+        select: { code: true, name: true },
+      }),
+    ]);
+
     const branchMap = new Map<string, string>();
     branches.forEach(b => branchMap.set(b.code, b.name));
 
+    const partyMap = new Map<string, string>();
+    parties.forEach(p => partyMap.set(p.code.toUpperCase(), p.name));
+
     return items.map(it => ({
       ...it,
+      partyName: partyMap.get((it.partyCode || '').toUpperCase()) || it.partyName,
       branchName: branchMap.get(it.branchCode) || it.branchCode,
     }));
   }
@@ -230,13 +243,16 @@ export class OutstandingService {
       const parsed50To80 = col50To80 > 0 ? parseCellDecimal(row.getCell(col50To80)) : 0;
       const parsedMore80 = colMore80 > 0 ? parseCellDecimal(row.getCell(colMore80)) : 0;
 
+      const sumAging = parsedLess7 + parsed7To14 + parsed14To21 + parsed21To28 + parsed28To35 + parsed35To50 + parsed50To80 + parsedMore80;
+      const effectiveOutstanding = (parsedOutstanding === 0 && sumAging > 0) ? sumAging : parsedOutstanding;
+
       const key = currentParty.code.toLowerCase();
       if (activeOutstandings.has(key)) {
         const existing = activeOutstandings.get(key);
         const updated = await this.prisma.dealerOutstanding.update({
           where: { id: existing.id },
           data: {
-            outstanding: existing.outstanding + parsedOutstanding,
+            outstanding: existing.outstanding + effectiveOutstanding,
             outstandingLess7Days: (existing.outstandingLess7Days || 0) + parsedLess7,
             outstanding7To14Days: (existing.outstanding7To14Days || 0) + parsed7To14,
             outstanding14To21Days: (existing.outstanding14To21Days || 0) + parsed14To21,
@@ -250,7 +266,7 @@ export class OutstandingService {
         });
         activeOutstandings.set(key, updated);
         updatedCount++;
-        uploadLogs.push(`[Excel] Dealer: ${currentParty.code} | Added: ₹${parsedOutstanding.toLocaleString()} | Total: ₹${updated.outstanding.toLocaleString()}`);
+        uploadLogs.push(`[Excel] Dealer: ${currentParty.code} | Added: ₹${effectiveOutstanding.toLocaleString()} | Total: ₹${updated.outstanding.toLocaleString()}`);
       } else {
         const created = await this.prisma.dealerOutstanding.create({
           data: {
@@ -260,7 +276,7 @@ export class OutstandingService {
             partyCode: currentParty.code,
             partyName: currentParty.name,
             branchCode: currentParty.primaryBranchCode || 'MUMBAI-01',
-            outstanding: parsedOutstanding,
+            outstanding: effectiveOutstanding,
             outstandingLess7Days: parsedLess7,
             outstanding7To14Days: parsed7To14,
             outstanding14To21Days: parsed14To21,
@@ -275,7 +291,7 @@ export class OutstandingService {
         });
         activeOutstandings.set(key, created);
         updatedCount++;
-        uploadLogs.push(`[Excel] Dealer: ${currentParty.code} | Set Outstanding: ₹${parsedOutstanding.toLocaleString()}`);
+        uploadLogs.push(`[Excel] Dealer: ${currentParty.code} | Set Outstanding: ₹${effectiveOutstanding.toLocaleString()}`);
       }
 
       // Upsert DealerMonthlyPerformance outstandingAmount for dashboard reporting
