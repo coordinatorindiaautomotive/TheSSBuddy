@@ -93,26 +93,26 @@ export const QuickPreviewModal: React.FC<QuickPreviewModalProps> = ({ party, onC
           </div>
 
           <div className="space-y-3 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Bank Master Setup</h3>
+            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Bank Details</h3>
             <div className="flex justify-between py-1.5 border-b border-slate-200/60">
-              <span className="text-slate-500 font-medium">Bank Name:</span>
-              <span className="font-semibold text-slate-800">{party.bankName || '-'}</span>
-            </div>
-            <div className="flex justify-between py-1.5 border-b border-slate-200/60">
-              <span className="text-slate-500 font-medium">Branch Name:</span>
-              <span className="font-semibold text-slate-800">{party.branchName || party.bankBranch || '-'}</span>
+              <span className="text-slate-500 font-medium">Account Holder:</span>
+              <span className="font-semibold text-slate-800">{party.accountHolder && party.accountHolder !== 'Pending Setup' ? party.accountHolder : '-'}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-slate-200/60">
               <span className="text-slate-500 font-medium">Account No:</span>
-              <span className="font-mono text-slate-800 font-bold">{party.accountNumber && party.accountNumber !== '-' ? party.accountNumber : '⚠️ Pending Setup'}</span>
+              <span className="font-mono text-slate-900 font-bold">{party.accountNumber && party.accountNumber !== '-' ? party.accountNumber : '⚠️ Pending Setup'}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-slate-200/60">
               <span className="text-slate-500 font-medium">IFSC Code:</span>
               <span className="font-mono text-slate-800 text-xs font-bold text-emerald-700">{party.ifscCode || '-'}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-slate-200/60">
-              <span className="text-slate-500 font-medium">Account Holder:</span>
-              <span className="font-semibold text-slate-800">{party.accountHolder || '-'}</span>
+              <span className="text-slate-500 font-medium">Bank:</span>
+              <span className="font-semibold text-slate-800">{party.bankName || '-'}</span>
+            </div>
+            <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+              <span className="text-slate-500 font-medium">Branch:</span>
+              <span className="font-semibold text-slate-800">{party.branchName || party.bankBranch || '-'}</span>
             </div>
             <div className="flex justify-between py-1.5 border-b border-slate-200/60">
               <span className="text-slate-500 font-medium">Total Sales (YTD):</span>

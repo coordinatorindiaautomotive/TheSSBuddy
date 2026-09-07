@@ -206,7 +206,9 @@ export const PartyTable: React.FC<PartyTableProps> = memo(({
                 const accHolder = p.accountHolder && p.accountHolder !== '-' ? p.accountHolder : '-';
                 const bankAcc = p.accountNumber && p.accountNumber !== '-' ? p.accountNumber : 'Pending Setup';
                 const ifsc = p.ifscCode && p.ifscCode !== '-' ? p.ifscCode : '-';
-                const bankBranch = p.bankBranch && p.bankBranch !== '-' ? p.bankBranch : '-';
+                const bankName = p.bankName && p.bankName !== '-' ? p.bankName : '';
+                const branchName = (p.branchName && p.branchName !== '-') ? p.branchName : (p.bankBranch && p.bankBranch !== '-') ? p.bankBranch : '';
+                const bankBranch = bankName && branchName ? `${bankName} (${branchName})` : bankName || branchName || '-';
                 const location = p.baseLoc || p.primaryBranchCode || 'ALWAR-SPR';
                 const isFixed = rule.toLowerCase().includes('fixed');
 

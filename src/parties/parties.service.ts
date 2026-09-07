@@ -992,7 +992,46 @@ export class PartiesService {
             },
           });
         }
-        this.logger.log(`[Party Master] Bank update notification sent to ${adminUsers.length} admin(s) for party ${consPartyCode}`);
+
+        // ── ALSO SYNC TO RELATIONAL PARTY_BANK_DETAILS TABLE ──
+        try {
+          const matchedParty = await this.prisma.party.findUnique({
+            where: { code: consPartyCode },
+          });
+          if (matchedParty) {
+            const existingBank = await this.prisma.partyBankDetail.findFirst({
+              where: { partyId: matchedParty.id, isActive: true },
+            });
+            if (existingBank) {
+              await this.prisma.partyBankDetail.update({
+                where: { id: existingBank.id },
+                data: {
+                  bankName: newBankName !== '-' ? newBankName : existingBank.bankName,
+                  branchName: dto.bankBranch ?? record.bankBranch ?? existingBank.branchName,
+                  accountNumber: newAccNum !== '-' ? newAccNum : existingBank.accountNumber,
+                  ifscCode: newIfsc !== '-' ? newIfsc : existingBank.ifscCode,
+                  accountHolder: newAccHolder !== '-' ? newAccHolder : existingBank.accountHolder,
+                  updatedBy: dto.updatedBy,
+                },
+              });
+            } else if (dto.accountNumber && dto.accountNumber !== '-') {
+              await this.prisma.partyBankDetail.create({
+                data: {
+                  partyId: matchedParty.id,
+                  bankName: newBankName !== '-' ? newBankName : 'Bank',
+                  branchName: dto.bankBranch ?? record.bankBranch,
+                  accountNumber: newAccNum,
+                  ifscCode: newIfsc !== '-' ? newIfsc : undefined,
+                  accountHolder: newAccHolder !== '-' ? newAccHolder : partyName,
+                  isDefault: true,
+                  createdBy: dto.updatedBy,
+                },
+              });
+            }
+          }
+        } catch (syncErr: any) {
+          this.logger.warn(`[Party Master] Non-fatal: could not sync to party_bank_details: ${syncErr.message}`);
+        }
       } catch (err: any) {
         this.logger.error(`[Party Master] Failed to send bank update notification: ${err.message}`);
       }

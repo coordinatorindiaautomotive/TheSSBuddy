@@ -1,7 +1,7 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Edit, CreditCard, Building2, Link2, Sparkles, Loader2 } from 'lucide-react';
+import { Edit, CreditCard, Building2, Link2, Sparkles, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import { Modal } from '@/components/ui';
@@ -28,10 +28,16 @@ export const EditPartyModal: React.FC<EditPartyModalProps> = ({
   const isFixedInitial = initialRule.toLowerCase().includes('fixed');
   const extractedFixedVal = isFixedInitial ? (initialRule.match(/\d+(\.\d+)?/)?.[0] || '8.0') : '8.0';
 
+  const initialAccNumber = party?.accountNumber && party?.accountNumber !== '-' ? party.accountNumber : '';
+
   const [ruleType, setRuleType] = useState<string>(isFixedInitial ? 'Fixed' : initialRule.includes('Custom') ? 'Custom Formula' : 'Slab-Based');
   const [fixedRate, setFixedRate] = useState<string>(extractedFixedVal);
   const [isLookingUpIfsc, setIsLookingUpIfsc] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // Bank Account & Re-Enter validation state
+  const [accNumber, setAccNumber] = useState<string>(initialAccNumber);
+  const [reAccNumber, setReAccNumber] = useState<string>(initialAccNumber);
 
   const { register, handleSubmit, setValue } = useForm({
     defaultValues: {
@@ -44,13 +50,18 @@ export const EditPartyModal: React.FC<EditPartyModalProps> = ({
       baseLoc: party?.baseLoc || party?.primaryBranchCode || 'BSE',
       bankName: party?.bankName && party?.bankName !== '-' ? party.bankName : '',
       bankBranch: party?.branchName || party?.bankBranch || '',
-      accountNumber: party?.accountNumber && party?.accountNumber !== '-' ? party.accountNumber : '',
+      accountNumber: initialAccNumber,
       ifscCode: party?.ifscCode && party?.ifscCode !== '-' ? party.ifscCode : '',
       accountHolder: party?.accountHolder && party?.accountHolder !== 'Pending Setup' ? party.accountHolder : '',
       pan: party?.pan && party?.pan !== '-' ? party.pan : '',
       gstIn: party?.gstIn || party?.gstin || '',
     }
   });
+
+  useEffect(() => {
+    setAccNumber(initialAccNumber);
+    setReAccNumber(initialAccNumber);
+  }, [initialAccNumber]);
 
   const handleIfscInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawVal = e.target.value.trim().toUpperCase();
@@ -63,7 +74,7 @@ export const EditPartyModal: React.FC<EditPartyModalProps> = ({
         if (res.data && res.data.ok) {
           if (res.data.bankName) setValue('bankName', res.data.bankName);
           if (res.data.branchName) setValue('bankBranch', res.data.branchName);
-          toast.success(`🏦 Detected: ${res.data.bankName} - ${res.data.branchName}`);
+          toast.success(`Detected: ${res.data.bankName} - ${res.data.branchName}`);
         } else {
           toast.error(res.data?.message || 'IFSC details not found');
         }
@@ -76,6 +87,15 @@ export const EditPartyModal: React.FC<EditPartyModalProps> = ({
   };
 
   const onSubmit = async (data: any) => {
+    // ── Strict Account Number & Re-enter Account Number Verification ──
+    const finalAcc = (accNumber || '').trim();
+    const finalReAcc = (reAccNumber || '').trim();
+
+    if (finalAcc && finalReAcc !== finalAcc) {
+      toast.error('Account No and Re Enter Account No do not match!');
+      return;
+    }
+
     setLoading(true);
     try {
       const code = party?.code || party?.consPartyCode;
@@ -89,7 +109,7 @@ export const EditPartyModal: React.FC<EditPartyModalProps> = ({
           gstIn: data.gstIn,
           bankName: data.bankName,
           bankBranch: data.bankBranch,
-          accountNumber: data.accountNumber,
+          accountNumber: finalAcc,
           ifscCode: data.ifscCode,
           accountHolder: data.accountHolder,
         };
@@ -112,6 +132,9 @@ export const EditPartyModal: React.FC<EditPartyModalProps> = ({
       setLoading(false);
     }
   };
+
+  const hasAccMismatch = accNumber.length > 0 && reAccNumber.length > 0 && accNumber !== reAccNumber;
+  const isAccMatched = accNumber.length > 0 && reAccNumber.length > 0 && accNumber === reAccNumber;
 
   return (
     <Modal
@@ -140,13 +163,12 @@ export const EditPartyModal: React.FC<EditPartyModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Party Name <span className="text-rose-500">*</span>
-                </label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Party Name</label>
                 <input
-                  {...register('name')}
-                  placeholder="Enter Party Name"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 text-slate-800 text-xs font-semibold bg-white"
+                  type="text"
+                  readOnly
+                  value={currentName}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 truncate cursor-default"
                 />
               </div>
 
@@ -264,20 +286,89 @@ export const EditPartyModal: React.FC<EditPartyModalProps> = ({
             <input {...register('phone')} placeholder="e.g. 9876543210" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono text-xs" />
           </div>
 
-          <div className="col-span-1 md:col-span-2 pt-2 border-t border-slate-100">
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                <CreditCard size={15} className="text-emerald-600" /> Bank Master & Settlement Details
+          {/* ══════════════════════════════════════════════════════════════════
+              BANK DETAILS (EXACTLY AS REQUESTED)
+              1. Account Holder Name
+              2. Account No
+              3. Re Enter Account No
+              4. IFSC
+              5. Bank
+              6. Branch
+             ══════════════════════════════════════════════════════════════════ */}
+          <div className="col-span-1 md:col-span-2 pt-3 border-t border-slate-200">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                <CreditCard size={15} className="text-emerald-600" /> Bank Details
               </h3>
-              <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-medium border border-emerald-200">
-                ⚡ Auto-fills on IFSC entry
+              <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-semibold border border-emerald-200">
+                ⚡ Auto-fills Bank & Branch on IFSC entry
               </span>
             </div>
           </div>
 
+          {/* 1. Account Holder Name */}
+          <div className="col-span-1 md:col-span-2">
+            <label className="block font-semibold text-slate-700 mb-1 text-xs">
+              Account Holder Name <span className="text-rose-500">*</span>
+            </label>
+            <input
+              {...register('accountHolder')}
+              placeholder="Account holder name (as per passbook/cheque)"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 text-xs font-semibold text-slate-800"
+            />
+          </div>
+
+          {/* 2. Account No */}
           <div>
-            <label className="block font-semibold text-slate-700 mb-1 flex items-center justify-between">
-              <span>IFSC Code <span className="text-rose-500">*</span></span>
+            <label className="block font-semibold text-slate-700 mb-1 text-xs">
+              Account No <span className="text-rose-500">*</span>
+            </label>
+            <input
+              {...register('accountNumber')}
+              value={accNumber}
+              onChange={(e) => {
+                const val = e.target.value.trim();
+                setValue('accountNumber', val);
+                setAccNumber(val);
+              }}
+              placeholder="Enter bank account number"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono text-xs font-bold text-slate-900"
+            />
+          </div>
+
+          {/* 3. Re Enter Account No */}
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1 text-xs flex items-center justify-between">
+              <span>Re Enter Account No <span className="text-rose-500">*</span></span>
+              {isAccMatched && (
+                <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                  <CheckCircle2 size={12} /> Match
+                </span>
+              )}
+              {hasAccMismatch && (
+                <span className="text-[11px] text-rose-600 font-bold flex items-center gap-1">
+                  <AlertCircle size={12} /> Mismatch
+                </span>
+              )}
+            </label>
+            <input
+              value={reAccNumber}
+              onChange={(e) => setReAccNumber(e.target.value.trim())}
+              placeholder="Re-enter bank account number"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-1 font-mono text-xs font-bold text-slate-900 ${
+                hasAccMismatch
+                  ? 'border-rose-400 bg-rose-50/40 focus:ring-rose-500'
+                  : isAccMatched
+                  ? 'border-emerald-400 bg-emerald-50/40 focus:ring-emerald-500'
+                  : 'border-slate-300 focus:ring-blue-500'
+              }`}
+            />
+          </div>
+
+          {/* 4. IFSC */}
+          <div>
+            <label className="block font-semibold text-slate-700 mb-1 text-xs flex items-center justify-between">
+              <span>IFSC <span className="text-rose-500">*</span></span>
               {isLookingUpIfsc && (
                 <span className="text-[11px] text-blue-600 flex items-center gap-1 font-normal">
                   <Loader2 size={11} className="animate-spin" /> Looking up...
@@ -293,49 +384,46 @@ export const EditPartyModal: React.FC<EditPartyModalProps> = ({
             />
           </div>
 
+          {/* 5. Bank */}
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Bank Name</label>
+            <label className="block font-semibold text-slate-700 mb-1 text-xs">Bank</label>
             <input
               {...register('bankName')}
-              placeholder="Auto-filled from IFSC"
+              placeholder="Bank Name (e.g. State Bank of India)"
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 bg-slate-50/50 text-slate-800 font-medium text-xs"
             />
           </div>
 
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">Branch Name</label>
+          {/* 6. Branch */}
+          <div className="col-span-1 md:col-span-2">
+            <label className="block font-semibold text-slate-700 mb-1 text-xs">Branch</label>
             <input
               {...register('bankBranch')}
-              placeholder="Auto-filled from IFSC"
+              placeholder="Branch Name (e.g. Alwar Main Branch)"
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 bg-slate-50/50 text-slate-800 font-medium text-xs"
             />
           </div>
 
+          {/* KYC Details */}
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Account Number <span className="text-rose-500">*</span></label>
-            <input {...register('accountNumber')} placeholder="Bank account number" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono text-xs font-bold" />
-          </div>
-
-          <div className="col-span-1 md:col-span-2">
-            <label className="block font-semibold text-slate-700 mb-1">Account Holder Name</label>
-            <input {...register('accountHolder')} placeholder="Account holder name (as per passbook)" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 text-xs" />
-          </div>
-
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">PAN Number</label>
+            <label className="block font-semibold text-slate-700 mb-1 text-xs">PAN Number</label>
             <input {...register('pan')} placeholder="e.g. ABCDE1234F" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 uppercase font-mono text-xs" />
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">GSTIN</label>
+            <label className="block font-semibold text-slate-700 mb-1 text-xs">GSTIN</label>
             <input {...register('gstIn')} placeholder="GST identification number" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 uppercase font-mono text-xs" />
           </div>
         </div>
 
         <div className="flex gap-2 pt-4 border-t border-slate-100">
           <button type="button" onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50">Cancel</button>
-          <button type="submit" disabled={loading} className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition disabled:opacity-60">
-            {loading ? 'Saving...' : isSuperAdmin ? 'Save Changes' : 'Save Bank & KYC Details'}
+          <button
+            type="submit"
+            disabled={loading || hasAccMismatch}
+            className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition disabled:opacity-60 cursor-pointer"
+          >
+            {loading ? 'Saving...' : isSuperAdmin ? 'Save Changes' : 'Save Bank Details'}
           </button>
         </div>
       </form>
