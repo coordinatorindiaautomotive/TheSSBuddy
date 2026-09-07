@@ -59,8 +59,14 @@ type SortOrder = 'asc' | 'desc';
 type StatusFilter = 'ALL' | 'ACHIEVED' | 'ON_TRACK' | 'UNDER';
 
 export default function TargetVsAchievementPage() {
-  const [fiscalYear, setFiscalYear] = useState<number>(2026);
-  const [month, setMonth] = useState<string>('Aug');
+  const [fiscalYear, setFiscalYear] = useState<number>(() => {
+    const d = new Date();
+    return d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1;
+  });
+  const [month, setMonth] = useState<string>(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[new Date().getMonth()];
+  });
   const [branchCode, setBranchCode] = useState<string>('ALL');
   const [selectedPartyTypes, setSelectedPartyTypes] = useState<string[]>(DEFAULT_PARTY_TYPES);
   const [partCategory, setPartCategory] = useState<string>('ALL');
@@ -479,42 +485,38 @@ export default function TargetVsAchievementPage() {
         {/* Top Control Toolbar */}
         <div className="bg-white text-slate-800 rounded-2xl p-3 shadow-sm relative z-30 border border-slate-200/90 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
-            {isSuperAdmin && (
-              <>
-                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs">
-                  <Calendar size={14} className="text-blue-600 shrink-0" />
-                  <span className="text-xs font-bold text-slate-600 uppercase">Period:</span>
-                  <select
-                    value={month}
-                    onChange={(e) => {
-                      setMonth(e.target.value);
-                      setPage(1);
-                    }}
-                    className="bg-transparent text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
-                  >
-                    {['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'].map((m) => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs">
+              <Calendar size={14} className="text-blue-600 shrink-0" />
+              <span className="text-xs font-bold text-slate-600 uppercase">Period:</span>
+              <select
+                value={month}
+                onChange={(e) => {
+                  setMonth(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-transparent text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
+              >
+                {['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'].map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
 
-                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs">
-                  <span className="text-xs font-bold text-slate-600 uppercase">FY:</span>
-                  <select
-                    value={fiscalYear}
-                    onChange={(e) => {
-                      setFiscalYear(Number(e.target.value));
-                      setPage(1);
-                    }}
-                    className="bg-transparent text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
-                  >
-                    <option value={2026}>FY 2026</option>
-                    <option value={2025}>FY 2025</option>
-                    <option value={2024}>FY 2024</option>
-                  </select>
-                </div>
-              </>
-            )}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs">
+              <span className="text-xs font-bold text-slate-600 uppercase">FY:</span>
+              <select
+                value={fiscalYear}
+                onChange={(e) => {
+                  setFiscalYear(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="bg-transparent text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
+              >
+                <option value={2026}>FY 2026</option>
+                <option value={2025}>FY 2025</option>
+                <option value={2024}>FY 2024</option>
+              </select>
+            </div>
 
             <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs">
               <Building2 size={14} className="text-blue-600 shrink-0" />

@@ -47,10 +47,9 @@ function IncentiveGovernorContent() {
     { m: 5, y: 2026, label: 'May 2026', hasData: true },
   ]);
 
-  // Selected periods & controls
-  const [selectedPeriodKeys, setSelectedPeriodKeys] = useState<string[]>(['6-2026']);
-  const [selectedMonth, setSelectedMonth] = useState<number>(6);
-  const [selectedYear, setSelectedYear] = useState<number>(2026);
+  const [selectedPeriodKeys, setSelectedPeriodKeys] = useState<string[]>([`${new Date().getMonth() + 1}-${new Date().getFullYear()}`]);
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [processingMethod, setProcessingMethod] = useState<'DYNAMIC' | 'PRE_CALCULATED'>('DYNAMIC');
 
   // Governor rules state

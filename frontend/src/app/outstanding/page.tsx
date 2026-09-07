@@ -38,8 +38,8 @@ function UploadOutstandingModal({
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [rewrite, setRewrite] = useState(true);
-  const [month, setMonth] = useState(8);
-  const [year, setYear] = useState(2026);
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [year, setYear] = useState(new Date().getFullYear());
   const [uploading, setUploading] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
 
