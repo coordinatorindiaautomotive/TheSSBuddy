@@ -103,20 +103,20 @@ export const EditPartyModal: React.FC<EditPartyModalProps> = ({
         const computedIncentiveRule = ruleType === 'Fixed' ? `Fixed (${fixedRate || '8.0'}%)` : ruleType;
 
         const payload: any = {
-          salesExecutive: data.salesExecutive,
-          phone: data.phone,
-          pan: data.pan,
-          gstIn: data.gstIn,
-          bankName: data.bankName,
-          bankBranch: data.bankBranch,
+          salesExecutive: data.salesExecutive ? data.salesExecutive.trim().toUpperCase() : undefined,
+          phone: data.phone ? data.phone.trim() : undefined,
+          pan: data.pan ? data.pan.trim().toUpperCase() : undefined,
+          gstIn: data.gstIn ? data.gstIn.trim().toUpperCase() : undefined,
+          bankName: data.bankName ? data.bankName.trim().toUpperCase() : undefined,
+          bankBranch: data.bankBranch ? data.bankBranch.trim().toUpperCase() : undefined,
           accountNumber: finalAcc,
-          ifscCode: data.ifscCode,
-          accountHolder: data.accountHolder,
+          ifscCode: data.ifscCode ? data.ifscCode.trim().toUpperCase() : undefined,
+          accountHolder: data.accountHolder ? data.accountHolder.trim().toUpperCase() : undefined,
         };
 
         if (isSuperAdmin) {
-          payload.originalCode = data.originalCode?.trim() || code;
-          if (data.baseLoc) payload.baseLoc = data.baseLoc;
+          payload.originalCode = data.originalCode?.trim() ? data.originalCode.trim().toUpperCase() : code.toUpperCase();
+          if (data.baseLoc) payload.baseLoc = data.baseLoc.toUpperCase();
           payload.incentiveRule = computedIncentiveRule;
           payload.incentiveType = computedIncentiveRule;
         }
