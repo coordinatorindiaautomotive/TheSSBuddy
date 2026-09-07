@@ -353,14 +353,15 @@ export default function BranchesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
-  const { data: branches, error, mutate, isLoading } = useSWR('/branches', fetcher, {
+  const { data: branchesData, error, mutate, isLoading } = useSWR('/branches?pageSize=100', fetcher, {
     revalidateOnFocus: false,
   });
 
   const branchList = useMemo(() => {
-    if (!Array.isArray(branches)) return [];
-    return branches;
-  }, [branches]);
+    const raw = branchesData?.items ?? branchesData?.data ?? branchesData;
+    if (Array.isArray(raw)) return raw;
+    return [];
+  }, [branchesData]);
 
   // Distinct regions and types for filter dropdowns
   const distinctRegions = useMemo(() => {
@@ -419,7 +420,11 @@ export default function BranchesPage() {
   const activeCount = useMemo(() => branchList.filter(b => b.isActive !== false).length, [branchList]);
   const regionalOfficesCount = useMemo(() => branchList.filter(b => b.type === 'RO').length, [branchList]);
   const totalAreaSqFt = useMemo(() => {
-    return branchList.reduce((acc, b) => acc + (parseFloat(b.area) || 0), 0);
+    return branchList.reduce((acc, b) => {
+      const raw = String(b.area || '0').replace(/,/g, '');
+      const parsed = parseFloat(raw) || 0;
+      return acc + parsed;
+    }, 0);
   }, [branchList]);
 
   // Delete / Deactivate Branch
