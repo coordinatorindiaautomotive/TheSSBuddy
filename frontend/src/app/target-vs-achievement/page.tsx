@@ -559,6 +559,26 @@ export default function TargetVsAchievementPage() {
               </button>
             </div>
 
+            {/* Part Category Filter */}
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs">
+              <Layers size={14} className="text-blue-600 shrink-0" />
+              <span className="text-xs font-bold text-slate-600 uppercase">Cat:</span>
+              <select
+                value={partCategory}
+                onChange={(e) => {
+                  setPartCategory(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-transparent text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">All Categories (M + AA + AG + T)</option>
+                <option value="M">M — Maruti Genuine Parts (MGP)</option>
+                <option value="AA">AA — Maruti Genuine Accessories (MGA)</option>
+                <option value="AG">AG — Maruti Genuine Oil & Lubes (MGO)</option>
+                <option value="T">T — Tyres, Battery & Tools</option>
+              </select>
+            </div>
+
             {/* Search Input */}
             <div className="relative w-56">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -824,7 +844,19 @@ export default function TargetVsAchievementPage() {
                         </td>
 
                         <td className="px-3 py-2.5 text-center border-r border-slate-200 font-mono font-bold text-xs whitespace-nowrap">
-                          <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200 text-xs">
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs font-bold border ${
+                              r.partCategoryCode === 'M'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : r.partCategoryCode === 'AA'
+                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                : r.partCategoryCode === 'AG'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                : r.partCategoryCode === 'T'
+                                ? 'bg-cyan-50 text-cyan-800 border-cyan-200'
+                                : 'bg-purple-50 text-purple-800 border-purple-200'
+                            }`}
+                          >
                             {r.partCategoryCode || 'ALL'}
                           </span>
                         </td>
