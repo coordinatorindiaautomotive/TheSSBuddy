@@ -54,7 +54,45 @@ const ALL_POSSIBLE_PARTY_TYPES = [
   'FINANCIER',
 ];
 
-type SortField = 'rank' | 'currentSales' | 'finalTarget' | 'achievementPercent' | 'ytdSales' | 'yoyGrowthPercent' | 'partyName' | 'partyCode' | 'originalCode' | 'branchCode' | 'weightedBase';
+type SortField =
+  | 'rank'
+  | 'currentSales'
+  | 'finalTarget'
+  | 'achievementPercent'
+  | 'ytdSales'
+  | 'yoyGrowthPercent'
+  | 'partyName'
+  | 'partyCode'
+  | 'originalCode'
+  | 'branchCode'
+  | 'weightedBase'
+  | 'recommendedTarget'
+  | 'uniquePartlines'
+  | 'lmSales'
+  | 'lySameMonthSales'
+  | 'mtdAug25'
+  | 'mtdAug26'
+  | 'mtdSep26'
+  | 'mtdAug25Growth'
+  | 'mtdAug26Growth'
+  | 'mtdSep26Growth'
+  | 'qtdQ2LyTotal'
+  | 'qtdQ1CurTotal'
+  | 'qtdQ2Cur'
+  | 'qtdAug25Growth'
+  | 'qtdAug26Growth'
+  | 'qtdSep26Growth'
+  | 'ytdLy'
+  | 'ytdCur'
+  | 'ytdGrowth'
+  | 'fy1Total'
+  | 'fy2Total'
+  | 'fy3Total'
+  | 'fy24Growth'
+  | 'fy25Growth'
+  | 'status';
+
+type ViewMode = 'standard' | 'mtd' | 'qtd' | 'ytd' | 'matrix';
 type SortOrder = 'asc' | 'desc';
 type StatusFilter = 'ALL' | 'ACHIEVED' | 'ON_TRACK' | 'UNDER';
 
@@ -71,6 +109,7 @@ export default function TargetVsAchievementPage() {
   const [selectedPartyTypes, setSelectedPartyTypes] = useState<string[]>(DEFAULT_PARTY_TYPES);
   const [partCategory, setPartCategory] = useState<string>('ALL');
   const [search, setSearch] = useState<string>('');
+  const [viewMode, setViewMode] = useState<ViewMode>('standard');
   
   const [pageSize, setPageSize] = useState<number>(100);
   const [page, setPage] = useState<number>(1);
@@ -152,12 +191,14 @@ export default function TargetVsAchievementPage() {
 
   // Dynamic Month & Year Period Labels
   const MONTH_ORDER = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
-  const monthIdx = MONTH_ORDER.indexOf(month) >= 0 ? MONTH_ORDER.indexOf(month) : 4;
-  const prevMonthName = monthIdx === 0 ? 'Mar' : MONTH_ORDER[monthIdx - 1];
+  const monthIdx = MONTH_ORDER.indexOf(month) >= 0 ? MONTH_ORDER.indexOf(month) : 5;
+  const prevMonth = monthIdx === 0 ? 'Mar' : MONTH_ORDER[monthIdx - 1];
+  const prevMonthName = prevMonth;
   const prevMonthYear = monthIdx === 0 ? fiscalYear - 1 : fiscalYear;
 
   const shortYear = String(fiscalYear).slice(-2);
   const prevShortYear = String(fiscalYear - 1).slice(-2);
+  const twoPrevShortYear = String(fiscalYear - 2).slice(-2);
   const prevMonthShortYear = String(prevMonthYear).slice(-2);
 
   const currentPeriodLabel = `${month}'${shortYear}`;
@@ -176,6 +217,7 @@ export default function TargetVsAchievementPage() {
     partyType: queryPartyTypes,
     partCategoryCode: partCategory,
     pageSize: '5000',
+    view: viewMode === 'standard' ? 'standard' : 'matrix',
   }).toString();
 
   const { data, mutate, isLoading } = useSWR(
@@ -187,7 +229,28 @@ export default function TargetVsAchievementPage() {
   const branchesList = dashboardData?.filters?.branches || [];
 
   const rawRows: any[] = useMemo(() => data?.items || data?.data || [], [data]);
-  const summary = data?.summary || {};
+  
+  // Robust Summary Computation ensuring non-zero Budgeted Targets
+  const summary = useMemo(() => {
+    const base = data?.summary || {};
+    const sumFinalTarget = rawRows.reduce((s, r) => s + (Number(r.finalTarget) || 0), 0);
+    const sumCurrentSales = rawRows.reduce((s, r) => s + (Number(r.currentSales || r.mtdSep26 || r.curSales) || 0), 0);
+    const sumLastMonth = rawRows.reduce((s, r) => s + (Number(r.lastMonthSales || r.lmSales) || 0), 0);
+    const sumYTD = rawRows.reduce((s, r) => s + (Number(r.ytdSales || r.ytdCur) || 0), 0);
+    const totalTarget = base.totalFinalTarget || base.totalTarget || sumFinalTarget;
+    const totalSales = base.totalCurrentSales || sumCurrentSales;
+    const overallAch = totalTarget > 0 ? Math.round((totalSales / totalTarget) * 1000) / 10 : 0;
+    return {
+      ...base,
+      totalFinalTarget: totalTarget,
+      totalTarget,
+      totalCurrentSales: totalSales,
+      totalLastMonthSales: base.totalLastMonthSales || sumLastMonth,
+      totalYTDSales: base.totalYTDSales || sumYTD,
+      overallAchievementPercent: base.overallAchievementPercent || overallAch,
+    };
+  }, [data, rawRows]);
+
   const guardrail = summary?.guardrail || {};
   const isLocked = summary?.targetStatus === 'LOCKED';
 
@@ -720,12 +783,76 @@ export default function TargetVsAchievementPage() {
           />
         </div>
 
+        {/* View Mode Selector Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-white rounded-2xl p-2 border border-slate-200/90 shadow-2xs">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => setViewMode('standard')}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'standard' ? 'bg-[#003366] text-white shadow-xs' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Target size={13} />
+              <span>Target & Fulfillment</span>
+            </button>
+            <button
+              onClick={() => setViewMode('mtd')}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'mtd' ? 'bg-sky-700 text-white shadow-xs' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <BarChart3 size={13} />
+              <span>MTD Performance & Growth</span>
+            </button>
+            <button
+              onClick={() => setViewMode('qtd')}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'qtd' ? 'bg-indigo-700 text-white shadow-xs' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <TrendingUp size={13} />
+              <span>QTD Quarterly Growth</span>
+            </button>
+            <button
+              onClick={() => setViewMode('ytd')}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'ytd' ? 'bg-purple-700 text-white shadow-xs' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Calendar size={13} />
+              <span>YTD & 3-Year Totals</span>
+            </button>
+            <button
+              onClick={() => setViewMode('matrix')}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'matrix' ? 'bg-emerald-700 text-white shadow-xs' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Layers size={13} />
+              <span>Comprehensive Multi-Period Matrix (35 Cols)</span>
+            </button>
+          </div>
+
+          <div className="text-xs font-semibold text-slate-500 pr-2">
+            Showing <strong className="text-slate-900">{paginatedRows.length}</strong> of <strong className="text-slate-900">{totalCount}</strong> dealers
+          </div>
+        </div>
+
         {/* Table Container */}
         <div className="bg-white rounded-2xl shadow-md border border-slate-200/90 relative overflow-hidden">
-          <div className="w-full max-h-[72vh] overflow-y-auto pb-20">
+          <div className="w-full max-h-[72vh] overflow-x-auto overflow-y-auto pb-20">
             <table className="w-full text-xs text-center align-middle border-collapse">
-              <thead className="sticky top-0 z-20 bg-[#003366] text-white select-none shadow-sm border-b-[2.5px] border-[#ED1C24]">
-                <tr className="border-b border-slate-800">
+              <thead className="sticky top-0 z-20 select-none shadow-sm border-b-[2.5px] border-[#ED1C24]">
+                {viewMode === 'matrix' && (
+                  <tr className="text-white text-[11px] font-bold uppercase tracking-wider">
+                    <th colSpan={9} className="py-2 bg-[#003366] border-r border-slate-700 text-center">1. Dealer Identification</th>
+                    <th colSpan={7} className="py-2 bg-sky-800 border-r border-slate-700 text-center">2. MTD Performance & Growth</th>
+                    <th colSpan={6} className="py-2 bg-indigo-800 border-r border-slate-700 text-center">3. QTD Performance & Growth</th>
+                    <th colSpan={8} className="py-2 bg-purple-800 border-r border-slate-700 text-center">4. YTD & 3-Year Totals</th>
+                    <th colSpan={5} className="py-2 bg-emerald-800 text-center">5. Target & Fulfillment</th>
+                  </tr>
+                )}
+                <tr className="bg-[#003366] text-white border-b border-slate-800">
                   <th onClick={() => handleSort('branchCode')} className="px-3 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition">
                     <div className="flex items-center justify-center gap-1">
                       <span>LOC</span>
@@ -747,58 +874,150 @@ export default function TargetVsAchievementPage() {
                   </th>
                   <th className="px-3.5 py-3 border-r border-slate-700/80 text-center">TYPE</th>
                   <th className="px-3 py-3 border-r border-slate-700/80 text-center">CAT</th>
+                  <th onClick={() => handleSort('uniquePartlines')} className="px-3 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <span>UNIQUE PARTLINE</span>
+                      <ArrowUpDown size={11} className="opacity-60" />
+                    </div>
+                  </th>
 
-                  {showTargetCols && (
-                    <th onClick={() => handleSort('finalTarget')} className="px-3.5 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <span>{currentPeriodLabel} TARGET</span>
-                        <ArrowUpDown size={11} className="opacity-60" />
-                      </div>
-                    </th>
+                  {/* Standard Mode Columns */}
+                  {viewMode === 'standard' && (
+                    <>
+                      {showTargetCols && (
+                        <th onClick={() => handleSort('finalTarget')} className="px-3.5 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <span>{currentPeriodLabel} TARGET</span>
+                            <ArrowUpDown size={11} className="opacity-60" />
+                          </div>
+                        </th>
+                      )}
+                      <th onClick={() => handleSort('currentSales')} className="px-3.5 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition text-center text-emerald-300">
+                        <div className="flex items-center justify-center gap-1">
+                          <span>{currentPeriodLabel} SALES</span>
+                          <ArrowUpDown size={11} className="opacity-60 text-emerald-200" />
+                        </div>
+                      </th>
+                      <th onClick={() => handleSort('achievementPercent')} className="px-3.5 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <span>ACH %</span>
+                          <ArrowUpDown size={11} className="opacity-60" />
+                        </div>
+                      </th>
+                      <th className="px-3.5 py-3 border-r border-slate-700/80 text-center">{prevPeriodLabel} SALES</th>
+                      <th onClick={() => handleSort('ytdSales')} className="px-3.5 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <span>{ytdLabel}</span>
+                          <ArrowUpDown size={11} className="opacity-60" />
+                        </div>
+                      </th>
+                      <th onClick={() => handleSort('yoyGrowthPercent')} className="px-3.5 py-3 text-center cursor-pointer hover:bg-white/10 transition">
+                        <div className="flex items-center justify-center gap-1">
+                          <span>YOY %</span>
+                          <ArrowUpDown size={11} className="opacity-60" />
+                        </div>
+                      </th>
+                    </>
                   )}
 
-                  <th onClick={() => handleSort('currentSales')} className="px-3.5 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition text-center text-emerald-300">
-                    <div className="flex items-center justify-center gap-1">
-                      <span>{currentPeriodLabel} SALES</span>
-                      <ArrowUpDown size={11} className="opacity-60 text-emerald-200" />
-                    </div>
-                  </th>
+                  {/* MTD Mode Columns */}
+                  {viewMode === 'mtd' && (
+                    <>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-sky-900/60 text-right">MTD @ {prevMonth}'{prevShortYear}</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-sky-900/60 text-right">LY {month}'{prevShortYear} Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-sky-900/60 text-right">LM {prevMonth}'{prevMonthShortYear} Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-sky-900/60 text-right text-emerald-300 font-bold">MTD @ {month}'{shortYear}</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-sky-950 text-center">MTD @ {prevMonth}'{prevShortYear} Gr%</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-sky-950 text-center">MTD @ {prevMonth}'{prevMonthShortYear} Gr%</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-sky-950 text-center">MTD @ {month}'{shortYear} Gr%</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 text-right">{month}'{shortYear} Target</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 text-center">Ach %</th>
+                      <th className="px-3 py-3 text-center">Status</th>
+                    </>
+                  )}
 
-                  <th onClick={() => handleSort('achievementPercent')} className="px-3.5 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <span>ACH %</span>
-                      <ArrowUpDown size={11} className="opacity-60" />
-                    </div>
-                  </th>
+                  {/* QTD Mode Columns */}
+                  {viewMode === 'qtd' && (
+                    <>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-indigo-900/60 text-right">QTD LY Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-indigo-900/60 text-right">QTD Prev Qtr Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-indigo-900/60 text-right text-emerald-300 font-bold">QTD Current Qtr</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-indigo-950 text-center">QTD Growth 1%</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-indigo-950 text-center">QTD Growth 2%</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-indigo-950 text-center">QTD Growth 3%</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 text-right">{month}'{shortYear} Target</th>
+                      <th className="px-3 py-3 text-center">Ach %</th>
+                    </>
+                  )}
 
-                  <th className="px-3.5 py-3 border-r border-slate-700/80 text-center">{prevPeriodLabel} SALES</th>
-                  <th onClick={() => handleSort('ytdSales')} className="px-3.5 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <span>{ytdLabel}</span>
-                      <ArrowUpDown size={11} className="opacity-60" />
-                    </div>
-                  </th>
+                  {/* YTD Mode Columns */}
+                  {viewMode === 'ytd' && (
+                    <>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-900/60 text-right">YTD @ FY{twoPrevShortYear}-{prevShortYear}</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-900/60 text-right text-emerald-300 font-bold">YTD @ FY{prevShortYear}-{shortYear}</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-950 text-center">YTD Growth%</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-900/60 text-right">FY {fiscalYear - 2} Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-900/60 text-right">FY {fiscalYear - 1} Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-900/60 text-right">FY {fiscalYear} Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-950 text-center">FY{twoPrevShortYear}-{prevShortYear} Gr%</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-950 text-center">FY{prevShortYear}-{shortYear} Gr%</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 text-right">{month}'{shortYear} Target</th>
+                      <th className="px-3 py-3 text-center">Ach %</th>
+                    </>
+                  )}
 
-                  <th onClick={() => handleSort('yoyGrowthPercent')} className="px-3.5 py-3 text-center cursor-pointer hover:bg-white/10 transition">
-                    <div className="flex items-center justify-center gap-1">
-                      <span>YOY %</span>
-                      <ArrowUpDown size={11} className="opacity-60" />
-                    </div>
-                  </th>
+                  {/* Matrix Mode Columns (Full 35 Cols) */}
+                  {viewMode === 'matrix' && (
+                    <>
+                      {/* MTD (10-16) */}
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-sky-900 text-right whitespace-nowrap">MTD @ {prevMonth}'{prevShortYear}</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-sky-900 text-right whitespace-nowrap">LY {month}'{prevShortYear} Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-sky-900 text-right whitespace-nowrap">LM {prevMonth}'{prevMonthShortYear} Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-sky-900 text-right whitespace-nowrap text-emerald-300 font-bold">MTD @ {month}'{shortYear}</th>
+                      <th className="px-2.5 py-3 border-r border-slate-700/80 bg-sky-950 text-center whitespace-nowrap">MTD Gr 1%</th>
+                      <th className="px-2.5 py-3 border-r border-slate-700/80 bg-sky-950 text-center whitespace-nowrap">MTD Gr 2%</th>
+                      <th className="px-2.5 py-3 border-r border-slate-700/80 bg-sky-950 text-center whitespace-nowrap">MTD Gr 3%</th>
+
+                      {/* QTD (17-22) */}
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-indigo-900 text-right whitespace-nowrap">QTD LY Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-indigo-900 text-right whitespace-nowrap">QTD Prev Qtr</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-indigo-900 text-right whitespace-nowrap text-emerald-300 font-bold">QTD Cur Qtr</th>
+                      <th className="px-2.5 py-3 border-r border-slate-700/80 bg-indigo-950 text-center whitespace-nowrap">QTD Gr 1%</th>
+                      <th className="px-2.5 py-3 border-r border-slate-700/80 bg-indigo-950 text-center whitespace-nowrap">QTD Gr 2%</th>
+                      <th className="px-2.5 py-3 border-r border-slate-700/80 bg-indigo-950 text-center whitespace-nowrap">QTD Gr 3%</th>
+
+                      {/* YTD & 3-Yr (23-30) */}
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-900 text-right whitespace-nowrap">YTD LY</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-900 text-right whitespace-nowrap text-emerald-300 font-bold">YTD Cur</th>
+                      <th className="px-2.5 py-3 border-r border-slate-700/80 bg-purple-950 text-center whitespace-nowrap">YTD Gr%</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-900 text-right whitespace-nowrap">FY {fiscalYear - 2} Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-900 text-right whitespace-nowrap">FY {fiscalYear - 1} Total</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-purple-900 text-right whitespace-nowrap">FY {fiscalYear} Total</th>
+                      <th className="px-2.5 py-3 border-r border-slate-700/80 bg-purple-950 text-center whitespace-nowrap">FY24 Gr%</th>
+                      <th className="px-2.5 py-3 border-r border-slate-700/80 bg-purple-950 text-center whitespace-nowrap">FY25 Gr%</th>
+
+                      {/* Target & Fulfillment (31-35) */}
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-emerald-900 text-right whitespace-nowrap">Weighted Base</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-emerald-900 text-right whitespace-nowrap">Rec Target</th>
+                      <th className="px-3.5 py-3 border-r border-slate-700/80 bg-emerald-900 text-right whitespace-nowrap text-amber-300 font-bold">{month}'{shortYear} Target</th>
+                      <th className="px-3 py-3 border-r border-slate-700/80 bg-emerald-950 text-center whitespace-nowrap">Ach %</th>
+                      <th className="px-3 py-3 bg-emerald-950 text-center whitespace-nowrap">Status</th>
+                    </>
+                  )}
                 </tr>
               </thead>
 
               <tbody className="bg-white font-medium text-slate-800 align-middle text-xs">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={12} className="py-16 text-center text-slate-400 border-b border-slate-200">
+                    <td colSpan={viewMode === 'matrix' ? 35 : 16} className="py-16 text-center text-slate-400 border-b border-slate-200">
                       <RefreshCw size={26} className="animate-spin text-blue-600 mx-auto mb-2" />
                       <span className="font-bold">Loading party-wise target & sales matrix...</span>
                     </td>
                   </tr>
                 ) : paginatedRows.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="py-16 text-center text-slate-400 border-b border-slate-200">
+                    <td colSpan={viewMode === 'matrix' ? 35 : 16} className="py-16 text-center text-slate-400 border-b border-slate-200">
                       <Info size={32} className="mx-auto mb-2 text-slate-300" />
                       <p className="font-bold text-slate-700">No records found for the selected criteria.</p>
                       <button
@@ -815,24 +1034,36 @@ export default function TargetVsAchievementPage() {
                   </tr>
                 ) : (
                   paginatedRows.map((r, idx) => {
-                    const ach = r.achievementPercent;
+                    const ach = r.achievementPercent || (r.finalTarget > 0 ? Math.round(((r.currentSales || r.mtdSep26 || 0) / r.finalTarget) * 1000) / 10 : 0);
+                    const curSalesVal = r.currentSales ?? r.mtdSep26 ?? 0;
+                    const finalTargetVal = r.finalTarget ?? 0;
+                    const isEven = idx % 2 === 0;
+
+                    const renderGrowthBadge = (val?: number) => {
+                      if (val === undefined || isNaN(val)) return <span className="text-slate-400">—</span>;
+                      const isPos = val >= 0;
+                      const formatted = `${isPos ? '+' : ''}${(val * 100).toFixed(1)}%`;
+                      return (
+                        <span className={`font-mono text-xs font-bold ${isPos ? 'text-emerald-700' : 'text-rose-600'}`}>
+                          {formatted}
+                        </span>
+                      );
+                    };
 
                     return (
-                      <tr key={r.id ? `${r.id}_${idx}` : `${r.partyCode}_${r.branchCode}_${idx}`} className={`hover:bg-blue-50/60 transition-colors border-b border-slate-200 ${idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}`}>
+                      <tr key={r.id ? `${r.id}_${idx}` : `${r.partyCode}_${r.branchCode}_${idx}`} className={`hover:bg-blue-50/60 transition-colors border-b border-slate-200 ${!isEven ? 'bg-slate-50/40' : 'bg-white'}`}>
+                        {/* Core Identification (1-7) */}
                         <td className="px-3 py-2.5 text-center border-r border-slate-200 font-mono font-bold text-slate-900 whitespace-nowrap">
                           {r.branchCode}
                         </td>
-
                         <td className="px-3.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">
                           <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-mono font-bold text-xs border border-blue-200">
                             {r.partyCode}
                           </span>
                         </td>
-
                         <td className="px-3.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap font-mono text-xs text-slate-600">
                           {r.originalCode || r.partyCode || '—'}
                         </td>
-
                         <td
                           onClick={() => setSelectedDealer(r)}
                           className="px-4 py-2.5 text-left border-r border-slate-200 font-semibold text-slate-900 text-xs uppercase hover:text-blue-600 cursor-pointer transition"
@@ -843,11 +1074,9 @@ export default function TargetVsAchievementPage() {
                             <ChevronRight size={13} className="text-blue-500 shrink-0" />
                           </div>
                         </td>
-
                         <td className="px-3.5 py-2.5 text-center border-r border-slate-200 text-slate-800 font-semibold whitespace-nowrap text-xs uppercase">
-                          {r.partyType}
+                          {r.partyType || 'TRADER/RETAILER'}
                         </td>
-
                         <td className="px-3 py-2.5 text-center border-r border-slate-200 font-mono font-bold text-xs whitespace-nowrap">
                           <span
                             className={`px-2 py-0.5 rounded text-xs font-bold border ${
@@ -865,54 +1094,134 @@ export default function TargetVsAchievementPage() {
                             {r.partCategoryCode || 'ALL'}
                           </span>
                         </td>
+                        <td className="px-3 py-2.5 text-center border-r border-slate-200 font-mono font-bold text-slate-900 whitespace-nowrap">
+                          {r.uniquePartlines || 0}
+                        </td>
 
-                        {showTargetCols && (
-                          <td className="px-3.5 py-2.5 text-center border-r border-slate-200 font-mono font-bold text-slate-900 bg-blue-50/40">
-                            {r.finalTarget > 0 ? (Math.round(r.finalTarget / 1000) * 1000).toLocaleString('en-IN') : '—'}
-                          </td>
+                        {/* Standard Mode Row */}
+                        {viewMode === 'standard' && (
+                          <>
+                            {showTargetCols && (
+                              <td className="px-3.5 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-slate-900 bg-blue-50/40 whitespace-nowrap">
+                                {finalTargetVal > 0 ? (Math.round(finalTargetVal / 1000) * 1000).toLocaleString('en-IN') : '—'}
+                              </td>
+                            )}
+                            <td className="px-3.5 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-emerald-800 bg-emerald-50/40 whitespace-nowrap">
+                              {curSalesVal > 0 ? Math.round(curSalesVal).toLocaleString('en-IN') : '—'}
+                            </td>
+                            <td className="px-3.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">
+                              <div className="flex flex-col items-center gap-1">
+                                <Badge variant={ach >= 100 ? 'success' : ach >= 70 ? 'warning' : 'danger'} size="sm" className="font-mono">
+                                  {ach}%
+                                </Badge>
+                                <div className="w-16 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                                  <div
+                                    className={`h-full ${ach >= 100 ? 'bg-emerald-500' : ach >= 70 ? 'bg-amber-500' : 'bg-rose-500'} rounded-full transition-all duration-300`}
+                                    style={{ width: `${Math.min(ach, 100)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-3.5 py-2.5 text-right border-r border-slate-200 font-mono text-slate-700 font-semibold whitespace-nowrap">
+                              {(r.lastMonthSales || r.lmSales) > 0 ? Math.round(r.lastMonthSales || r.lmSales).toLocaleString('en-IN') : '—'}
+                            </td>
+                            <td className="px-3.5 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-slate-900 whitespace-nowrap">
+                              {(r.ytdSales || r.ytdCur) > 0 ? Math.round(r.ytdSales || r.ytdCur).toLocaleString('en-IN') : '—'}
+                            </td>
+                            <td className="px-3.5 py-2.5 text-center whitespace-nowrap">
+                              {r.yoyGrowthPercent !== undefined && (
+                                <Badge variant={r.yoyGrowthPercent >= 0 ? 'success' : 'danger'} size="sm" className="font-mono">
+                                  {r.yoyGrowthPercent >= 0 ? '+' : ''}{r.yoyGrowthPercent}%
+                                </Badge>
+                              )}
+                            </td>
+                          </>
                         )}
 
-                        <td className="px-3.5 py-2.5 text-center border-r border-slate-200 font-mono font-bold text-emerald-800 bg-emerald-50/40">
-                          {r.currentSales > 0 ? Math.round(r.currentSales).toLocaleString('en-IN') : '—'}
-                        </td>
+                        {/* MTD Mode Row */}
+                        {viewMode === 'mtd' && (
+                          <>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.mtdAug25 || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.lySameMonthSales || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.lmSales || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-emerald-800 bg-emerald-50/40 whitespace-nowrap">{Math.round(r.mtdSep26 || curSalesVal).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.mtdAug25Growth)}</td>
+                            <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.mtdAug26Growth)}</td>
+                            <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.mtdSep26Growth)}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-slate-900 whitespace-nowrap">{Math.round(finalTargetVal).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap"><Badge variant={ach >= 100 ? 'success' : ach >= 70 ? 'warning' : 'danger'} size="sm">{ach}%</Badge></td>
+                            <td className="px-3 py-2.5 text-center whitespace-nowrap font-bold text-xs">{r.status || (ach >= 100 ? 'ACHIEVED' : ach >= 70 ? 'ON TRACK' : 'UNDER')}</td>
+                          </>
+                        )}
 
-                        <td className="px-3.5 py-2.5 text-center border-r border-slate-200">
-                          <div className="flex flex-col items-center gap-1">
-                            <Badge
-                              variant={ach >= 100 ? 'success' : ach >= 70 ? 'warning' : 'danger'}
-                              size="sm"
-                              className="font-mono"
-                            >
-                              {ach}%
-                            </Badge>
-                            <div className="w-16 bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                              <div
-                                className={`h-full ${ach >= 100 ? 'bg-emerald-500' : ach >= 70 ? 'bg-amber-500' : 'bg-rose-500'} rounded-full transition-all duration-300`}
-                                style={{ width: `${Math.min(ach, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        </td>
+                        {/* QTD Mode Row */}
+                        {viewMode === 'qtd' && (
+                          <>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.qtdQ2LyTotal || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.qtdQ1CurTotal || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-emerald-800 bg-emerald-50/40 whitespace-nowrap">{Math.round(r.qtdQ2Cur || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.qtdAug25Growth)}</td>
+                            <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.qtdAug26Growth)}</td>
+                            <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.qtdSep26Growth)}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-slate-900 whitespace-nowrap">{Math.round(finalTargetVal).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-center whitespace-nowrap"><Badge variant={ach >= 100 ? 'success' : ach >= 70 ? 'warning' : 'danger'} size="sm">{ach}%</Badge></td>
+                          </>
+                        )}
 
-                        <td className="px-3.5 py-2.5 text-center border-r border-slate-200 font-mono text-slate-700 font-semibold">
-                          {r.lastMonthSales > 0 ? Math.round(r.lastMonthSales).toLocaleString('en-IN') : '—'}
-                        </td>
+                        {/* YTD Mode Row */}
+                        {viewMode === 'ytd' && (
+                          <>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.ytdLy || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-emerald-800 bg-emerald-50/40 whitespace-nowrap">{Math.round(r.ytdCur || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.ytdGrowth)}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.fy1Total || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.fy2Total || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.fy3Total || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.fy24Growth)}</td>
+                            <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.fy25Growth)}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-slate-900 whitespace-nowrap">{Math.round(finalTargetVal).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-center whitespace-nowrap"><Badge variant={ach >= 100 ? 'success' : ach >= 70 ? 'warning' : 'danger'} size="sm">{ach}%</Badge></td>
+                          </>
+                        )}
 
-                        <td className="px-3.5 py-2.5 text-center border-r border-slate-200 font-mono font-bold text-slate-900">
-                          {r.ytdSales > 0 ? Math.round(r.ytdSales).toLocaleString('en-IN') : '—'}
-                        </td>
+                        {/* Matrix Mode Row (35 Columns) */}
+                        {viewMode === 'matrix' && (
+                          <>
+                            {/* MTD */}
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.mtdAug25 || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.lySameMonthSales || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.lmSales || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-emerald-800 bg-emerald-50/40 whitespace-nowrap">{Math.round(r.mtdSep26 || curSalesVal).toLocaleString('en-IN')}</td>
+                            <td className="px-2.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.mtdAug25Growth)}</td>
+                            <td className="px-2.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.mtdAug26Growth)}</td>
+                            <td className="px-2.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.mtdSep26Growth)}</td>
 
-                        <td className="px-3.5 py-2.5 text-center">
-                          {r.yoyGrowthPercent !== undefined && (
-                            <Badge
-                              variant={r.yoyGrowthPercent >= 0 ? 'success' : 'danger'}
-                              size="sm"
-                              className="font-mono"
-                            >
-                              {r.yoyGrowthPercent >= 0 ? '+' : ''}{r.yoyGrowthPercent}%
-                            </Badge>
-                          )}
-                        </td>
+                            {/* QTD */}
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.qtdQ2LyTotal || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.qtdQ1CurTotal || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-emerald-800 bg-emerald-50/40 whitespace-nowrap">{Math.round(r.qtdQ2Cur || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-2.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.qtdAug25Growth)}</td>
+                            <td className="px-2.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.qtdAug26Growth)}</td>
+                            <td className="px-2.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.qtdSep26Growth)}</td>
+
+                            {/* YTD & 3-Yr */}
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.ytdLy || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-emerald-800 bg-emerald-50/40 whitespace-nowrap">{Math.round(r.ytdCur || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-2.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.ytdGrowth)}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.fy1Total || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.fy2Total || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.fy3Total || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-2.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.fy24Growth)}</td>
+                            <td className="px-2.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{renderGrowthBadge(r.fy25Growth)}</td>
+
+                            {/* Target & Fulfillment */}
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.weightedBase || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-right border-r border-slate-200 font-mono whitespace-nowrap">{Math.round(r.recommendedTarget || 0).toLocaleString('en-IN')}</td>
+                            <td className="px-3.5 py-2.5 text-right border-r border-slate-200 font-mono font-bold text-blue-900 bg-blue-50/40 whitespace-nowrap">{Math.round(finalTargetVal).toLocaleString('en-IN')}</td>
+                            <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap"><Badge variant={ach >= 100 ? 'success' : ach >= 70 ? 'warning' : 'danger'} size="sm">{ach}%</Badge></td>
+                            <td className="px-3 py-2.5 text-center whitespace-nowrap font-bold text-xs">{r.status || (ach >= 100 ? 'ACHIEVED' : ach >= 70 ? 'ON TRACK' : 'UNDER')}</td>
+                          </>
+                        )}
                       </tr>
                     );
                   })
