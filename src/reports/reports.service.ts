@@ -532,6 +532,7 @@ export class ReportsService {
           COALESCE(part_category_code, 'M') AS cat,
           MAX(COALESCE(cons_party_name, dealer_code)) AS party_name, 
           COALESCE(party_type, 'TRADER/RETAILER') AS party_type,
+          COUNT(DISTINCT part_num) AS unique_partlines,
           ROUND(SUM(net_retail_selling)::numeric, 2) AS cur_sales
         FROM retail_sales_records
         WHERE fiscal_year = ${targetFY} AND month = '${targetMonth}'
@@ -700,20 +701,35 @@ export class ReportsService {
           ${catSqlClause}
         GROUP BY loc, COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-'), COALESCE(part_category_code, 'M')
       ),
+      snapshots AS (
+        SELECT 
+          branch_code,
+          party_code,
+          COALESCE(part_category_code, 'M') AS cat,
+          party_name,
+          party_type
+        FROM target_vs_achievement_snapshots
+        WHERE fiscal_year = ${targetFY} AND month = '${targetMonth}'
+          ${branchFilter && branchFilter !== 'ALL' ? `AND branch_code = '${branchFilter.replace(/'/g, "''")}'` : ''}
+          ${catFilter && catFilter !== 'ALL' ? `AND part_category_code = '${catFilter.replace(/'/g, "''")}'` : ''}
+      ),
       all_parties AS (
         SELECT branch_code, party_code, cat FROM cur_month
         UNION
         SELECT branch_code, party_code, cat FROM last_month
         UNION
         SELECT branch_code, party_code, cat FROM ly_same_month
+        UNION
+        SELECT branch_code, party_code, cat FROM snapshots
       )
       SELECT 
         ap.branch_code AS "branchCode",
         ap.party_code AS "partyCode",
         ap.cat AS "partCategoryCode",
-        COALESCE(NULLIF(cm.party_name, '-'), NULLIF(ly.party_name, '-'), ap.party_code) AS "partyName",
-        COALESCE(NULLIF(cm.party_type, '-'), NULLIF(ly.party_type, '-'), 'TRADER/RETAILER') AS "partyType",
+        COALESCE(NULLIF(cm.party_name, '-'), NULLIF(ly.party_name, '-'), NULLIF(sn.party_name, '-'), ap.party_code) AS "partyName",
+        COALESCE(NULLIF(cm.party_type, '-'), NULLIF(ly.party_type, '-'), NULLIF(sn.party_type, '-'), 'TRADER/RETAILER') AS "partyType",
         COALESCE(cm.cur_sales, 0) AS "curSales",
+        COALESCE(cm.unique_partlines, 0) AS "uniquePartlines",
         COALESCE(lm.lm_sales, 0) AS "lmSales",
         COALESCE(ly.ly_sm_sales, 0) AS "lySameMonthSales",
         COALESCE(lp.ly_pm_sales, 0) AS "lyPrevMonthSales",
@@ -735,6 +751,7 @@ export class ReportsService {
       LEFT JOIN cur_month cm ON ap.branch_code = cm.branch_code AND ap.party_code = cm.party_code AND ap.cat = cm.cat
       LEFT JOIN last_month lm ON ap.branch_code = lm.branch_code AND ap.party_code = lm.party_code AND ap.cat = lm.cat
       LEFT JOIN ly_same_month ly ON ap.branch_code = ly.branch_code AND ap.party_code = ly.party_code AND ap.cat = ly.cat
+      LEFT JOIN snapshots sn ON ap.branch_code = sn.branch_code AND ap.party_code = sn.party_code AND ap.cat = sn.cat
       LEFT JOIN ly_prev_month lp ON ap.branch_code = lp.branch_code AND ap.party_code = lp.party_code AND ap.cat = lp.cat
       LEFT JOIN ly2_prev_month l2p ON ap.branch_code = l2p.branch_code AND ap.party_code = l2p.party_code AND ap.cat = l2p.cat
       LEFT JOIN qtd_cur qc ON ap.branch_code = qc.branch_code AND ap.party_code = qc.party_code AND ap.cat = qc.cat
@@ -826,8 +843,8 @@ export class ReportsService {
     if (metadata?.partyType && metadata.partyType !== 'ALL') {
       const pTypes = metadata.partyType.split(',').map((t: string) => t.trim().toUpperCase());
       processedRows = processedRows.filter((r) => {
-        const pt = (partyMap.get(r.partyCode.toUpperCase())?.type || r.partyType || '').toUpperCase();
-        return pTypes.includes(pt);
+        const pt = (r.partyType || partyMap.get(r.partyCode.toUpperCase())?.type || '').toUpperCase();
+        return pTypes.includes(pt) || (pt === 'DEALER' && pTypes.some((x: string) => x.includes('TRADER') || x.includes('DEALER')));
       });
     }
 
@@ -887,7 +904,7 @@ export class ReportsService {
       const pmRecord = partyMasterMap.get(r.partyCode.toUpperCase());
       const originalCode = pmRecord?.originalCode || r.partyCode || '-';
       const partyName = pmRecord?.consPartyName || pMaster?.name || r.partyName || r.partyCode;
-      const partyType = pMaster?.type || r.partyType || 'TRADER/RETAILER';
+      const partyType = r.partyType || pMaster?.type || 'TRADER/RETAILER';
       const branchName = branchMap.get(r.branchCode.toUpperCase()) || r.branchCode;
 
       const curSales = Number(r.curSales) || 0;
@@ -1534,13 +1551,13 @@ export class ReportsService {
       worksheet.mergeCells(3, 1, 3, TOTAL_COLS);
       const kpiRow = worksheet.getRow(3);
       kpiRow.height = 22;
-      const totalTarget = calculatedRows.reduce((s, x) => s + (x.finalTarget || 0), 0);
-      const totalSales = calculatedRows.reduce((s, x) => s + (x.mtdSep26 || 0), 0);
+      const totalTarget = calculatedRows.reduce((s: number, x: any) => s + (Number(x.finalTarget) || 0), 0);
+      const totalSales = calculatedRows.reduce((s: number, x: any) => s + (Number(x.currentSales) || Number(x.mtdSep26) || 0), 0);
       const overallAch = totalTarget > 0 ? (totalSales / totalTarget) * 100 : 0;
-      const achievedCount = calculatedRows.filter((x) => x.achievementPercent >= 1.0).length;
-      const onTrackCount = calculatedRows.filter((x) => x.achievementPercent >= 0.70 && x.achievementPercent < 1.0).length;
-      const underCount = calculatedRows.filter((x) => x.achievementPercent < 0.70).length;
-      const totalUniquePartlines = calculatedRows.reduce((s, x) => s + (x.uniquePartlines || 0), 0);
+      const achievedCount = calculatedRows.filter((x) => (x.achievementPercent || 0) >= 1.0).length;
+      const onTrackCount = calculatedRows.filter((x) => (x.achievementPercent || 0) >= 0.70 && (x.achievementPercent || 0) < 1.0).length;
+      const underCount = calculatedRows.filter((x) => (x.achievementPercent || 0) < 0.70).length;
+      const totalUniquePartlines = calculatedRows.reduce((s: number, x: any) => s + (Number(x.uniquePartlines) || 0), 0);
 
       const kpiCell = worksheet.getCell(3, 1);
       kpiCell.value = `TOTAL DEALERS: ${calculatedRows.length}   |   UNIQUE PARTLINES: ${totalUniquePartlines.toLocaleString('en-IN')}   |   ACHIEVED (>=100%): ${achievedCount}   |   ON-TRACK (70-99%): ${onTrackCount}   |   UNDER (<70%): ${underCount}   |   TOTAL TARGET: ${(totalTarget / 100000).toFixed(2)} L   |   TOTAL SALES: ${(totalSales / 100000).toFixed(2)} L   |   OVERALL ACH: ${overallAch.toFixed(1)}%`;
