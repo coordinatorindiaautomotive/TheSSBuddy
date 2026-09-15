@@ -1928,4 +1928,147 @@ export class ReportsService {
 
     return Buffer.from((await workbook.xlsx.writeBuffer()) as ArrayBuffer);
   }
+
+  // ─── COMPREHENSIVE PARTY 360° STATISTICS ──────────────────────────────────
+  async getParty360Statistics(partyCode: string, branchCode?: string, fiscalYear = 2026, month = 'Sep') {
+    if (!partyCode) {
+      throw new BadRequestException('partyCode is required');
+    }
+
+    const cleanCode = partyCode.trim();
+    const targetFY = Number(fiscalYear) || 2026;
+    const targetMonth = month || 'Sep';
+
+    // 1. Party master & mapping details
+    const [partyMaster, party, branch] = await Promise.all([
+      this.prisma.partyMaster.findFirst({ where: { consPartyCode: cleanCode } }),
+      this.prisma.party.findFirst({ where: { code: cleanCode } }),
+      branchCode && branchCode !== 'ALL' ? this.prisma.branch.findFirst({ where: { code: branchCode } }) : null,
+    ]);
+
+    const partyName = partyMaster?.consPartyName || party?.name || cleanCode;
+    const originalCode = partyMaster?.originalCode || cleanCode;
+    const partyType = party?.type || partyMaster?.partyType || 'TRADER/RETAILER';
+    const resolvedBranchCode = branchCode && branchCode !== 'ALL' ? branchCode : (branch?.code || 'HO');
+    const branchName = branch?.name || resolvedBranchCode;
+
+    // 2. Real monthly historical trend across all available years
+    const monthlyRecords: any[] = await this.prisma.$queryRawUnsafe(`
+      SELECT 
+        fiscal_year,
+        month,
+        COALESCE(part_category_code, 'M') as cat,
+        COUNT(DISTINCT part_num) as partlines,
+        COUNT(DISTINCT document_num) as invoices,
+        ROUND(SUM(net_retail_selling)::numeric, 2) as sales,
+        ROUND(SUM(net_retail_qty)::numeric, 2) as qty
+      FROM retail_sales_records
+      WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+      GROUP BY fiscal_year, month, COALESCE(part_category_code, 'M')
+      ORDER BY fiscal_year ASC, 
+        CASE month 
+          WHEN 'Apr' THEN 1 WHEN 'May' THEN 2 WHEN 'Jun' THEN 3
+          WHEN 'Jul' THEN 4 WHEN 'Aug' THEN 5 WHEN 'Sep' THEN 6
+          WHEN 'Oct' THEN 7 WHEN 'Nov' THEN 8 WHEN 'Dec' THEN 9
+          WHEN 'Jan' THEN 10 WHEN 'Feb' THEN 11 WHEN 'Mar' THEN 12
+          ELSE 13
+        END ASC
+    `);
+
+    // Group monthly timeline (all categories summed per month)
+    const timelineMap = new Map<string, any>();
+    for (const r of monthlyRecords) {
+      const key = `${r.month}'${String(r.fiscal_year).slice(-2)}`;
+      if (!timelineMap.has(key)) {
+        timelineMap.set(key, {
+          period: key,
+          month: r.month,
+          fiscalYear: r.fiscal_year,
+          sales: 0,
+          qty: 0,
+          partlines: 0,
+          invoices: 0,
+        });
+      }
+      const item = timelineMap.get(key);
+      item.sales += Number(r.sales) || 0;
+      item.qty += Number(r.qty) || 0;
+      item.partlines = Math.max(item.partlines, Number(r.partlines) || 0);
+      item.invoices += Number(r.invoices) || 0;
+    }
+    const timeline = Array.from(timelineMap.values());
+
+    // 3. Category Breakdown for current fiscal year
+    const categoryRecords: any[] = await this.prisma.$queryRawUnsafe(`
+      SELECT 
+        COALESCE(part_category_code, 'M') as cat,
+        COUNT(DISTINCT part_num) as unique_partlines,
+        COUNT(DISTINCT document_num) as total_invoices,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as cur_month_sales,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} THEN net_retail_selling ELSE 0 END)::numeric, 2) as ytd_sales,
+        ROUND(SUM(net_retail_selling)::numeric, 2) as lifetime_sales
+      FROM retail_sales_records
+      WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+      GROUP BY COALESCE(part_category_code, 'M')
+      ORDER BY ytd_sales DESC
+    `);
+
+    // 4. Top 10 purchased parts
+    const topParts: any[] = await this.prisma.$queryRawUnsafe(`
+      SELECT 
+        part_num as "partNum",
+        COALESCE(root_part_num, part_num) as "rootPartNum",
+        COALESCE(part_category_code, 'M') as "cat",
+        ROUND(SUM(net_retail_qty)::numeric, 2) as "totalQty",
+        ROUND(SUM(net_retail_selling)::numeric, 2) as "totalSales",
+        MAX(month_year) as "lastPurchased"
+      FROM retail_sales_records
+      WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+      GROUP BY part_num, COALESCE(root_part_num, part_num), COALESCE(part_category_code, 'M')
+      ORDER BY "totalSales" DESC
+      LIMIT 10
+    `);
+
+    // 5. Target snapshot & multi-period matrix calculations for this party
+    const matrixRows = await this.calculateMultiPeriodMatrix(
+      targetFY,
+      targetMonth,
+      resolvedBranchCode !== 'HO' && resolvedBranchCode !== 'ALL' ? resolvedBranchCode : null,
+      null,
+      { search: cleanCode }
+    );
+
+    const partyMatrix = matrixRows.find(
+      (x) => x.partyCode?.toUpperCase() === cleanCode.toUpperCase() || x.originalCode?.toUpperCase() === cleanCode.toUpperCase()
+    ) || matrixRows[0] || null;
+
+    return {
+      profile: {
+        partyCode: cleanCode,
+        originalCode,
+        partyName,
+        partyType,
+        branchCode: resolvedBranchCode,
+        branchName,
+      },
+      matrix: partyMatrix,
+      timeline,
+      categories: categoryRecords.map((c) => ({
+        cat: c.cat,
+        uniquePartlines: Number(c.unique_partlines) || 0,
+        totalInvoices: Number(c.total_invoices) || 0,
+        curMonthSales: Number(c.cur_month_sales) || 0,
+        ytdSales: Number(c.ytd_sales) || 0,
+        lifetimeSales: Number(c.lifetime_sales) || 0,
+      })),
+      topParts: topParts.map((p) => ({
+        partNum: p.partNum,
+        rootPartNum: p.rootPartNum,
+        cat: p.cat,
+        totalQty: Number(p.totalQty) || 0,
+        totalSales: Number(p.totalSales) || 0,
+        lastPurchased: p.lastPurchased,
+      })),
+    };
+  }
 }

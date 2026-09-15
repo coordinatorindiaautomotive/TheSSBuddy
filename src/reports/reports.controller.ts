@@ -67,6 +67,18 @@ export class ReportsController {
     return this.reportsService.getTargetVsAchievement(query);
   }
 
+  @Get('party-360')
+  @RequirePermissions('reports:view')
+  @ApiOperation({ summary: 'Get comprehensive 360 statistics, history, timeline, and categories for a party' })
+  async getParty360(
+    @Query('partyCode') partyCode: string,
+    @Query('branchCode') branchCode?: string,
+    @Query('fiscalYear') fiscalYear?: number,
+    @Query('month') month?: string,
+  ) {
+    return this.reportsService.getParty360Statistics(partyCode, branchCode, fiscalYear, month);
+  }
+
   @Post('target-vs-achievement/refresh')
   @RequirePermissions('reports:view')
   @ApiOperation({ summary: 'Recalculate and refresh Target vs Achievement pre-aggregated cache' })
