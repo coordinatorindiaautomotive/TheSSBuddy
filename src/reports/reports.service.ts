@@ -1952,14 +1952,48 @@ export class ReportsService {
     const resolvedBranchCode = branchCode && branchCode !== 'ALL' ? branchCode : (branch?.code || 'HO');
     const branchName = branch?.name || resolvedBranchCode;
 
-    // 2. Real monthly historical trend across all available years
+    // 2. Lifetime Basket & Order Statistics
+    const [basketStatsRaw]: any[] = await this.prisma.$queryRawUnsafe(`
+      SELECT 
+        COUNT(DISTINCT document_num)::int as total_invoices,
+        COUNT(DISTINCT part_num)::int as total_unique_parts,
+        ROUND(SUM(net_retail_selling)::numeric, 2) as lifetime_sales,
+        ROUND(SUM(net_retail_qty)::numeric, 2) as lifetime_qty,
+        MIN(month_year) as first_purchase,
+        MAX(month_year) as last_purchase,
+        COUNT(DISTINCT CONCAT(fiscal_year, '-', month))::int as active_months,
+        COUNT(*)::int as total_line_items
+      FROM retail_sales_records
+      WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+    `);
+
+    const totalInvoices = Number(basketStatsRaw?.total_invoices) || 0;
+    const lifetimeSales = Number(basketStatsRaw?.lifetime_sales) || 0;
+    const lifetimeQty = Number(basketStatsRaw?.lifetime_qty) || 0;
+    const totalLineItems = Number(basketStatsRaw?.total_line_items) || 0;
+
+    const basketStats = {
+      totalInvoices,
+      totalUniqueParts: Number(basketStatsRaw?.total_unique_parts) || 0,
+      totalLineItems,
+      lifetimeSales,
+      lifetimeQty,
+      avgInvoiceValue: totalInvoices > 0 ? Math.round(lifetimeSales / totalInvoices) : 0,
+      avgQtyPerInvoice: totalInvoices > 0 ? Math.round((lifetimeQty / totalInvoices) * 10) / 10 : 0,
+      avgLinesPerInvoice: totalInvoices > 0 ? Math.round((totalLineItems / totalInvoices) * 10) / 10 : 0,
+      firstPurchase: basketStatsRaw?.first_purchase || 'N/A',
+      lastPurchase: basketStatsRaw?.last_purchase || 'N/A',
+      activeMonths: Number(basketStatsRaw?.active_months) || 0,
+    };
+
+    // 3. Real monthly historical trend across all available years
     const monthlyRecords: any[] = await this.prisma.$queryRawUnsafe(`
       SELECT 
         fiscal_year,
         month,
         COALESCE(part_category_code, 'M') as cat,
-        COUNT(DISTINCT part_num) as partlines,
-        COUNT(DISTINCT document_num) as invoices,
+        COUNT(DISTINCT part_num)::int as partlines,
+        COUNT(DISTINCT document_num)::int as invoices,
         ROUND(SUM(net_retail_selling)::numeric, 2) as sales,
         ROUND(SUM(net_retail_qty)::numeric, 2) as qty
       FROM retail_sales_records
@@ -1975,7 +2009,7 @@ export class ReportsService {
         END ASC
     `);
 
-    // Group monthly timeline (all categories summed per month)
+    // Group monthly timeline
     const timelineMap = new Map<string, any>();
     for (const r of monthlyRecords) {
       const key = `${r.month}'${String(r.fiscal_year).slice(-2)}`;
@@ -1983,11 +2017,12 @@ export class ReportsService {
         timelineMap.set(key, {
           period: key,
           month: r.month,
-          fiscalYear: r.fiscal_year,
+          fiscalYear: Number(r.fiscal_year),
           sales: 0,
           qty: 0,
           partlines: 0,
           invoices: 0,
+          avgInvoiceValue: 0,
         });
       }
       const item = timelineMap.get(key);
@@ -1995,15 +2030,16 @@ export class ReportsService {
       item.qty += Number(r.qty) || 0;
       item.partlines = Math.max(item.partlines, Number(r.partlines) || 0);
       item.invoices += Number(r.invoices) || 0;
+      item.avgInvoiceValue = item.invoices > 0 ? Math.round(item.sales / item.invoices) : 0;
     }
     const timeline = Array.from(timelineMap.values());
 
-    // 3. Category Breakdown for current fiscal year
+    // 4. Category Breakdown
     const categoryRecords: any[] = await this.prisma.$queryRawUnsafe(`
       SELECT 
         COALESCE(part_category_code, 'M') as cat,
-        COUNT(DISTINCT part_num) as unique_partlines,
-        COUNT(DISTINCT document_num) as total_invoices,
+        COUNT(DISTINCT part_num)::int as unique_partlines,
+        COUNT(DISTINCT document_num)::int as total_invoices,
         ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as cur_month_sales,
         ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} THEN net_retail_selling ELSE 0 END)::numeric, 2) as ytd_sales,
         ROUND(SUM(net_retail_selling)::numeric, 2) as lifetime_sales
@@ -2013,23 +2049,92 @@ export class ReportsService {
       ORDER BY ytd_sales DESC
     `);
 
-    // 4. Top 10 purchased parts
-    const topParts: any[] = await this.prisma.$queryRawUnsafe(`
+    const categories = categoryRecords.map((c) => ({
+      cat: c.cat,
+      uniquePartlines: Number(c.unique_partlines) || 0,
+      totalInvoices: Number(c.total_invoices) || 0,
+      curMonthSales: Number(c.cur_month_sales) || 0,
+      ytdSales: Number(c.ytd_sales) || 0,
+      lifetimeSales: Number(c.lifetime_sales) || 0,
+      sharePercent: lifetimeSales > 0 ? Number(((Number(c.lifetime_sales) / lifetimeSales) * 100).toFixed(1)) : 0,
+    }));
+
+    // 5. Complete Part Purchase Frequency & Top Parts
+    const partFrequencyRaw: any[] = await this.prisma.$queryRawUnsafe(`
       SELECT 
         part_num as "partNum",
         COALESCE(root_part_num, part_num) as "rootPartNum",
         COALESCE(part_category_code, 'M') as "cat",
+        COUNT(DISTINCT CONCAT(fiscal_year, '-', month))::int as "activeMonthsCount",
+        COUNT(DISTINCT document_num)::int as "invoicesCount",
         ROUND(SUM(net_retail_qty)::numeric, 2) as "totalQty",
         ROUND(SUM(net_retail_selling)::numeric, 2) as "totalSales",
-        MAX(month_year) as "lastPurchased"
+        MAX(month_year) as "lastPurchased",
+        MAX(fiscal_year)::int as "lastFY",
+        MAX(month) as "lastMonth"
       FROM retail_sales_records
       WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
       GROUP BY part_num, COALESCE(root_part_num, part_num), COALESCE(part_category_code, 'M')
       ORDER BY "totalSales" DESC
-      LIMIT 10
     `);
 
-    // 5. Target snapshot & multi-period matrix calculations for this party
+    const classifiedParts = partFrequencyRaw.map((p, idx) => {
+      const activeMonthsCount = Number(p.activeMonthsCount) || 0;
+      const totalSales = Number(p.totalSales) || 0;
+      const isLapsed = (
+        p.lastPurchased !== `${targetMonth} ${targetFY}` &&
+        p.lastPurchased !== `Aug ${targetFY}` &&
+        totalSales >= 5000
+      );
+
+      return {
+        rank: idx + 1,
+        partNum: p.partNum,
+        rootPartNum: p.rootPartNum,
+        cat: p.cat,
+        activeMonthsCount,
+        invoicesCount: Number(p.invoicesCount) || 0,
+        totalQty: Number(p.totalQty) || 0,
+        totalSales,
+        revenueShare: lifetimeSales > 0 ? Number(((totalSales / lifetimeSales) * 100).toFixed(2)) : 0,
+        lastPurchased: p.lastPurchased || 'N/A',
+        frequencyType: activeMonthsCount >= 3 ? 'FREQUENT' : activeMonthsCount === 2 ? 'REGULAR' : 'RARE',
+        isLapsed,
+      };
+    });
+
+    const topParts = classifiedParts.slice(0, 25);
+    const frequentParts = classifiedParts.filter((p) => p.frequencyType === 'FREQUENT');
+    const regularParts = classifiedParts.filter((p) => p.frequencyType === 'REGULAR');
+    const rareParts = classifiedParts.filter((p) => p.frequencyType === 'RARE');
+    const reorderPitchCandidates = classifiedParts.filter((p) => p.isLapsed).slice(0, 20);
+
+    // 6. Branch Cross-Sell Fast Movers (Hot items in branch party has not bought yet)
+    let crossSellBranchMovers: any[] = [];
+    try {
+      crossSellBranchMovers = await this.prisma.$queryRawUnsafe(`
+        SELECT 
+          r.part_num as "partNum",
+          COALESCE(r.root_part_num, r.part_num) as "rootPartNum",
+          COALESCE(r.part_category_code, 'M') as "cat",
+          COUNT(DISTINCT r.document_num)::int as "invoicesCount",
+          ROUND(SUM(r.net_retail_selling)::numeric, 2) as "totalSales",
+          ROUND(SUM(r.net_retail_qty)::numeric, 2) as "totalQty"
+        FROM retail_sales_records r
+        WHERE (r.loc = '${resolvedBranchCode}' OR '${resolvedBranchCode}' = 'ALL' OR '${resolvedBranchCode}' = 'HO')
+          AND r.part_num NOT IN (
+            SELECT DISTINCT part_num FROM retail_sales_records 
+            WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+          )
+        GROUP BY r.part_num, COALESCE(r.root_part_num, r.part_num), COALESCE(r.part_category_code, 'M')
+        ORDER BY "totalSales" DESC
+        LIMIT 15
+      `);
+    } catch (e) {
+      crossSellBranchMovers = [];
+    }
+
+    // 7. Target snapshot & multi-period matrix calculations for this party
     const matrixRows = await this.calculateMultiPeriodMatrix(
       targetFY,
       targetMonth,
@@ -2051,24 +2156,332 @@ export class ReportsService {
         branchCode: resolvedBranchCode,
         branchName,
       },
+      basketStats,
       matrix: partyMatrix,
       timeline,
-      categories: categoryRecords.map((c) => ({
-        cat: c.cat,
-        uniquePartlines: Number(c.unique_partlines) || 0,
-        totalInvoices: Number(c.total_invoices) || 0,
-        curMonthSales: Number(c.cur_month_sales) || 0,
-        ytdSales: Number(c.ytd_sales) || 0,
-        lifetimeSales: Number(c.lifetime_sales) || 0,
-      })),
-      topParts: topParts.map((p) => ({
+      categories,
+      topParts,
+      frequencySegmentation: {
+        totalUniqueParts: classifiedParts.length,
+        frequentCount: frequentParts.length,
+        regularCount: regularParts.length,
+        rareCount: rareParts.length,
+        frequent: frequentParts.slice(0, 20),
+        regular: regularParts.slice(0, 20),
+        rare: rareParts.slice(0, 20),
+      },
+      pitchOpportunities: {
+        reorderCandidates: reorderPitchCandidates,
+        crossSellBranchMovers: crossSellBranchMovers.map((m: any) => ({
+          partNum: m.partNum,
+          rootPartNum: m.rootPartNum,
+          cat: m.cat,
+          invoicesCount: Number(m.invoicesCount) || 0,
+          totalSales: Number(m.totalSales) || 0,
+          totalQty: Number(m.totalQty) || 0,
+        })),
+      },
+    };
+  }
+
+  // ─── EXPORT FULL PARTY 360° DOSSIER TO EXCEL ────────────────────────────────
+  async exportParty360ToExcel(partyCode: string, branchCode?: string, fiscalYear = 2026, month = 'Sep'): Promise<Buffer> {
+    const data = await this.getParty360Statistics(partyCode, branchCode, fiscalYear, month);
+    const { profile, basketStats, matrix, timeline, categories, topParts, pitchOpportunities, frequencySegmentation } = data;
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'The SS Buddy Intelligence Portal';
+    workbook.lastModifiedBy = 'SS Buddy Party 360 Engine';
+    workbook.created = new Date();
+
+    const FONT_ABADI = { name: 'Abadi', size: 9 };
+    const FONT_ABADI_BOLD = { name: 'Abadi', size: 9.5, bold: true };
+    const BORDER_THIN = {
+      top: { style: 'thin' as const, color: { argb: 'FFE2E8F0' } },
+      bottom: { style: 'thin' as const, color: { argb: 'FFE2E8F0' } },
+      left: { style: 'thin' as const, color: { argb: 'FFE2E8F0' } },
+      right: { style: 'thin' as const, color: { argb: 'FFE2E8F0' } },
+    };
+
+    // ─── SHEET 1: 360 OVERVIEW & SCORECARD ────────────────────────────────────
+    const wsOverview = workbook.addWorksheet('Party 360 Overview');
+    wsOverview.views = [{ showGridLines: true }];
+
+    // Title
+    wsOverview.mergeCells('A1:F2');
+    const titleCell = wsOverview.getCell('A1');
+    titleCell.value = `PARTY 360° EXECUTIVE INTELLIGENCE DOSSIER - ${profile.partyName.toUpperCase()}`;
+    titleCell.font = { name: 'Abadi', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF002060' } };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Meta details
+    wsOverview.getCell('A3').value = 'PARTY CODE:';
+    wsOverview.getCell('B3').value = profile.partyCode;
+    wsOverview.getCell('C3').value = 'ORIGINAL CODE:';
+    wsOverview.getCell('D3').value = profile.originalCode;
+    wsOverview.getCell('E3').value = 'BRANCH:';
+    wsOverview.getCell('F3').value = `${profile.branchCode} (${profile.branchName})`;
+
+    wsOverview.getCell('A4').value = 'PARTY TYPE:';
+    wsOverview.getCell('B4').value = profile.partyType;
+    wsOverview.getCell('C4').value = 'REPORT PERIOD:';
+    wsOverview.getCell('D4').value = `${month} FY${fiscalYear}`;
+    wsOverview.getCell('E4').value = 'GENERATED ON:';
+    wsOverview.getCell('F4').value = new Date().toLocaleString('en-IN');
+
+    ['A3', 'C3', 'E3', 'A4', 'C4', 'E4'].forEach((pos) => {
+      wsOverview.getCell(pos).font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FF475569' } };
+    });
+    ['B3', 'D3', 'F3', 'B4', 'D4', 'F4'].forEach((pos) => {
+      wsOverview.getCell(pos).font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FF0F172A' } };
+    });
+
+    // Basket & Order Intelligence
+    wsOverview.mergeCells('A6:F6');
+    const bHead = wsOverview.getCell('A6');
+    bHead.value = 'LIFETIME ORDER BASKET & TRANSACTION METRICS';
+    bHead.font = { name: 'Abadi', size: 10.5, bold: true, color: { argb: 'FFFFFFFF' } };
+    bHead.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+    bHead.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+
+    const basketKpis = [
+      ['Total Lifetime Sales', Math.round(basketStats.lifetimeSales), 'Average Invoice Value (AOV)', Math.round(basketStats.avgInvoiceValue)],
+      ['Total Invoices Billed', basketStats.totalInvoices, 'Average Lines per Invoice', basketStats.avgLinesPerInvoice],
+      ['Total Units Purchased', basketStats.lifetimeQty, 'Average Qty per Invoice', basketStats.avgQtyPerInvoice],
+      ['Total Unique Partlines', basketStats.totalUniqueParts, 'Active Buying Months', basketStats.activeMonths],
+      ['First Active Purchase', basketStats.firstPurchase, 'Latest Purchase Date', basketStats.lastPurchase],
+    ];
+
+    let curRow = 7;
+    for (const kpi of basketKpis) {
+      wsOverview.getCell(`A${curRow}`).value = kpi[0];
+      wsOverview.getCell(`B${curRow}`).value = kpi[1];
+      wsOverview.getCell(`C${curRow}`).value = '';
+      wsOverview.mergeCells(`A${curRow}:B${curRow}`);
+      wsOverview.mergeCells(`C${curRow}:D${curRow}`);
+
+      wsOverview.getCell(`A${curRow}`).font = FONT_ABADI_BOLD;
+      wsOverview.getCell(`C${curRow}`).font = { name: 'Abadi', size: 10, bold: true, color: { argb: 'FF002060' } };
+      if (typeof kpi[1] === 'number') {
+        wsOverview.getCell(`C${curRow}`).numFmt = kpi[0].includes('Sales') || kpi[0].includes('Value') ? '₹#,##,##0' : '#,##0';
+      }
+
+      wsOverview.getCell(`E${curRow}`).value = kpi[2];
+      wsOverview.getCell(`F${curRow}`).value = kpi[3];
+      wsOverview.getCell(`E${curRow}`).font = FONT_ABADI_BOLD;
+      wsOverview.getCell(`F${curRow}`).font = { name: 'Abadi', size: 10, bold: true, color: { argb: 'FF002060' } };
+      if (typeof kpi[3] === 'number') {
+        wsOverview.getCell(`F${curRow}`).numFmt = kpi[2].includes('Value') ? '₹#,##,##0' : '#,##0.0';
+      }
+      curRow++;
+    }
+
+    // Set Column Widths for Sheet 1
+    wsOverview.columns = [
+      { width: 24 }, { width: 18 }, { width: 24 }, { width: 18 }, { width: 24 }, { width: 24 }
+    ];
+
+    // ─── SHEET 2: MONTHLY TIMELINE ────────────────────────────────────────────
+    const wsTimeline = workbook.addWorksheet('Monthly History Timeline');
+    wsTimeline.views = [{ showGridLines: true, state: 'frozen', xSplit: 0, ySplit: 1 }];
+
+    wsTimeline.columns = [
+      { header: 'PERIOD', key: 'period', width: 14 },
+      { header: 'MONTH', key: 'month', width: 12 },
+      { header: 'FISCAL YEAR', key: 'fiscalYear', width: 14 },
+      { header: 'TOTAL SALES (₹)', key: 'sales', width: 20 },
+      { header: 'TOTAL QTY', key: 'qty', width: 16 },
+      { header: 'INVOICES', key: 'invoices', width: 14 },
+      { header: 'UNIQUE PARTLINES', key: 'partlines', width: 18 },
+      { header: 'AVG INVOICE VALUE (₹)', key: 'avgInvoiceValue', width: 22 },
+    ];
+
+    const timelineHeadRow = wsTimeline.getRow(1);
+    timelineHeadRow.height = 24;
+    timelineHeadRow.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+    timelineHeadRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF002060' } };
+    timelineHeadRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    timeline.forEach((t: any, i: number) => {
+      const row = wsTimeline.addRow(t);
+      row.eachCell((cell, cIdx) => {
+        cell.font = FONT_ABADI;
+        cell.border = BORDER_THIN;
+        if (cIdx === 4 || cIdx === 8) {
+          cell.numFmt = '#,##,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else if (cIdx === 5 || cIdx === 6 || cIdx === 7) {
+          cell.numFmt = '#,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        }
+      });
+    });
+
+    // ─── SHEET 3: TOP PURCHASED PARTS ────────────────────────────────────────
+    const wsTopParts = workbook.addWorksheet('Top Purchased Parts');
+    wsTopParts.views = [{ showGridLines: true, state: 'frozen', xSplit: 0, ySplit: 1 }];
+
+    wsTopParts.columns = [
+      { header: 'RANK', key: 'rank', width: 10 },
+      { header: 'PART NUMBER', key: 'partNum', width: 22 },
+      { header: 'ROOT PART NUMBER', key: 'rootPartNum', width: 22 },
+      { header: 'CATEGORY', key: 'cat', width: 14 },
+      { header: 'TOTAL QTY', key: 'totalQty', width: 16 },
+      { header: 'TOTAL SALES (₹)', key: 'totalSales', width: 20 },
+      { header: 'REVENUE SHARE %', key: 'revenueShare', width: 18 },
+      { header: 'ACTIVE MONTHS', key: 'activeMonthsCount', width: 16 },
+      { header: 'INVOICES', key: 'invoicesCount', width: 14 },
+      { header: 'FREQUENCY TYPE', key: 'frequencyType', width: 16 },
+      { header: 'LAST PURCHASED', key: 'lastPurchased', width: 16 },
+    ];
+
+    const topPartsHead = wsTopParts.getRow(1);
+    topPartsHead.height = 24;
+    topPartsHead.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+    topPartsHead.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF002060' } };
+    topPartsHead.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    topParts.forEach((p: any) => {
+      const row = wsTopParts.addRow(p);
+      row.eachCell((cell, cIdx) => {
+        cell.font = FONT_ABADI;
+        cell.border = BORDER_THIN;
+        if (cIdx === 6) {
+          cell.numFmt = '#,##,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else if (cIdx === 7) {
+          cell.numFmt = '0.00%';
+          cell.value = (Number(cell.value) || 0) / 100;
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else if (cIdx === 5 || cIdx === 8 || cIdx === 9) {
+          cell.numFmt = '#,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        }
+      });
+    });
+
+    // ─── SHEET 4: SALES PITCH OPPORTUNITIES ────────────────────────────────────
+    const wsPitch = workbook.addWorksheet('Pitch Opportunities');
+    wsPitch.views = [{ showGridLines: true, state: 'frozen', xSplit: 0, ySplit: 1 }];
+
+    wsPitch.columns = [
+      { header: 'TYPE', key: 'type', width: 22 },
+      { header: 'PART NUMBER', key: 'partNum', width: 22 },
+      { header: 'ROOT PART NUMBER', key: 'rootPartNum', width: 22 },
+      { header: 'CAT', key: 'cat', width: 12 },
+      { header: 'HISTORICAL / BRANCH VALUE (₹)', key: 'sales', width: 28 },
+      { header: 'TOTAL QTY', key: 'qty', width: 16 },
+      { header: 'ACTION PITCH RECOMMENDATION', key: 'action', width: 36 },
+    ];
+
+    const pitchHead = wsPitch.getRow(1);
+    pitchHead.height = 24;
+    pitchHead.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+    pitchHead.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+    pitchHead.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    // Add re-order dormant parts
+    (pitchOpportunities.reorderCandidates || []).forEach((p: any) => {
+      const row = wsPitch.addRow({
+        type: 'RE-ORDER / DORMANT ITEM',
         partNum: p.partNum,
         rootPartNum: p.rootPartNum,
         cat: p.cat,
-        totalQty: Number(p.totalQty) || 0,
-        totalSales: Number(p.totalSales) || 0,
-        lastPurchased: p.lastPurchased,
-      })),
-    };
+        sales: p.totalSales,
+        qty: p.totalQty,
+        action: `Past spend ₹${Math.round(p.totalSales).toLocaleString('en-IN')} (Last bought ${p.lastPurchased}). Proactively re-pitch!`,
+      });
+      row.eachCell((cell, cIdx) => {
+        cell.font = FONT_ABADI;
+        cell.border = BORDER_THIN;
+        if (cIdx === 5) {
+          cell.numFmt = '#,##,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else if (cIdx === 6) {
+          cell.numFmt = '#,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else if (cIdx === 7) {
+          cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FFB45309' } };
+        } else {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        }
+      });
+    });
+
+    // Add cross-sell branch movers
+    (pitchOpportunities.crossSellBranchMovers || []).forEach((p: any) => {
+      const row = wsPitch.addRow({
+        type: 'BRANCH FAST MOVER (CROSS-SELL)',
+        partNum: p.partNum,
+        rootPartNum: p.rootPartNum,
+        cat: p.cat,
+        sales: p.totalSales,
+        qty: p.totalQty,
+        action: `Top branch seller with ₹${Math.round(p.totalSales).toLocaleString('en-IN')} branch volume. Never purchased by this dealer!`,
+      });
+      row.eachCell((cell, cIdx) => {
+        cell.font = FONT_ABADI;
+        cell.border = BORDER_THIN;
+        if (cIdx === 5) {
+          cell.numFmt = '#,##,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else if (cIdx === 6) {
+          cell.numFmt = '#,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else if (cIdx === 7) {
+          cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FF047857' } };
+        } else {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        }
+      });
+    });
+
+    // ─── SHEET 5: CATEGORIES BREAKDOWN ────────────────────────────────────────
+    const wsCategories = workbook.addWorksheet('Category Performance');
+    wsCategories.views = [{ showGridLines: true, state: 'frozen', xSplit: 0, ySplit: 1 }];
+
+    wsCategories.columns = [
+      { header: 'CATEGORY', key: 'cat', width: 14 },
+      { header: 'UNIQUE PARTLINES', key: 'uniquePartlines', width: 18 },
+      { header: 'INVOICES', key: 'totalInvoices', width: 14 },
+      { header: `${month}'${String(fiscalYear).slice(-2)} SALES (₹)`, key: 'curMonthSales', width: 22 },
+      { header: `YTD FY${fiscalYear} SALES (₹)`, key: 'ytdSales', width: 22 },
+      { header: 'LIFETIME SALES (₹)', key: 'lifetimeSales', width: 22 },
+      { header: 'LIFETIME SHARE %', key: 'sharePercent', width: 18 },
+    ];
+
+    const catHead = wsCategories.getRow(1);
+    catHead.height = 24;
+    catHead.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+    catHead.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF002060' } };
+    catHead.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    categories.forEach((c: any) => {
+      const row = wsCategories.addRow(c);
+      row.eachCell((cell, cIdx) => {
+        cell.font = FONT_ABADI;
+        cell.border = BORDER_THIN;
+        if (cIdx === 4 || cIdx === 5 || cIdx === 6) {
+          cell.numFmt = '#,##,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else if (cIdx === 7) {
+          cell.numFmt = '0.0%';
+          cell.value = (Number(cell.value) || 0) / 100;
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else if (cIdx === 2 || cIdx === 3) {
+          cell.numFmt = '#,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        }
+      });
+    });
+
+    return Buffer.from((await workbook.xlsx.writeBuffer()) as ArrayBuffer);
   }
 }

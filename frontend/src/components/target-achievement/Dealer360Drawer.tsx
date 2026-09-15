@@ -6,7 +6,9 @@ import {
   X, Activity, Calculator, Edit3, TrendingUp, TrendingDown,
   Layers, Package, Calendar, Award, CheckCircle2, AlertTriangle,
   XCircle, Clock, ShoppingCart, ArrowUpRight, BarChart2, ShieldCheck,
-  Building2, Hash, Percent, RefreshCw
+  Building2, Hash, Percent, RefreshCw, Printer, Maximize2,
+  Minimize2, FileSpreadsheet, Sparkles, Target, Zap, HelpCircle,
+  Check, ArrowRight
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -29,7 +31,7 @@ interface Dealer360DrawerProps {
   month?: string;
 }
 
-type TabType = 'overview' | 'multi_period' | 'categories' | 'top_parts';
+type TabType = 'overview' | 'pitch' | 'frequency' | 'top_parts' | 'categories' | 'multi_period' | 'timeline' | 'all';
 
 const fetcher = (url: string) => api.get(url).then((r) => r.data);
 
@@ -61,6 +63,9 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
   month = 'Sep',
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [freqFilter, setFreqFilter] = useState<'all' | 'frequent' | 'regular' | 'rare'>('all');
+  const [isExporting, setIsExporting] = useState(false);
 
   const partyCode = dealer?.partyCode || '';
   const branchCode = dealer?.branchCode || '';
@@ -82,9 +87,12 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
       originalCode: profile.originalCode || dealer.originalCode || partyCode,
       partyType: profile.partyType || dealer.partyType || 'TRADER/RETAILER',
       branchName: profile.branchName || dealer.branchName || branchCode,
+      basketStats: party360Data?.basketStats || null,
       timeline: party360Data?.timeline || [],
       categories: party360Data?.categories || [],
       topParts: party360Data?.topParts || [],
+      pitchOpportunities: party360Data?.pitchOpportunities || { reorderCandidates: [], crossSellBranchMovers: [] },
+      frequencySegmentation: party360Data?.frequencySegmentation || { frequentCount: 0, regularCount: 0, rareCount: 0, frequent: [], regular: [], rare: [] },
     };
   }, [dealer, party360Data, partyCode, branchCode]);
 
@@ -98,13 +106,12 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
         invoices: t.invoices || 0,
       }));
     }
-    // Fallback if no timeline records
     const base = Number(dealer?.lastMonthSales) || Number(dealer?.currentSales) || 100000;
     return [
-      { month: 'Mar', sales: Math.round(base * 0.85), partlines: 12, invoices: 2 },
       { month: 'Apr', sales: Math.round(base * 0.95), partlines: 15, invoices: 2 },
       { month: 'May', sales: Math.round(base * 1.10), partlines: 18, invoices: 3 },
       { month: 'Jun', sales: Math.round(base * 1.05), partlines: 16, invoices: 3 },
+      { month: 'Jul', sales: Math.round(base * 1.12), partlines: 20, invoices: 4 },
       { month: prevPeriodLabel, sales: Math.round(dealer?.lastMonthSales || base * 1.15), partlines: 22, invoices: 4 },
       { month: `${currentPeriodLabel} (Cur)`, sales: Math.round(dealer?.currentSales || 0), partlines: dealer?.uniquePartlines || 0, invoices: 1 },
     ];
@@ -119,17 +126,64 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
   const isOnTrack = achievementPercent >= 70 && achievementPercent < 100;
   const gapAmount = currentSales - finalTarget;
 
+  const basket = merged.basketStats || {
+    totalInvoices: 0,
+    totalUniqueParts: 0,
+    totalLineItems: 0,
+    lifetimeSales: 0,
+    lifetimeQty: 0,
+    avgInvoiceValue: 0,
+    avgQtyPerInvoice: 0,
+    avgLinesPerInvoice: 0,
+    firstPurchase: 'N/A',
+    lastPurchase: 'N/A',
+    activeMonths: 0,
+  };
+
+  // Download complete Party 360 Excel report
+  const handleDownloadExcel = async () => {
+    try {
+      setIsExporting(true);
+      const url = `/reports/party-360/export?partyCode=${encodeURIComponent(partyCode)}&branchCode=${encodeURIComponent(branchCode)}&fiscalYear=${fiscalYear}&month=${encodeURIComponent(month)}`;
+      const response = await api.get(url, { responseType: 'blob' });
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', `Party_360_${partyCode}_${month}_FY${fiscalYear}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (e) {
+      console.error('Failed to export Party 360 Excel', e);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Trigger Print/PDF
+  const handlePrint = () => {
+    setActiveTab('all');
+    setTimeout(() => {
+      window.print();
+    }, 300);
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex justify-end z-50 animate-in fade-in duration-200">
-      <div className="bg-slate-900 text-slate-100 w-full max-w-2xl h-full shadow-2xl border-l border-slate-700 flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-300">
+    <div className={`fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex ${isFullScreen ? 'items-center justify-center p-0' : 'justify-end'} animate-in fade-in duration-200`}>
+      <div className={`bg-[#080E1A] text-slate-100 h-full shadow-2xl flex flex-col justify-between overflow-hidden border-slate-700 transition-all duration-300 ${
+        isFullScreen ? 'w-screen h-screen border-none rounded-none' : 'w-full max-w-4xl border-l'
+      }`}>
         
         {/* TOP HEADER */}
-        <div className="p-5 border-b border-slate-800 bg-[#001733] text-white shrink-0">
+        <div className="p-4 sm:p-5 border-b border-slate-800 bg-[#0B1528] text-white shrink-0 shadow-md">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2 py-0.5 rounded bg-blue-500/20 text-cyan-300 font-mono font-bold text-xs uppercase border border-blue-400/30">
-                  Party 360° Intelligence
+                <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold text-xs uppercase border border-cyan-400/40 flex items-center gap-1">
+                  <Sparkles size={11} /> Party 360° Intelligence Dossier
                 </span>
                 <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold text-xs uppercase border border-emerald-400/30">
                   {merged.partCategoryCode || 'ALL'} Category
@@ -139,32 +193,64 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
                 </span>
               </div>
 
-              <h2 className="text-xl font-black tracking-tight text-white mt-1">
+              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white mt-1">
                 {merged.partyName}
               </h2>
 
               <div className="flex items-center gap-4 text-xs font-mono text-slate-300 flex-wrap pt-0.5">
-                <span>Party Code: <strong className="text-amber-300">{merged.partyCode}</strong></span>
+                <span>Party Code: <strong className="text-amber-300 font-bold">{merged.partyCode}</strong></span>
                 {merged.originalCode && merged.originalCode !== merged.partyCode && (
                   <span>Orig Code: <strong className="text-cyan-300">{merged.originalCode}</strong></span>
                 )}
                 <span>Branch: <strong className="text-white">{merged.branchCode} ({merged.branchName})</strong></span>
+                <span>Period: <strong className="text-emerald-300">{month}'{String(fiscalYear).slice(-2)}</strong></span>
               </div>
             </div>
 
-            <button
-              onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition shrink-0"
-            >
-              <X size={20} />
-            </button>
+            {/* Quick Actions in Header */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={handleDownloadExcel}
+                disabled={isExporting}
+                title="Download complete Party 360 dossier as Excel (.xlsx)"
+                className="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <FileSpreadsheet size={14} className={isExporting ? 'animate-spin' : ''} />
+                <span className="hidden sm:inline">Excel</span>
+              </button>
+
+              <button
+                onClick={handlePrint}
+                title="Print / Save as PDF"
+                className="px-2.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Printer size={14} />
+                <span className="hidden sm:inline">PDF</span>
+              </button>
+
+              <button
+                onClick={() => setIsFullScreen(!isFullScreen)}
+                title={isFullScreen ? 'Exit Full Screen' : 'Expand to Full Page'}
+                className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
+              >
+                {isFullScreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              </button>
+
+              <button
+                onClick={onClose}
+                title="Close"
+                className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/10 transition ml-1 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
-          {/* TAB BAR */}
-          <div className="flex items-center gap-2 mt-4 border-b border-slate-800/80 pt-1">
+          {/* TAB BAR NAVIGATION */}
+          <div className="flex items-center gap-1 mt-4 border-b border-slate-800/80 pt-1 overflow-x-auto custom-scrollbar">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 ${
+              className={`px-3 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer ${
                 activeTab === 'overview'
                   ? 'border-cyan-400 text-cyan-300 bg-white/5'
                   : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
@@ -175,20 +261,44 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveTab('multi_period')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 ${
-                activeTab === 'multi_period'
+              onClick={() => setActiveTab('pitch')}
+              className={`px-3 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer ${
+                activeTab === 'pitch'
+                  ? 'border-amber-400 text-amber-300 bg-amber-500/10'
+                  : 'border-transparent text-slate-400 hover:text-amber-200 hover:bg-white/5'
+              }`}
+            >
+              <Zap size={13} className="text-amber-400" />
+              <span>Pitch Opportunities ({(merged.pitchOpportunities?.reorderCandidates?.length || 0) + (merged.pitchOpportunities?.crossSellBranchMovers?.length || 0)})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('frequency')}
+              className={`px-3 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer ${
+                activeTab === 'frequency'
+                  ? 'border-emerald-400 text-emerald-300 bg-white/5'
+                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
+              }`}
+            >
+              <Clock size={13} />
+              <span>Purchase Frequency ({merged.frequencySegmentation?.totalUniqueParts || 0})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('top_parts')}
+              className={`px-3 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer ${
+                activeTab === 'top_parts'
                   ? 'border-cyan-400 text-cyan-300 bg-white/5'
                   : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
-              <BarChart2 size={13} />
-              <span>MTD • QTD • YTD Growth</span>
+              <ShoppingCart size={13} />
+              <span>Top Parts ({merged.topParts?.length || 0})</span>
             </button>
 
             <button
               onClick={() => setActiveTab('categories')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 ${
+              className={`px-3 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer ${
                 activeTab === 'categories'
                   ? 'border-cyan-400 text-cyan-300 bg-white/5'
                   : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
@@ -199,46 +309,73 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveTab('top_parts')}
-              className={`px-3.5 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 ${
-                activeTab === 'top_parts'
+              onClick={() => setActiveTab('multi_period')}
+              className={`px-3 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer ${
+                activeTab === 'multi_period'
                   ? 'border-cyan-400 text-cyan-300 bg-white/5'
                   : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
-              <ShoppingCart size={13} />
-              <span>Top Parts ({merged.topParts?.length || 0})</span>
+              <BarChart2 size={13} />
+              <span>MTD • QTD • YTD</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('timeline')}
+              className={`px-3 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer ${
+                activeTab === 'timeline'
+                  ? 'border-cyan-400 text-cyan-300 bg-white/5'
+                  : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'
+              }`}
+            >
+              <Calendar size={13} />
+              <span>Monthly Timeline ({merged.timeline?.length || 0})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab(activeTab === 'all' ? 'overview' : 'all')}
+              className={`px-3 py-2 text-xs font-bold rounded-t-lg transition flex items-center gap-1.5 border-b-2 whitespace-nowrap cursor-pointer ${
+                activeTab === 'all'
+                  ? 'border-purple-400 text-purple-300 bg-purple-500/10'
+                  : 'border-transparent text-slate-400 hover:text-purple-300 hover:bg-white/5'
+              }`}
+            >
+              <FileSpreadsheet size={13} />
+              <span>{activeTab === 'all' ? '✓ Master View (All-In-One)' : 'Master All-in-One View'}</span>
             </button>
           </div>
         </div>
 
-        {/* BODY CONTENT */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs custom-scrollbar">
+        {/* BODY CONTENT AREA */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 text-xs custom-scrollbar">
           
-          {/* TAB 1: OVERVIEW & TARGET FORMULATION */}
-          {activeTab === 'overview' && (
+          {/* ───────────────────────────────────────────────────────────── */}
+          {/* SECTION 1: OVERVIEW & TARGET FORMULATION */}
+          {/* ───────────────────────────────────────────────────────────── */}
+          {(activeTab === 'overview' || activeTab === 'all') && (
             <div className="space-y-4 animate-in fade-in duration-200">
-              {/* 4 Core Summary Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80 shadow-xs">
-                  <p className="text-2xs font-bold text-slate-400 uppercase">{currentPeriodLabel} Turnover</p>
-                  <p className="text-base font-black font-mono text-emerald-400 mt-0.5">
+              
+              {/* 4 Core Summary KPI Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-[#0f1b2e] p-3.5 rounded-xl border border-slate-700/70 shadow-xs">
+                  <p className="text-2xs font-bold text-slate-400 uppercase tracking-wider">{currentPeriodLabel} Turnover</p>
+                  <p className="text-lg font-black font-mono text-emerald-400 mt-0.5">
                     {formatCurrency(currentSales)}
                   </p>
                   <p className="text-3xs text-slate-400 mt-0.5">{formatLakhs(currentSales)}</p>
                 </div>
 
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80 shadow-xs">
-                  <p className="text-2xs font-bold text-slate-400 uppercase">{currentPeriodLabel} Target</p>
-                  <p className="text-base font-black font-mono text-amber-300 mt-0.5">
+                <div className="bg-[#0f1b2e] p-3.5 rounded-xl border border-slate-700/70 shadow-xs">
+                  <p className="text-2xs font-bold text-slate-400 uppercase tracking-wider">{currentPeriodLabel} Target</p>
+                  <p className="text-lg font-black font-mono text-amber-300 mt-0.5">
                     {formatCurrency(finalTarget)}
                   </p>
                   <p className="text-3xs text-slate-400 mt-0.5">{formatLakhs(finalTarget)}</p>
                 </div>
 
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80 shadow-xs">
-                  <p className="text-2xs font-bold text-slate-400 uppercase">Fulfillment %</p>
-                  <p className={`text-base font-black font-mono mt-0.5 ${
+                <div className="bg-[#0f1b2e] p-3.5 rounded-xl border border-slate-700/70 shadow-xs">
+                  <p className="text-2xs font-bold text-slate-400 uppercase tracking-wider">Fulfillment %</p>
+                  <p className={`text-lg font-black font-mono mt-0.5 ${
                     isAchieved ? 'text-emerald-400' : isOnTrack ? 'text-amber-400' : 'text-rose-400'
                   }`}>
                     {achievementPercent.toFixed(1)}%
@@ -248,9 +385,9 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
                   </p>
                 </div>
 
-                <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/80 shadow-xs">
-                  <p className="text-2xs font-bold text-slate-400 uppercase">Partlines / Invoices</p>
-                  <p className="text-base font-black font-mono text-cyan-300 mt-0.5">
+                <div className="bg-[#0f1b2e] p-3.5 rounded-xl border border-slate-700/70 shadow-xs">
+                  <p className="text-2xs font-bold text-slate-400 uppercase tracking-wider">Partlines & Gap</p>
+                  <p className="text-lg font-black font-mono text-cyan-300 mt-0.5">
                     {merged.uniquePartlines || 0} <span className="text-slate-400 text-xs font-normal">lines</span>
                   </p>
                   <p className="text-3xs text-slate-400 mt-0.5">
@@ -261,8 +398,47 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
                 </div>
               </div>
 
+              {/* LIFETIME BASKET & INVOICE INTELLIGENCE CARD */}
+              <div className="bg-[#0D1829] rounded-xl p-4 border border-slate-700/80 shadow-xs">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-3">
+                  <h4 className="font-bold text-white text-xs uppercase flex items-center gap-2">
+                    <ShoppingCart size={14} className="text-cyan-400" />
+                    Lifetime Order Basket & Invoice Metrics
+                  </h4>
+                  <span className="text-3xs px-2 py-0.5 rounded bg-blue-900/60 text-blue-300 font-mono">
+                    Active: {basket.activeMonths} Months ({basket.firstPurchase} → {basket.lastPurchase})
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-mono">
+                  <div className="bg-slate-900/70 p-2.5 rounded-lg border border-slate-800">
+                    <p className="text-3xs text-slate-400 uppercase font-sans">Avg Invoice Value (AOV)</p>
+                    <p className="text-sm font-black text-amber-300 mt-0.5">{formatCurrency(basket.avgInvoiceValue)}</p>
+                    <p className="text-3xs text-slate-500">per billed invoice</p>
+                  </div>
+
+                  <div className="bg-slate-900/70 p-2.5 rounded-lg border border-slate-800">
+                    <p className="text-3xs text-slate-400 uppercase font-sans">Avg Lines / Invoice</p>
+                    <p className="text-sm font-black text-cyan-300 mt-0.5">{basket.avgLinesPerInvoice} <span className="text-xs font-normal text-slate-400">parts</span></p>
+                    <p className="text-3xs text-slate-500">basket variety</p>
+                  </div>
+
+                  <div className="bg-slate-900/70 p-2.5 rounded-lg border border-slate-800">
+                    <p className="text-3xs text-slate-400 uppercase font-sans">Avg Units / Invoice</p>
+                    <p className="text-sm font-black text-emerald-400 mt-0.5">{basket.avgQtyPerInvoice} <span className="text-xs font-normal text-slate-400">qty</span></p>
+                    <p className="text-3xs text-slate-500">order volume</p>
+                  </div>
+
+                  <div className="bg-slate-900/70 p-2.5 rounded-lg border border-slate-800">
+                    <p className="text-3xs text-slate-400 uppercase font-sans">Lifetime Invoices</p>
+                    <p className="text-sm font-black text-purple-300 mt-0.5">{basket.totalInvoices} <span className="text-xs font-normal text-slate-400">inv ({basket.totalUniqueParts} parts)</span></p>
+                    <p className="text-3xs text-slate-500">{formatLakhs(basket.lifetimeSales)} total</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Real Historical Turnover Timeline Chart */}
-              <div className="bg-slate-800/70 rounded-xl p-4 border border-slate-700 shadow-xs">
+              <div className="bg-[#0D1829] rounded-xl p-4 border border-slate-700/80 shadow-xs">
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="font-bold text-slate-200 text-xs flex items-center gap-1.5">
                     <Activity size={14} className="text-cyan-400" />
@@ -279,7 +455,7 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
                           <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />
                       <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#94a3b8' }} />
                       <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => `₹${(v / 100000).toFixed(1)}L`} />
                       <Tooltip
@@ -350,12 +526,352 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
             </div>
           )}
 
-          {/* TAB 2: MULTI-PERIOD GROWTH MATRIX */}
-          {activeTab === 'multi_period' && (
+          {/* ───────────────────────────────────────────────────────────── */}
+          {/* SECTION 2: SALES PITCH OPPORTUNITIES & CROSS-SELL */}
+          {/* ───────────────────────────────────────────────────────────── */}
+          {(activeTab === 'pitch' || activeTab === 'all') && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="bg-[#0D1829] rounded-xl p-4 border border-amber-500/30 shadow-md">
+                <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
+                  <div>
+                    <h4 className="font-bold text-amber-300 text-xs uppercase flex items-center gap-1.5">
+                      <Zap size={14} className="text-amber-400" />
+                      1. Re-Order Opportunities (Dormant High-Value Parts)
+                    </h4>
+                    <p className="text-3xs text-slate-400 mt-0.5">
+                      Parts this party used to purchase in high volume ($&gt;$ ₹5,000) that have NOT been ordered in recent months!
+                    </p>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-3xs border border-amber-400/30">
+                    {merged.pitchOpportunities?.reorderCandidates?.length || 0} Candidates
+                  </span>
+                </div>
+
+                {merged.pitchOpportunities?.reorderCandidates?.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left font-mono text-2xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-900 text-slate-300 border-b border-slate-800">
+                          <th className="p-2">#</th>
+                          <th className="p-2">Part Number</th>
+                          <th className="p-2">Root Part</th>
+                          <th className="p-2 text-center">Cat</th>
+                          <th className="p-2 text-right">Past Spend (₹)</th>
+                          <th className="p-2 text-center">Past Qty</th>
+                          <th className="p-2 text-right">Last Purchased</th>
+                          <th className="p-2 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {merged.pitchOpportunities.reorderCandidates.map((p: any, i: number) => (
+                          <tr key={i} className="hover:bg-slate-800/40">
+                            <td className="p-2 text-slate-500">{i + 1}</td>
+                            <td className="p-2 font-bold text-white">{p.partNum}</td>
+                            <td className="p-2 text-slate-400">{p.rootPartNum}</td>
+                            <td className="p-2 text-center font-bold text-cyan-300">{p.cat}</td>
+                            <td className="p-2 text-right font-bold text-amber-300">{formatCurrency(p.totalSales)}</td>
+                            <td className="p-2 text-center text-slate-300">{p.totalQty.toLocaleString('en-IN')}</td>
+                            <td className="p-2 text-right text-rose-400 font-bold">{p.lastPurchased}</td>
+                            <td className="p-2 text-center">
+                              <span className="px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-600/40 text-3xs font-sans font-bold">
+                                📞 Pitch Re-order
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-slate-400 text-center py-4">No dormant high-value parts found. Customer is consistently active across all items.</p>
+                )}
+              </div>
+
+              {/* BRANCH FAST-MOVERS NOT YET PURCHASED */}
+              <div className="bg-[#0D1829] rounded-xl p-4 border border-emerald-500/30 shadow-md">
+                <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
+                  <div>
+                    <h4 className="font-bold text-emerald-300 text-xs uppercase flex items-center gap-1.5">
+                      <TrendingUp size={14} className="text-emerald-400" />
+                      2. Branch Top Movers (Cross-Sell Pitch Candidates)
+                    </h4>
+                    <p className="text-3xs text-slate-400 mt-0.5">
+                      Top-selling fast-moving parts in branch ({merged.branchCode}) that this party has NEVER ordered yet!
+                    </p>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold text-3xs border border-emerald-400/30">
+                    {merged.pitchOpportunities?.crossSellBranchMovers?.length || 0} Hot Parts
+                  </span>
+                </div>
+
+                {merged.pitchOpportunities?.crossSellBranchMovers?.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left font-mono text-2xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-900 text-slate-300 border-b border-slate-800">
+                          <th className="p-2">#</th>
+                          <th className="p-2">Part Number</th>
+                          <th className="p-2">Root Part</th>
+                          <th className="p-2 text-center">Cat</th>
+                          <th className="p-2 text-right">Branch Sales (₹)</th>
+                          <th className="p-2 text-center">Branch Invoices</th>
+                          <th className="p-2 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {merged.pitchOpportunities.crossSellBranchMovers.map((p: any, i: number) => (
+                          <tr key={i} className="hover:bg-slate-800/40">
+                            <td className="p-2 text-slate-500">{i + 1}</td>
+                            <td className="p-2 font-bold text-white">{p.partNum}</td>
+                            <td className="p-2 text-slate-400">{p.rootPartNum}</td>
+                            <td className="p-2 text-center font-bold text-cyan-300">{p.cat}</td>
+                            <td className="p-2 text-right font-bold text-emerald-400">{formatCurrency(p.totalSales)}</td>
+                            <td className="p-2 text-center text-slate-300">{p.invoicesCount.toLocaleString('en-IN')} inv</td>
+                            <td className="p-2 text-center">
+                              <span className="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-600/40 text-3xs font-sans font-bold">
+                                🚀 Cross-Sell Opportunity
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-slate-400 text-center py-4">No cross-sell opportunities found.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ───────────────────────────────────────────────────────────── */}
+          {/* SECTION 3: PURCHASE FREQUENCY SEGMENTATION */}
+          {/* ───────────────────────────────────────────────────────────── */}
+          {(activeTab === 'frequency' || activeTab === 'all') && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="bg-[#0D1829] rounded-xl p-4 border border-slate-700/80 shadow-xs">
+                <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2.5">
+                  <h4 className="font-bold text-white text-xs uppercase flex items-center gap-1.5">
+                    <Clock size={14} className="text-purple-400" />
+                    Part Purchase Frequency Segmentation ({merged.frequencySegmentation?.totalUniqueParts || 0} Total Unique Parts)
+                  </h4>
+                  
+                  {activeTab !== 'all' && (
+                    <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800">
+                      <button
+                        onClick={() => setFreqFilter('all')}
+                        className={`px-2 py-1 rounded text-3xs font-bold cursor-pointer ${freqFilter === 'all' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                      >
+                        All
+                      </button>
+                      <button
+                        onClick={() => setFreqFilter('frequent')}
+                        className={`px-2 py-1 rounded text-3xs font-bold cursor-pointer ${freqFilter === 'frequent' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                      >
+                        Frequent ({merged.frequencySegmentation?.frequentCount || 0})
+                      </button>
+                      <button
+                        onClick={() => setFreqFilter('regular')}
+                        className={`px-2 py-1 rounded text-3xs font-bold cursor-pointer ${freqFilter === 'regular' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                      >
+                        Regular ({merged.frequencySegmentation?.regularCount || 0})
+                      </button>
+                      <button
+                        onClick={() => setFreqFilter('rare')}
+                        className={`px-2 py-1 rounded text-3xs font-bold cursor-pointer ${freqFilter === 'rare' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                      >
+                        Rare ({merged.frequencySegmentation?.rareCount || 0})
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 3 Frequency Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                  <div className="bg-emerald-950/30 border border-emerald-500/30 p-3 rounded-xl">
+                    <div className="flex justify-between items-center">
+                      <p className="text-3xs font-bold text-emerald-400 uppercase">🔥 Frequent / Core Basket</p>
+                      <span className="text-xs font-mono font-bold text-emerald-300">{merged.frequencySegmentation?.frequentCount || 0} items</span>
+                    </div>
+                    <p className="text-3xs text-slate-400 mt-1">Purchased in 3 or more active months. High repeat customer loyalty items.</p>
+                  </div>
+
+                  <div className="bg-cyan-950/30 border border-cyan-500/30 p-3 rounded-xl">
+                    <div className="flex justify-between items-center">
+                      <p className="text-3xs font-bold text-cyan-400 uppercase">⚡ Regular / Seasonal</p>
+                      <span className="text-xs font-mono font-bold text-cyan-300">{merged.frequencySegmentation?.regularCount || 0} items</span>
+                    </div>
+                    <p className="text-3xs text-slate-400 mt-1">Purchased in 2 active months. Semi-regular repeat purchase cycle.</p>
+                  </div>
+
+                  <div className="bg-amber-950/30 border border-amber-500/30 p-3 rounded-xl">
+                    <div className="flex justify-between items-center">
+                      <p className="text-3xs font-bold text-amber-400 uppercase">📦 Rare / One-Off</p>
+                      <span className="text-xs font-mono font-bold text-amber-300">{merged.frequencySegmentation?.rareCount || 0} items</span>
+                    </div>
+                    <p className="text-3xs text-slate-400 mt-1">Purchased only once historically. Low repeat order rate.</p>
+                  </div>
+                </div>
+
+                {/* Items Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left font-mono text-2xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-900 text-slate-300 border-b border-slate-800">
+                        <th className="p-2">Part Number</th>
+                        <th className="p-2">Root Part</th>
+                        <th className="p-2 text-center">Cat</th>
+                        <th className="p-2 text-center">Active Months</th>
+                        <th className="p-2 text-center">Invoices</th>
+                        <th className="p-2 text-right">Lifetime Sales (₹)</th>
+                        <th className="p-2 text-center">Classification</th>
+                        <th className="p-2 text-right">Last Purchase</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {[
+                        ...(freqFilter === 'all' || freqFilter === 'frequent' ? (merged.frequencySegmentation?.frequent || []) : []),
+                        ...(freqFilter === 'all' || freqFilter === 'regular' ? (merged.frequencySegmentation?.regular || []) : []),
+                        ...(freqFilter === 'all' || freqFilter === 'rare' ? (merged.frequencySegmentation?.rare || []) : []),
+                      ].slice(0, 30).map((p: any, i: number) => (
+                        <tr key={i} className="hover:bg-slate-800/40">
+                          <td className="p-2 font-bold text-white">{p.partNum}</td>
+                          <td className="p-2 text-slate-400">{p.rootPartNum}</td>
+                          <td className="p-2 text-center font-bold text-cyan-300">{p.cat}</td>
+                          <td className="p-2 text-center font-bold text-white">{p.activeMonthsCount} mos</td>
+                          <td className="p-2 text-center text-slate-300">{p.invoicesCount} inv</td>
+                          <td className="p-2 text-right font-bold text-emerald-400">{formatCurrency(p.totalSales)}</td>
+                          <td className="p-2 text-center">
+                            <span className={`px-2 py-0.5 rounded text-3xs font-bold ${
+                              p.frequencyType === 'FREQUENT'
+                                ? 'bg-emerald-950 text-emerald-300 border border-emerald-600/40'
+                                : p.frequencyType === 'REGULAR'
+                                ? 'bg-cyan-950 text-cyan-300 border border-cyan-600/40'
+                                : 'bg-amber-950 text-amber-300 border border-amber-600/40'
+                            }`}>
+                              {p.frequencyType}
+                            </span>
+                          </td>
+                          <td className="p-2 text-right text-slate-400">{p.lastPurchased}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ───────────────────────────────────────────────────────────── */}
+          {/* SECTION 4: TOP PURCHASED PARTLINES */}
+          {/* ───────────────────────────────────────────────────────────── */}
+          {(activeTab === 'top_parts' || activeTab === 'all') && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="bg-[#0D1829] rounded-xl p-4 border border-slate-700/80 shadow-xs">
+                <h4 className="font-bold text-white text-xs uppercase mb-3 flex items-center gap-1.5">
+                  <ShoppingCart size={13} className="text-amber-400" />
+                  Top 25 Purchased Partlines (Ranked by Lifetime Revenue)
+                </h4>
+
+                {merged.topParts && merged.topParts.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left font-mono text-2xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-900 text-slate-300 border-b border-slate-800">
+                          <th className="p-2">#</th>
+                          <th className="p-2">Part Number</th>
+                          <th className="p-2">Root Part</th>
+                          <th className="p-2 text-center">Cat</th>
+                          <th className="p-2 text-center">Total Qty</th>
+                          <th className="p-2 text-right">Revenue (₹)</th>
+                          <th className="p-2 text-center">Share %</th>
+                          <th className="p-2 text-center">Invoices</th>
+                          <th className="p-2 text-right">Last Purchase</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {merged.topParts.map((p: any, i: number) => (
+                          <tr key={i} className="hover:bg-slate-800/40">
+                            <td className="p-2 text-slate-400">{i + 1}</td>
+                            <td className="p-2 font-bold text-white">{p.partNum}</td>
+                            <td className="p-2 text-slate-400">{p.rootPartNum}</td>
+                            <td className="p-2 text-center font-bold text-cyan-300">{p.cat}</td>
+                            <td className="p-2 text-center text-amber-300 font-bold">{p.totalQty.toLocaleString('en-IN')}</td>
+                            <td className="p-2 text-right font-bold text-emerald-400">{formatCurrency(p.totalSales)}</td>
+                            <td className="p-2 text-center text-purple-300 font-bold">{p.revenueShare ? `${p.revenueShare}%` : '-'}</td>
+                            <td className="p-2 text-center text-slate-300">{p.invoicesCount || '-'}</td>
+                            <td className="p-2 text-right text-slate-400">{p.lastPurchased || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-slate-400 text-center py-6">No specific line item records found for this party.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ───────────────────────────────────────────────────────────── */}
+          {/* SECTION 5: CATEGORIES BREAKDOWN */}
+          {/* ───────────────────────────────────────────────────────────── */}
+          {(activeTab === 'categories' || activeTab === 'all') && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="bg-[#0D1829] rounded-xl p-4 border border-slate-700/80 shadow-xs">
+                <h4 className="font-bold text-white text-xs uppercase mb-3 flex items-center gap-1.5">
+                  <Layers size={13} className="text-cyan-400" />
+                  Product Category Sales & Partline Distribution
+                </h4>
+
+                {merged.categories && merged.categories.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left font-mono text-2xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-900 text-slate-300 border-b border-slate-800">
+                          <th className="p-2">Category</th>
+                          <th className="p-2 text-center">Partlines</th>
+                          <th className="p-2 text-center">Invoices</th>
+                          <th className="p-2 text-right">{currentPeriodLabel} Sales</th>
+                          <th className="p-2 text-right">FY{fiscalYear} YTD</th>
+                          <th className="p-2 text-right">Lifetime Sales</th>
+                          <th className="p-2 text-center">Share %</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {merged.categories.map((c: any, i: number) => (
+                          <tr key={i} className="hover:bg-slate-800/40">
+                            <td className="p-2 font-bold text-cyan-300">
+                              <span className="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700/50">
+                                {c.cat}
+                              </span>
+                            </td>
+                            <td className="p-2 text-center text-slate-300 font-bold">{c.uniquePartlines}</td>
+                            <td className="p-2 text-center text-slate-400">{c.totalInvoices}</td>
+                            <td className="p-2 text-right font-bold text-emerald-400">{formatCurrency(c.curMonthSales)}</td>
+                            <td className="p-2 text-right text-white font-bold">{formatCurrency(c.ytdSales)}</td>
+                            <td className="p-2 text-right text-slate-300">{formatCurrency(c.lifetimeSales)}</td>
+                            <td className="p-2 text-center text-purple-300 font-bold">{c.sharePercent}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-slate-400 text-center py-6">No specific category breakdown available.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ───────────────────────────────────────────────────────────── */}
+          {/* SECTION 6: MULTI-PERIOD GROWTH SCORECARD */}
+          {/* ───────────────────────────────────────────────────────────── */}
+          {(activeTab === 'multi_period' || activeTab === 'all') && (
             <div className="space-y-4 animate-in fade-in duration-200">
               
               {/* MTD Performance Table */}
-              <div className="bg-slate-800/80 rounded-xl p-3.5 border border-slate-700">
+              <div className="bg-[#0D1829] rounded-xl p-3.5 border border-slate-700/80">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-bold text-sky-300 text-xs uppercase flex items-center gap-1.5">
                     <Calendar size={13} />
@@ -399,7 +915,7 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
               </div>
 
               {/* QTD Performance Table */}
-              <div className="bg-slate-800/80 rounded-xl p-3.5 border border-slate-700">
+              <div className="bg-[#0D1829] rounded-xl p-3.5 border border-slate-700/80">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-bold text-indigo-300 text-xs uppercase flex items-center gap-1.5">
                     <Award size={13} />
@@ -438,7 +954,7 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
               </div>
 
               {/* YTD & 3-Year Historical Growth */}
-              <div className="bg-slate-800/80 rounded-xl p-3.5 border border-slate-700">
+              <div className="bg-[#0D1829] rounded-xl p-3.5 border border-slate-700/80">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-bold text-purple-300 text-xs uppercase flex items-center gap-1.5">
                     <TrendingUp size={13} />
@@ -478,93 +994,48 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
             </div>
           )}
 
-          {/* TAB 3: CATEGORIES BREAKDOWN */}
-          {activeTab === 'categories' && (
+          {/* ───────────────────────────────────────────────────────────── */}
+          {/* SECTION 7: MONTHLY HISTORY TIMELINE TABLE */}
+          {/* ───────────────────────────────────────────────────────────── */}
+          {(activeTab === 'timeline' || activeTab === 'all') && (
             <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700">
+              <div className="bg-[#0D1829] rounded-xl p-4 border border-slate-700/80 shadow-xs">
                 <h4 className="font-bold text-white text-xs uppercase mb-3 flex items-center gap-1.5">
-                  <Layers size={13} className="text-cyan-400" />
-                  Product Category Sales & Partline Distribution
+                  <Calendar size={13} className="text-cyan-400" />
+                  Complete Monthly Transaction Timeline (All Records in Database)
                 </h4>
 
-                {merged.categories && merged.categories.length > 0 ? (
+                {merged.timeline && merged.timeline.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left font-mono text-2xs border-collapse">
                       <thead>
-                        <tr className="bg-slate-900 text-slate-300 border-b border-slate-700">
-                          <th className="p-2">Category</th>
-                          <th className="p-2 text-center">Partlines</th>
+                        <tr className="bg-slate-900 text-slate-300 border-b border-slate-800">
+                          <th className="p-2">Period</th>
+                          <th className="p-2 text-center">FY</th>
+                          <th className="p-2 text-right">Sales (₹)</th>
+                          <th className="p-2 text-center">Qty</th>
                           <th className="p-2 text-center">Invoices</th>
-                          <th className="p-2 text-right">{currentPeriodLabel} Sales</th>
-                          <th className="p-2 text-right">FY{fiscalYear} YTD</th>
-                          <th className="p-2 text-right">Lifetime Sales</th>
+                          <th className="p-2 text-center">Partlines</th>
+                          <th className="p-2 text-right">Avg Invoice Value</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-700/60">
-                        {merged.categories.map((c: any, i: number) => (
-                          <tr key={i} className="hover:bg-slate-700/40">
-                            <td className="p-2 font-bold text-cyan-300">
-                              <span className="px-2 py-0.5 rounded bg-blue-900/60 border border-blue-700/50">
-                                {c.cat}
-                              </span>
-                            </td>
-                            <td className="p-2 text-center text-slate-300 font-bold">{c.uniquePartlines}</td>
-                            <td className="p-2 text-center text-slate-400">{c.totalInvoices}</td>
-                            <td className="p-2 text-right font-bold text-emerald-400">{formatCurrency(c.curMonthSales)}</td>
-                            <td className="p-2 text-right text-white font-bold">{formatCurrency(c.ytdSales)}</td>
-                            <td className="p-2 text-right text-slate-300">{formatCurrency(c.lifetimeSales)}</td>
+                      <tbody className="divide-y divide-slate-800/60">
+                        {merged.timeline.map((t: any, i: number) => (
+                          <tr key={i} className="hover:bg-slate-800/40">
+                            <td className="p-2 font-bold text-white">{t.period}</td>
+                            <td className="p-2 text-center text-slate-400">FY{t.fiscalYear}</td>
+                            <td className="p-2 text-right font-bold text-emerald-400">{formatCurrency(t.sales)}</td>
+                            <td className="p-2 text-center text-slate-300">{Number(t.qty).toLocaleString('en-IN')}</td>
+                            <td className="p-2 text-center text-cyan-300">{t.invoices}</td>
+                            <td className="p-2 text-center text-purple-300">{t.partlines}</td>
+                            <td className="p-2 text-right text-amber-300 font-bold">{formatCurrency(t.avgInvoiceValue)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p className="text-slate-400 text-center py-6">No specific category breakdown available.</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: TOP PURCHASED PARTS */}
-          {activeTab === 'top_parts' && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700">
-                <h4 className="font-bold text-white text-xs uppercase mb-3 flex items-center gap-1.5">
-                  <ShoppingCart size={13} className="text-amber-400" />
-                  Top 10 Purchased Partlines (Ranked by Revenue)
-                </h4>
-
-                {merged.topParts && merged.topParts.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left font-mono text-2xs border-collapse">
-                      <thead>
-                        <tr className="bg-slate-900 text-slate-300 border-b border-slate-700">
-                          <th className="p-2">#</th>
-                          <th className="p-2">Part Number</th>
-                          <th className="p-2">Root Part</th>
-                          <th className="p-2 text-center">Cat</th>
-                          <th className="p-2 text-center">Total Qty</th>
-                          <th className="p-2 text-right">Revenue (₹)</th>
-                          <th className="p-2 text-right">Last Purchase</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-700/60">
-                        {merged.topParts.map((p: any, i: number) => (
-                          <tr key={i} className="hover:bg-slate-700/40">
-                            <td className="p-2 text-slate-400">{i + 1}</td>
-                            <td className="p-2 font-bold text-white">{p.partNum}</td>
-                            <td className="p-2 text-slate-400">{p.rootPartNum}</td>
-                            <td className="p-2 text-center font-bold text-cyan-300">{p.cat}</td>
-                            <td className="p-2 text-center text-amber-300 font-bold">{p.totalQty.toLocaleString('en-IN')}</td>
-                            <td className="p-2 text-right font-bold text-emerald-400">{formatCurrency(p.totalSales)}</td>
-                            <td className="p-2 text-right text-slate-400">{p.lastPurchased || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-slate-400 text-center py-6">No specific line item records found for this party.</p>
+                  <p className="text-slate-400 text-center py-6">No monthly historical transactions found in database.</p>
                 )}
               </div>
             </div>
@@ -573,20 +1044,40 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
         </div>
 
         {/* BOTTOM ACTION FOOTER */}
-        <div className="p-4 px-6 border-t border-slate-800 bg-[#001733] flex items-center justify-between gap-3 shrink-0">
-          <button
-            onClick={() => onEditTarget(dealer)}
-            className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs flex items-center justify-center gap-1.5 shadow-sm"
-          >
-            <Edit3 size={14} />
-            <span>Edit Target</span>
-          </button>
-          <button
-            onClick={onClose}
-            className="px-6 py-2.5 border border-slate-600 text-slate-300 hover:text-white font-bold hover:bg-slate-800 rounded-xl transition text-xs"
-          >
-            Close
-          </button>
+        <div className="p-4 px-6 border-t border-slate-800 bg-[#0B1528] flex items-center justify-between gap-3 shrink-0 shadow-lg">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadExcel}
+              disabled={isExporting}
+              className="px-4 py-2.5 bg-emerald-700/40 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 font-bold rounded-xl transition text-xs flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <FileSpreadsheet size={15} className={isExporting ? 'animate-spin' : ''} />
+              <span>{isExporting ? 'Generating...' : 'Export Excel (.xlsx)'}</span>
+            </button>
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2.5 bg-blue-700/40 hover:bg-blue-600/50 text-blue-200 border border-blue-500/40 font-bold rounded-xl transition text-xs flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <Printer size={15} />
+              <span>Print Dossier (PDF)</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onEditTarget(dealer)}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              <Edit3 size={14} />
+              <span>Edit Target</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 border border-slate-700 text-slate-300 hover:text-white font-bold hover:bg-slate-800/80 rounded-xl transition text-xs cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
         </div>
 
       </div>

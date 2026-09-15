@@ -67,6 +67,30 @@ export class ReportsController {
     return this.reportsService.getTargetVsAchievement(query);
   }
 
+  @Get('party-360/export')
+  @RequirePermissions('reports:export')
+  @ApiOperation({ summary: 'Export complete Party 360 intelligence dossier to Excel' })
+  async exportParty360Excel(
+    @Query('partyCode') partyCode: string,
+    @Query('branchCode') branchCode: string,
+    @Query('fiscalYear') fiscalYear: number,
+    @Query('month') month: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.reportsService.exportParty360ToExcel(
+      partyCode,
+      branchCode,
+      Number(fiscalYear) || 2026,
+      month || 'Sep',
+    );
+    const cleanCode = (partyCode || 'DEALER').trim();
+    const filename = `Party_360_${cleanCode}_${month || 'Sep'}_FY${fiscalYear || 2026}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.send(buffer);
+  }
+
   @Get('party-360')
   @RequirePermissions('reports:view')
   @ApiOperation({ summary: 'Get comprehensive 360 statistics, history, timeline, and categories for a party' })
