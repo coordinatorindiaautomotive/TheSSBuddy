@@ -153,9 +153,17 @@ export class ReportsController {
       reportData = await this.reportsService.getTargetVsAchievement({ ...query, page: 1, pageSize: 5000 });
     }
 
-    const buffer = await this.reportsService.exportReportToExcel(type || 'target_vs_achievement', reportData.items || []);
+    const buffer = await this.reportsService.exportReportToExcel(
+      type || 'target_vs_achievement',
+      reportData.items || reportData.data || [],
+      query,
+    );
+    const month = query?.month || 'Report';
+    const fy = query?.fiscalYear || 'FY26';
+    const filename = `${(type || 'target_vs_achievement').replace(/_/g, '-')}_${month}_${fy}.xlsx`;
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=${type || 'target_vs_achievement'}.xlsx`);
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
     res.send(buffer);
   }
 }

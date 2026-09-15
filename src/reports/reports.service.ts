@@ -816,21 +816,319 @@ export class ReportsService {
     return { ok: true, message: `Updated targets for ${updatedCount} dealers` };
   }
 
-  async exportReportToExcel(reportName: string, data: any[]): Promise<Buffer> {
+  async exportReportToExcel(reportName: string, data: any[], metadata: any = {}): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(reportName);
+    workbook.creator = 'The SS Buddy Intelligence Portal';
+    workbook.lastModifiedBy = 'SS Buddy Corporate System';
+    workbook.created = new Date();
+    workbook.modified = new Date();
 
-    if (data.length > 0) {
-      const headers = Object.keys(data[0]);
-      worksheet.columns = headers.map((h) => ({ header: h, key: h, width: 22 }));
-      data.forEach((row) => worksheet.addRow(row));
+    const isTargetVsAchievement = reportName.toLowerCase().includes('target');
 
-      worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      worksheet.getRow(1).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF0B1C30' },
-      };
+    if (isTargetVsAchievement) {
+      const month = metadata?.month || 'Sep';
+      const fiscalYear = Number(metadata?.fiscalYear) || 2026;
+      const category = metadata?.partCategoryCode === 'ALL' || !metadata?.partCategoryCode ? 'ALL Categories' : metadata.partCategoryCode;
+      const branch = metadata?.branchCode || 'ALL';
+
+      const worksheet = workbook.addWorksheet('Target vs Achievement', {
+        views: [{ state: 'frozen', xSplit: 0, ySplit: 5 }],
+        pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1 },
+      });
+
+      const NAVY_DARK = 'FF002B55';
+      const NAVY_PRIMARY = 'FF003366';
+      const BLUE_HEADER = 'FF0F3A66';
+      const GRAY_LIGHT = 'FFF8FAFC';
+      const GRAY_BORDER = 'FFE2E8F0';
+      const GREEN_FILL = 'FFDCFCE7';
+      const GREEN_TEXT = 'FF166534';
+      const AMBER_FILL = 'FFFEF3C7';
+      const AMBER_TEXT = 'FF92400E';
+      const RED_FILL = 'FFFEE2E2';
+      const RED_TEXT = 'FF991B1B';
+
+      const TOTAL_COLS = 17;
+
+      // ─── ROW 1: TITLE BANNER ───────────────────────────────────────────────
+      worksheet.mergeCells(1, 1, 1, TOTAL_COLS);
+      const titleRow = worksheet.getRow(1);
+      titleRow.height = 34;
+      const titleCell = worksheet.getCell(1, 1);
+      titleCell.value = 'MARUTI SUZUKI — DEALER TARGET VS ACHIEVEMENT PERFORMANCE REPORT';
+      titleCell.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_PRIMARY } };
+
+      // ─── ROW 2: METADATA SUB-BANNER ────────────────────────────────────────
+      worksheet.mergeCells(2, 1, 2, TOTAL_COLS);
+      const metaRow = worksheet.getRow(2);
+      metaRow.height = 20;
+      const metaCell = worksheet.getCell(2, 1);
+      const printDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      metaCell.value = `Period: ${month} FY${fiscalYear}   |   Category: ${category}   |   Branch: ${branch}   |   Generated: ${printDate}   |   Classification: STRICTLY CONFIDENTIAL`;
+      metaCell.font = { name: 'Arial', size: 9, italic: true, bold: true, color: { argb: 'FFD1D5DB' } };
+      metaCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_DARK } };
+
+      // ─── ROW 3: KPI SUMMARY STATS ──────────────────────────────────────────
+      worksheet.mergeCells(3, 1, 3, TOTAL_COLS);
+      const kpiRow = worksheet.getRow(3);
+      kpiRow.height = 22;
+
+      const totalSales = data.reduce((s, x) => s + (Number(x.currentSales) || 0), 0);
+      const totalTarget = data.reduce((s, x) => s + (Number(x.finalTarget) || 0), 0);
+      const overallAch = totalTarget > 0 ? (totalSales / totalTarget) * 100 : 0;
+      const achievedCount = data.filter((x) => (Number(x.achievementPercent) || 0) >= 100).length;
+      const onTrackCount = data.filter((x) => (Number(x.achievementPercent) || 0) >= 70 && (Number(x.achievementPercent) || 0) < 100).length;
+      const underCount = data.filter((x) => (Number(x.achievementPercent) || 0) < 70).length;
+
+      const kpiCell = worksheet.getCell(3, 1);
+      kpiCell.value = `TOTAL DEALERS: ${data.length}   |   ACHIEVED (>=100%): ${achievedCount}   |   ON-TRACK (70-99%): ${onTrackCount}   |   UNDER (<70%): ${underCount}   |   TOTAL TARGET: ₹ ${(totalTarget / 100000).toFixed(2)} L   |   TOTAL SALES: ₹ ${(totalSales / 100000).toFixed(2)} L   |   OVERALL ACH: ${overallAch.toFixed(1)}%`;
+      kpiCell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FF1E3A8A' } };
+      kpiCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      kpiCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E7FF' } };
+
+      // ─── ROW 4: SPACER ─────────────────────────────────────────────────────
+      worksheet.getRow(4).height = 6;
+
+      // ─── ROW 5: COLUMN HEADERS ─────────────────────────────────────────────
+      const shortYear = String(fiscalYear).slice(-2);
+      const prevShortYear = String(fiscalYear - 1).slice(-2);
+
+      const headers = [
+        { key: 'rank', label: 'SR #', width: 8, align: 'center' },
+        { key: 'branchCode', label: 'BRANCH CODE', width: 14, align: 'center' },
+        { key: 'branchName', label: 'BRANCH NAME', width: 26, align: 'left' },
+        { key: 'partyCode', label: 'PARTY CODE', width: 16, align: 'center' },
+        { key: 'partyName', label: 'PARTY / DEALER NAME', width: 34, align: 'left' },
+        { key: 'partyType', label: 'PARTY TYPE', width: 22, align: 'center' },
+        { key: 'partCategoryCode', label: 'CATEGORY', width: 12, align: 'center' },
+        { key: 'lySameMonthSales', label: `LY ${month}'${prevShortYear} (₹)`, width: 18, align: 'right' },
+        { key: 'lastMonthSales', label: `LAST MONTH (₹)`, width: 18, align: 'right' },
+        { key: 'lastQuarterAvg', label: `LAST QTR AVG (₹)`, width: 18, align: 'right' },
+        { key: 'lastFyAvg', label: `LAST FY AVG (₹)`, width: 18, align: 'right' },
+        { key: 'weightedBase', label: `WEIGHTED BASE (₹)`, width: 20, align: 'right' },
+        { key: 'finalTarget', label: `${month.toUpperCase()}'${shortYear} TARGET (₹)`, width: 20, align: 'right' },
+        { key: 'currentSales', label: `${month.toUpperCase()}'${shortYear} SALES (₹)`, width: 20, align: 'right' },
+        { key: 'achievementPercent', label: `ACH %`, width: 14, align: 'center' },
+        { key: 'status', label: `STATUS`, width: 18, align: 'center' },
+        { key: 'ytdSales', label: `FY${shortYear} YTD (₹)`, width: 20, align: 'right' },
+      ];
+
+      const headerRow = worksheet.getRow(5);
+      headerRow.height = 28;
+
+      headers.forEach((h, idx) => {
+        const colIdx = idx + 1;
+        worksheet.getColumn(colIdx).width = h.width;
+        const cell = headerRow.getCell(colIdx);
+        cell.value = h.label;
+        cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.alignment = { vertical: 'middle', horizontal: h.align === 'left' ? 'left' : h.align === 'right' ? 'right' : 'center', wrapText: true };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE_HEADER } };
+        cell.border = {
+          top: { style: 'medium', color: { argb: NAVY_DARK } },
+          bottom: { style: 'medium', color: { argb: NAVY_DARK } },
+          left: { style: 'thin', color: { argb: 'FF1E3A8A' } },
+          right: { style: 'thin', color: { argb: 'FF1E3A8A' } },
+        };
+      });
+
+      // ─── DATA ROWS ─────────────────────────────────────────────────────────
+      let currentRowIdx = 6;
+      data.forEach((item, idx) => {
+        const row = worksheet.getRow(currentRowIdx);
+        row.height = 20;
+        const isEven = idx % 2 === 0;
+        const defaultBg = isEven ? 'FFFFFFFF' : GRAY_LIGHT;
+
+        const achVal = Number(item.achievementPercent) || 0;
+        const statusText = achVal >= 100 ? 'ACHIEVED' : achVal >= 70 ? 'ON TRACK' : 'UNDER TARGET';
+
+        const values = [
+          idx + 1,
+          item.branchCode || '-',
+          (item.branchName || item.branchCode || '-').toUpperCase(),
+          item.partyCode || '-',
+          (item.partyName || '-').toUpperCase(),
+          (item.partyType || 'TRADER/RETAILER').toUpperCase(),
+          (item.partCategoryCode || 'M').toUpperCase(),
+          Number(item.lySameMonthSales) || 0,
+          Number(item.lastMonthSales) || 0,
+          Number(item.lastQuarterAvg) || 0,
+          Number(item.lastFyAvg) || 0,
+          Number(item.weightedBase) || 0,
+          Number(item.finalTarget) || 0,
+          Number(item.currentSales) || 0,
+          achVal / 100,
+          statusText,
+          Number(item.ytdSales) || 0,
+        ];
+
+        values.forEach((val, cIdx) => {
+          const colIdx = cIdx + 1;
+          const cell = row.getCell(colIdx);
+          cell.value = val;
+          cell.font = { name: 'Arial', size: 9 };
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: headers[cIdx].align === 'left' ? 'left' : headers[cIdx].align === 'right' ? 'right' : 'center',
+          };
+          cell.border = {
+            top: { style: 'thin', color: { argb: GRAY_BORDER } },
+            bottom: { style: 'thin', color: { argb: GRAY_BORDER } },
+            left: { style: 'thin', color: { argb: GRAY_BORDER } },
+            right: { style: 'thin', color: { argb: GRAY_BORDER } },
+          };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: defaultBg } };
+
+          if ([8, 9, 10, 11, 12, 13, 14, 17].includes(colIdx)) {
+            cell.numFmt = '₹ #,##,##0;[Red]-₹ #,##,##0;"—"';
+          } else if (colIdx === 15) {
+            cell.numFmt = '0.0%';
+            cell.font = { name: 'Arial', size: 9, bold: true };
+            if (achVal >= 100) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_FILL } };
+              cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: GREEN_TEXT } };
+            } else if (achVal >= 70) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMBER_FILL } };
+              cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: AMBER_TEXT } };
+            } else {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: RED_FILL } };
+              cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: RED_TEXT } };
+            }
+          } else if (colIdx === 16) {
+            cell.font = { name: 'Arial', size: 8.5, bold: true };
+            if (achVal >= 100) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_FILL } };
+              cell.font = { name: 'Arial', size: 8.5, bold: true, color: { argb: GREEN_TEXT } };
+            } else if (achVal >= 70) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMBER_FILL } };
+              cell.font = { name: 'Arial', size: 8.5, bold: true, color: { argb: AMBER_TEXT } };
+            } else {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: RED_FILL } };
+              cell.font = { name: 'Arial', size: 8.5, bold: true, color: { argb: RED_TEXT } };
+            }
+          } else if (colIdx === 4 || colIdx === 2) {
+            cell.font = { name: 'Courier New', size: 9, bold: true, color: { argb: 'FF003366' } };
+          }
+        });
+
+        currentRowIdx++;
+      });
+
+      // ─── GRAND TOTAL SUMMARY ROW ───────────────────────────────────────────
+      if (data.length > 0) {
+        const totalRow = worksheet.getRow(currentRowIdx);
+        totalRow.height = 24;
+        const firstDataRow = 6;
+        const lastDataRow = currentRowIdx - 1;
+
+        worksheet.mergeCells(currentRowIdx, 1, currentRowIdx, 7);
+        const grandLabelCell = totalRow.getCell(1);
+        grandLabelCell.value = `GRAND TOTAL (${data.length} DEALERS)`;
+        grandLabelCell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+        grandLabelCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+        grandLabelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+
+        for (let c = 8; c <= TOTAL_COLS; c++) {
+          const colLetter = worksheet.getColumn(c).letter;
+          const cell = totalRow.getCell(c);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
+          cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.border = {
+            top: { style: 'double', color: { argb: 'FF60A5FA' } },
+            bottom: { style: 'medium', color: { argb: 'FF60A5FA' } },
+          };
+
+          if ([8, 9, 10, 11, 12, 13, 14, 17].includes(c)) {
+            cell.value = { formula: `SUM(${colLetter}${firstDataRow}:${colLetter}${lastDataRow})` };
+            cell.numFmt = '₹ #,##,##0';
+            cell.alignment = { vertical: 'middle', horizontal: 'right' };
+            if (c === 13 || c === 14) {
+              cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
+            }
+          } else if (c === 15) {
+            const targetCol = worksheet.getColumn(13).letter;
+            const salesCol = worksheet.getColumn(14).letter;
+            cell.value = { formula: `IF(${targetCol}${currentRowIdx}>0, ${salesCol}${currentRowIdx}/${targetCol}${currentRowIdx}, 0)` };
+            cell.numFmt = '0.0%';
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
+          } else if (c === 16) {
+            cell.value = 'PORTFOLIO';
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.font = { name: 'Arial', size: 8.5, bold: true, color: { argb: 'FF94A3B8' } };
+          }
+        }
+      }
+
+      // ─── AUTOFILTER ────────────────────────────────────────────────────────
+      if (data.length > 0) {
+        worksheet.autoFilter = {
+          from: { row: 5, column: 1 },
+          to: { row: currentRowIdx - 1, column: TOTAL_COLS },
+        };
+      }
+    } else {
+      // General Rich Formatted Table Exporter
+      const worksheet = workbook.addWorksheet(reportName, {
+        views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }],
+      });
+
+      if (data.length > 0) {
+        const rawKeys = Object.keys(data[0]);
+        const formatHeader = (key: string) =>
+          key
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/_/g, ' ')
+            .replace(/^\w/, (c) => c.toUpperCase())
+            .toUpperCase();
+
+        worksheet.columns = rawKeys.map((k) => ({
+          header: formatHeader(k),
+          key: k,
+          width: Math.max(k.length + 6, 18),
+        }));
+
+        data.forEach((row, rIdx) => {
+          const addedRow = worksheet.addRow(row);
+          const isEven = rIdx % 2 === 0;
+          addedRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: isEven ? 'FFFFFFFF' : 'FFF8FAFC' },
+          };
+          addedRow.eachCell((cell) => {
+            cell.font = { name: 'Arial', size: 9 };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            };
+            if (typeof cell.value === 'number' && cell.value > 100) {
+              cell.numFmt = '₹ #,##,##0';
+            }
+          });
+        });
+
+        const headerRow = worksheet.getRow(1);
+        headerRow.height = 26;
+        headerRow.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF003366' },
+        };
+
+        worksheet.autoFilter = {
+          from: { row: 1, column: 1 },
+          to: { row: data.length + 1, column: rawKeys.length },
+        };
+      }
     }
 
     return Buffer.from((await workbook.xlsx.writeBuffer()) as ArrayBuffer);
