@@ -1373,7 +1373,7 @@ export class ReportsService {
       const RED_FILL = 'FFFEE2E2';
       const RED_TEXT = 'FF991B1B';
 
-      const TOTAL_COLS = 38;
+      const TOTAL_COLS = 35;
       const shortYear = String(targetFY).slice(-2);
       const prevShortYear = String(targetFY - 1).slice(-2);
       const twoPrevShortYear = String(targetFY - 2).slice(-2);
@@ -1421,7 +1421,7 @@ export class ReportsService {
       kpiCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E7FF' } };
 
       // ─── ROW 4: SECTION GROUP BANDS ────────────────────────────────────
-      // Group 1: Cols 1-9 (Identification & Partlines)
+      // Group 1: Cols 1-9 (Dealer & Branch Identification)
       worksheet.mergeCells(4, 1, 4, 9);
       const g1 = worksheet.getCell(4, 1);
       g1.value = '1. DEALER & BRANCH IDENTIFICATION';
@@ -1429,33 +1429,33 @@ export class ReportsService {
       g1.alignment = { vertical: 'middle', horizontal: 'center' };
       g1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_HEADER } };
 
-      // Group 2: Cols 10-17 (MTD Performance)
-      worksheet.mergeCells(4, 10, 4, 17);
+      // Group 2: Cols 10-16 (MTD Performance & Growth - Deduplicated)
+      worksheet.mergeCells(4, 10, 4, 16);
       const g2 = worksheet.getCell(4, 10);
       g2.value = `2. MTD PERFORMANCE & GROWTH (@ ${targetMonth}'${shortYear})`;
       g2.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
       g2.alignment = { vertical: 'middle', horizontal: 'center' };
       g2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE_MTD } };
 
-      // Group 3: Cols 18-25 (QTD Performance)
-      worksheet.mergeCells(4, 18, 4, 25);
-      const g3 = worksheet.getCell(4, 18);
+      // Group 3: Cols 17-22 (QTD Performance & Quarterly Growth - Deduplicated)
+      worksheet.mergeCells(4, 17, 4, 22);
+      const g3 = worksheet.getCell(4, 17);
       g3.value = `3. QTD PERFORMANCE & QUARTERLY GROWTH (${curQuarterName} FY${prevShortYear}-${shortYear})`;
       g3.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
       g3.alignment = { vertical: 'middle', horizontal: 'center' };
       g3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INDIGO_QTD } };
 
-      // Group 4: Cols 26-33 (YTD & 3-Year Historical Growth)
-      worksheet.mergeCells(4, 26, 4, 33);
-      const g4 = worksheet.getCell(4, 26);
+      // Group 4: Cols 23-30 (YTD & 3-Year Historical Growth)
+      worksheet.mergeCells(4, 23, 4, 30);
+      const g4 = worksheet.getCell(4, 23);
       g4.value = `4. YTD & 3-YEAR HISTORICAL SALES TOTALS (FY${twoPrevShortYear} - FY${shortYear})`;
       g4.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
       g4.alignment = { vertical: 'middle', horizontal: 'center' };
       g4.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PURPLE_YTD } };
 
-      // Group 5: Cols 34-38 (Target & Fulfillment)
-      worksheet.mergeCells(4, 34, 4, 38);
-      const g5 = worksheet.getCell(4, 34);
+      // Group 5: Cols 31-35 (Target & Fulfillment)
+      worksheet.mergeCells(4, 31, 4, 35);
+      const g5 = worksheet.getCell(4, 31);
       g5.value = '5. TARGET & FULFILLMENT';
       g5.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
       g5.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -1476,27 +1476,24 @@ export class ReportsService {
         { key: 'partCategoryCode', label: 'CAT', width: 10, align: 'center', bg: NAVY_HEADER },
         { key: 'uniquePartlines', label: 'UNIQUE PARTLINE', width: 15, align: 'center', bg: NAVY_HEADER },
 
-        // 2. MTD Performance (10-17)
-        { key: 'lmSales', label: `LM ${prevMonth}'${prevMonthShortYear} Total`, width: 16, align: 'right', bg: 'FF0369A1' },
-        { key: 'lySameMonthSales', label: `LY ${targetMonth}'${prevShortYear} Total`, width: 16, align: 'right', bg: 'FF0369A1' },
+        // 2. MTD Performance (10-16) - Clean & Deduplicated
         { key: 'mtdAug25', label: `MTD @ ${prevMonth}'${prevShortYear}`, width: 16, align: 'right', bg: 'FF0369A1' },
-        { key: 'mtdAug26', label: `MTD @ ${prevMonth}'${prevMonthShortYear}`, width: 16, align: 'right', bg: 'FF0369A1' },
+        { key: 'lySameMonthSales', label: `LY ${targetMonth}'${prevShortYear} Total`, width: 16, align: 'right', bg: 'FF0369A1' },
+        { key: 'lmSales', label: `LM ${prevMonth}'${prevMonthShortYear} Total`, width: 16, align: 'right', bg: 'FF0369A1' },
         { key: 'mtdSep26', label: `MTD @ ${targetMonth}'${shortYear}`, width: 16, align: 'right', bg: 'FF0369A1' },
         { key: 'mtdAug25Growth', label: `MTD @ ${prevMonth}'${prevShortYear} Growth%`, width: 15, align: 'center', bg: 'FF075985' },
         { key: 'mtdAug26Growth', label: `MTD @ ${prevMonth}'${prevMonthShortYear} Growth%`, width: 15, align: 'center', bg: 'FF075985' },
         { key: 'mtdSep26Growth', label: `MTD @ ${targetMonth}'${shortYear} Growth%`, width: 15, align: 'center', bg: 'FF075985' },
 
-        // 3. QTD Performance (18-25)
+        // 3. QTD Performance (17-22) - Clean & Deduplicated
         { key: 'qtdQ2LyTotal', label: `QTD @ ${curQuarterName} FY${twoPrevShortYear}-${prevShortYear} (Total)`, width: 18, align: 'right', bg: 'FF4338CA' },
-        { key: 'qtdQ2LyTill', label: `QTD @ ${curQuarterName} FY${twoPrevShortYear}-${prevShortYear} Till Date`, width: 18, align: 'right', bg: 'FF4338CA' },
         { key: 'qtdQ1CurTotal', label: `QTD @ ${prevQuarterName} FY${prevShortYear}-${shortYear} (Total)`, width: 18, align: 'right', bg: 'FF4338CA' },
-        { key: 'qtdQ1CurTill', label: `QTD @ ${prevQuarterName} FY${prevShortYear}-${shortYear} (Till)`, width: 18, align: 'right', bg: 'FF4338CA' },
         { key: 'qtdQ2Cur', label: `QTD @ ${curQuarterName} FY${prevShortYear}-${shortYear}`, width: 18, align: 'right', bg: 'FF4338CA' },
         { key: 'qtdAug25Growth', label: `QTD @ ${prevMonth}'${prevShortYear} Growth%`, width: 15, align: 'center', bg: 'FF3730A3' },
         { key: 'qtdAug26Growth', label: `QTD @ ${prevMonth}'${prevMonthShortYear} Growth%`, width: 15, align: 'center', bg: 'FF3730A3' },
         { key: 'qtdSep26Growth', label: `QTD @ ${targetMonth}'${shortYear} Growth%`, width: 15, align: 'center', bg: 'FF3730A3' },
 
-        // 4. YTD & 3-Year Totals (26-33)
+        // 4. YTD & 3-Year Totals (23-30)
         { key: 'ytdLy', label: `YTD @ FY${twoPrevShortYear}-${prevShortYear}`, width: 18, align: 'right', bg: 'FF6D28D9' },
         { key: 'ytdCur', label: `YTD @ FY${prevShortYear}-${shortYear}`, width: 18, align: 'right', bg: 'FF6D28D9' },
         { key: 'ytdGrowth', label: 'YTD Growth%', width: 14, align: 'center', bg: 'FF5B21B6' },
@@ -1506,7 +1503,7 @@ export class ReportsService {
         { key: 'fy24Growth', label: `FY${twoPrevShortYear}-${prevShortYear} Growth%`, width: 15, align: 'center', bg: 'FF5B21B6' },
         { key: 'fy25Growth', label: `FY${prevShortYear}-${shortYear} Growth%`, width: 15, align: 'center', bg: 'FF5B21B6' },
 
-        // 5. Target & Fulfillment (34-38)
+        // 5. Target & Fulfillment (31-35)
         { key: 'weightedBase', label: 'WEIGHTED BASE', width: 18, align: 'right', bg: 'FF047857' },
         { key: 'recommendedTarget', label: 'RECOMMENDED TARGET', width: 18, align: 'right', bg: 'FF047857' },
         { key: 'finalTarget', label: `${targetMonth}'${shortYear} TARGET`, width: 18, align: 'right', bg: 'FF047857' },
@@ -1552,27 +1549,24 @@ export class ReportsService {
           (item.partCategoryCode || 'ALL').toUpperCase(),
           item.uniquePartlines || 0,
 
-          // MTD (10-17)
-          item.lmSales,
-          item.lySameMonthSales,
+          // MTD (10-16)
           item.mtdAug25,
-          item.mtdAug26,
+          item.lySameMonthSales,
+          item.lmSales,
           item.mtdSep26,
           item.mtdAug25Growth,
           item.mtdAug26Growth,
           item.mtdSep26Growth,
 
-          // QTD (18-25)
+          // QTD (17-22)
           item.qtdQ2LyTotal,
-          item.qtdQ2LyTill,
           item.qtdQ1CurTotal,
-          item.qtdQ1CurTill,
           item.qtdQ2Cur,
           item.qtdAug25Growth,
           item.qtdAug26Growth,
           item.qtdSep26Growth,
 
-          // YTD & 3-Year (26-33)
+          // YTD & 3-Year (23-30)
           item.ytdLy,
           item.ytdCur,
           item.ytdGrowth,
@@ -1582,7 +1576,7 @@ export class ReportsService {
           item.fy24Growth,
           item.fy25Growth,
 
-          // Target & Fulfillment (34-38)
+          // Target & Fulfillment (31-35)
           item.weightedBase,
           item.recommendedTarget,
           item.finalTarget,
@@ -1608,8 +1602,8 @@ export class ReportsService {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: defaultBg } };
 
           // Number Formatting without INR / ₹ sign
-          const amountCols = [10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 26, 27, 29, 30, 31, 34, 35, 36];
-          const percentCols = [15, 16, 17, 23, 24, 25, 28, 32, 33, 37];
+          const amountCols = [10, 11, 12, 13, 17, 18, 19, 23, 24, 26, 27, 28, 31, 32, 33];
+          const percentCols = [14, 15, 16, 20, 21, 22, 25, 29, 30, 34];
 
           if (amountCols.includes(colIdx)) {
             cell.numFmt = '#,##,##0;[Red]-#,##,##0;"—"';
@@ -1619,7 +1613,7 @@ export class ReportsService {
           } else if (percentCols.includes(colIdx)) {
             cell.numFmt = '0.0%';
             const pVal = Number(val) || 0;
-            if (colIdx === 37) {
+            if (colIdx === 34) {
               cell.font = { name: 'Arial', size: 9, bold: true };
               if (pVal >= 1.0) {
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_FILL } };
@@ -1638,7 +1632,7 @@ export class ReportsService {
                 cell.font = { name: 'Arial', size: 9, color: { argb: 'FFDC2626' } };
               }
             }
-          } else if (colIdx === 38) {
+          } else if (colIdx === 35) {
             cell.font = { name: 'Arial', size: 8.5, bold: true };
             if (item.status === 'ACHIEVED') {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_FILL } };
@@ -1684,7 +1678,7 @@ export class ReportsService {
           bottom: { style: 'medium', color: { argb: 'FF60A5FA' } },
         };
 
-        const amountCols = [10, 11, 12, 13, 14, 18, 19, 20, 21, 22, 26, 27, 29, 30, 31, 34, 35, 36];
+        const amountCols = [10, 11, 12, 13, 17, 18, 19, 23, 24, 26, 27, 28, 31, 32, 33];
 
         for (let c = 10; c <= TOTAL_COLS; c++) {
           const colLetter = worksheet.getColumn(c).letter;
@@ -1700,17 +1694,17 @@ export class ReportsService {
             cell.value = { formula: `SUM(${colLetter}${firstDataRow}:${colLetter}${lastDataRow})` };
             cell.numFmt = '#,##,##0';
             cell.alignment = { vertical: 'middle', horizontal: 'right' };
-            if (c === 36 || c === 14) {
+            if (c === 33 || c === 13) {
               cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
             }
-          } else if (c === 37) {
-            const targetCol = worksheet.getColumn(36).letter;
-            const salesCol = worksheet.getColumn(14).letter;
+          } else if (c === 34) {
+            const targetCol = worksheet.getColumn(33).letter;
+            const salesCol = worksheet.getColumn(13).letter;
             cell.value = { formula: `IF(${targetCol}${currentRowIdx}>0, ${salesCol}${currentRowIdx}/${targetCol}${currentRowIdx}, 0)` };
             cell.numFmt = '0.0%';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
             cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
-          } else if (c === 38) {
+          } else if (c === 35) {
             cell.value = 'PORTFOLIO';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
             cell.font = { name: 'Arial', size: 8.5, bold: true, color: { argb: 'FF94A3B8' } };
