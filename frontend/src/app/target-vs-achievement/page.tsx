@@ -531,21 +531,23 @@ export default function TargetVsAchievementPage() {
       />
 
       {/* 4. Dealer 360 Drawer */}
-      <Dealer360Drawer
-        dealer={selectedDealer}
-        onClose={() => setSelectedDealer(null)}
-        onEditTarget={(dealer) => {
-          setEditModal({
-            open: true,
-            row: dealer,
-            targetValue: dealer.adminDefinedTarget || Math.round(dealer.finalTarget),
-          });
-          setSelectedDealer(null);
-        }}
-        currentPeriodLabel={currentPeriodLabel}
-        prevPeriodLabel={prevPeriodLabel}
-        lyPeriodLabel={lyPeriodLabel}
-      />
+      <ClientPortal>
+        <Dealer360Drawer
+          dealer={selectedDealer}
+          onClose={() => setSelectedDealer(null)}
+          onEditTarget={(dealer) => {
+            setEditModal({
+              open: true,
+              row: dealer,
+              targetValue: dealer.adminDefinedTarget || Math.round(dealer.finalTarget),
+            });
+            setSelectedDealer(null);
+          }}
+          currentPeriodLabel={currentPeriodLabel}
+          prevPeriodLabel={prevPeriodLabel}
+          lyPeriodLabel={lyPeriodLabel}
+        />
+      </ClientPortal>
 
       <div className="space-y-4 max-w-full">
         {/* Top Control Toolbar */}

@@ -163,12 +163,433 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
     }
   };
 
-  // Trigger Print/PDF
-  const handlePrint = () => {
-    setActiveTab('all');
-    setTimeout(() => {
+  // Trigger Formatted PDF Print Report (Not a dark screen capture)
+  const handleFormattedPDF = () => {
+    if (!merged) return;
+    const printWin = window.open('', '_blank', 'width=1050,height=900');
+    if (!printWin) {
       window.print();
-    }, 300);
+      return;
+    }
+
+    const categoriesRows = (merged.categories || []).map((c: any) => `
+      <tr>
+        <td class="font-bold">${c.cat}</td>
+        <td class="text-center">${c.uniquePartlines}</td>
+        <td class="text-center">${c.totalInvoices}</td>
+        <td class="text-right font-bold font-mono">₹${Math.round(c.curMonthSales || 0).toLocaleString('en-IN')}</td>
+        <td class="text-right font-mono">₹${Math.round(c.ytdSales || 0).toLocaleString('en-IN')}</td>
+        <td class="text-right font-mono">₹${Math.round(c.lifetimeSales || 0).toLocaleString('en-IN')}</td>
+        <td class="text-center font-bold">${c.sharePercent}%</td>
+      </tr>
+    `).join('');
+
+    const topPartsRows = (merged.topParts || []).slice(0, 20).map((p: any, idx: number) => `
+      <tr>
+        <td class="text-center">${idx + 1}</td>
+        <td class="font-bold">${p.partNum}</td>
+        <td>${p.rootPartNum || p.partNum}</td>
+        <td class="text-center font-bold">${p.cat}</td>
+        <td class="text-center font-mono">${Number(p.totalQty || 0).toLocaleString('en-IN')}</td>
+        <td class="text-right font-bold font-mono">₹${Math.round(p.totalSales || 0).toLocaleString('en-IN')}</td>
+        <td class="text-center">${p.revenueShare ? `${p.revenueShare}%` : '-'}</td>
+        <td class="text-center">${p.lastPurchased || '-'}</td>
+      </tr>
+    `).join('');
+
+    const pitchReorderRows = (merged.pitchOpportunities?.reorderCandidates || []).slice(0, 10).map((p: any, idx: number) => `
+      <tr>
+        <td class="text-center">${idx + 1}</td>
+        <td class="font-bold text-navy">${p.partNum}</td>
+        <td>${p.rootPartNum}</td>
+        <td class="text-center font-bold">${p.cat}</td>
+        <td class="text-right font-bold font-mono">₹${Math.round(p.totalSales || 0).toLocaleString('en-IN')}</td>
+        <td class="text-center font-bold text-red">${p.lastPurchased}</td>
+        <td class="text-center"><span class="badge badge-pitch">Re-order Candidate</span></td>
+      </tr>
+    `).join('');
+
+    const pitchCrossSellRows = (merged.pitchOpportunities?.crossSellBranchMovers || []).slice(0, 10).map((p: any, idx: number) => `
+      <tr>
+        <td class="text-center">${idx + 1}</td>
+        <td class="font-bold text-navy">${p.partNum}</td>
+        <td>${p.rootPartNum}</td>
+        <td class="text-center font-bold">${p.cat}</td>
+        <td class="text-right font-bold font-mono">₹${Math.round(p.totalSales || 0).toLocaleString('en-IN')}</td>
+        <td class="text-center font-mono">${p.invoicesCount} inv</td>
+        <td class="text-center"><span class="badge badge-regular">Cross-Sell Opportunity</span></td>
+      </tr>
+    `).join('');
+
+    const timelineRows = (merged.timeline || []).map((t: any) => `
+      <tr>
+        <td class="font-bold text-navy">${t.period}</td>
+        <td class="text-center">FY${t.fiscalYear}</td>
+        <td class="text-right font-bold font-mono">₹${Math.round(t.sales || 0).toLocaleString('en-IN')}</td>
+        <td class="text-center font-mono">${Number(t.qty || 0).toLocaleString('en-IN')}</td>
+        <td class="text-center">${t.invoices}</td>
+        <td class="text-center">${t.partlines}</td>
+        <td class="text-right font-mono">₹${Math.round(t.avgInvoiceValue || 0).toLocaleString('en-IN')}</td>
+      </tr>
+    `).join('');
+
+    const htmlDoc = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Party 360° Intelligence Dossier - ${merged.partyCode} - ${merged.partyName}</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 10mm 12mm 12mm 12mm;
+            }
+            * {
+              box-sizing: border-box;
+              font-family: 'Segoe UI', Arial, sans-serif;
+            }
+            body {
+              color: #0f172a;
+              background: #ffffff;
+              margin: 0;
+              padding: 0;
+              font-size: 10.5px;
+              line-height: 1.35;
+            }
+            .header-banner {
+              border-bottom: 2.5px solid #002060;
+              padding-bottom: 8px;
+              margin-bottom: 12px;
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+            }
+            .company-title {
+              font-size: 15px;
+              font-weight: 900;
+              color: #002060;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .report-subtitle {
+              font-size: 11px;
+              font-weight: 700;
+              color: #0284c7;
+              text-transform: uppercase;
+              margin-top: 1px;
+            }
+            .meta-box {
+              background: #f8fafc;
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              padding: 8px 12px;
+              margin-bottom: 12px;
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 8px;
+              font-size: 10px;
+            }
+            .meta-item strong {
+              color: #475569;
+              font-size: 9px;
+              text-transform: uppercase;
+              display: block;
+            }
+            .meta-item span {
+              color: #0f172a;
+              font-weight: 800;
+              font-size: 11.5px;
+            }
+            .kpi-grid {
+              display: grid;
+              grid-template-columns: repeat(4, 1fr);
+              gap: 8px;
+              margin-bottom: 12px;
+            }
+            .kpi-card {
+              border: 1px solid #cbd5e1;
+              background: #f1f5f9;
+              border-radius: 6px;
+              padding: 7px 9px;
+            }
+            .kpi-label {
+              font-size: 9px;
+              font-weight: 700;
+              color: #475569;
+              text-transform: uppercase;
+            }
+            .kpi-val {
+              font-size: 13px;
+              font-weight: 900;
+              color: #002060;
+              margin-top: 1px;
+              font-family: 'Courier New', Courier, monospace;
+            }
+            .kpi-sub {
+              font-size: 8.5px;
+              color: #64748b;
+            }
+            .section-title {
+              font-size: 11px;
+              font-weight: 800;
+              color: #002060;
+              text-transform: uppercase;
+              border-bottom: 1.5px solid #002060;
+              padding-bottom: 3px;
+              margin-top: 12px;
+              margin-bottom: 6px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 10px;
+              font-size: 9.5px;
+            }
+            th {
+              background-color: #002060;
+              color: #ffffff;
+              font-weight: 700;
+              text-align: left;
+              padding: 4.5px 6px;
+              border: 1px solid #002060;
+              font-size: 9px;
+              text-transform: uppercase;
+            }
+            td {
+              padding: 4px 6px;
+              border: 1px solid #cbd5e1;
+              color: #1e293b;
+            }
+            tr:nth-child(even) td {
+              background-color: #f8fafc;
+            }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .font-mono { font-family: 'Courier New', Courier, monospace; }
+            .font-bold { font-weight: 700; }
+            .text-navy { color: #002060; }
+            .text-red { color: #b91c1c; }
+            .badge {
+              display: inline-block;
+              padding: 1px 5px;
+              border-radius: 3px;
+              font-size: 8px;
+              font-weight: 700;
+              text-transform: uppercase;
+            }
+            .badge-regular { background: #e0f2fe; color: #075985; border: 1px solid #7dd3fc; }
+            .badge-pitch { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+            .page-break { page-break-before: always; }
+            .footer {
+              margin-top: 14px;
+              border-top: 1px solid #cbd5e1;
+              padding-top: 5px;
+              font-size: 8.5px;
+              color: #64748b;
+              display: flex;
+              justify-content: space-between;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header-banner">
+            <div>
+              <div class="company-title">THE SS BUDDY • DEALER INTELLIGENCE PORTAL</div>
+              <div class="report-subtitle">PARTY 360° EXECUTIVE INTELLIGENCE DOSSIER</div>
+            </div>
+            <div style="text-align: right; font-size: 9px; color: #475569;">
+              <div><strong>REPORT PERIOD:</strong> ${month}'${String(fiscalYear).slice(-2)} (FY${fiscalYear})</div>
+              <div><strong>GENERATED:</strong> ${new Date().toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-item"><strong>Party Name</strong><span>${merged.partyName}</span></div>
+            <div class="meta-item"><strong>Party Code (Consolidated)</strong><span>${merged.partyCode}</span></div>
+            <div class="meta-item"><strong>Original ERP Code</strong><span>${merged.originalCode || merged.partyCode}</span></div>
+            <div class="meta-item"><strong>Operating Branch</strong><span>${merged.branchCode} (${merged.branchName})</span></div>
+            <div class="meta-item"><strong>Party Category / Type</strong><span>${merged.partyType} (${merged.partCategoryCode || 'ALL'} Cat)</span></div>
+            <div class="meta-item"><strong>Buying Span</strong><span>${basket.activeMonths} Mos (${basket.firstPurchase} → ${basket.lastPurchase})</span></div>
+          </div>
+
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">${month}'${String(fiscalYear).slice(-2)} Turnover</div>
+              <div class="kpi-val">₹${Math.round(currentSales).toLocaleString('en-IN')}</div>
+              <div class="kpi-sub">${formatLakhs(currentSales)}</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">${month}'${String(fiscalYear).slice(-2)} Budget Target</div>
+              <div class="kpi-val">₹${Math.round(finalTarget).toLocaleString('en-IN')}</div>
+              <div class="kpi-sub">${formatLakhs(finalTarget)}</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Target Fulfillment %</div>
+              <div class="kpi-val">${achievementPercent.toFixed(1)}%</div>
+              <div class="kpi-sub">${isAchieved ? '✓ Target Achieved' : isOnTrack ? '⚡ On Track' : '⚠ Under Target'}</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Avg Order Value (AOV)</div>
+              <div class="kpi-val">₹${Math.round(basket.avgInvoiceValue).toLocaleString('en-IN')}</div>
+              <div class="kpi-sub">${basket.totalInvoices} Invoices Billed</div>
+            </div>
+          </div>
+
+          <div class="section-title">1. LIFETIME ORDER BASKET & TRANSACTION METRICS</div>
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">Lifetime Turnover</div>
+              <div class="kpi-val">₹${Math.round(basket.lifetimeSales).toLocaleString('en-IN')}</div>
+              <div class="kpi-sub">${formatLakhs(basket.lifetimeSales)} Total</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Unique Partlines</div>
+              <div class="kpi-val">${basket.totalUniqueParts} Lines</div>
+              <div class="kpi-sub">Total catalog breadth</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Avg Lines / Invoice</div>
+              <div class="kpi-val">${basket.avgLinesPerInvoice} Lines</div>
+              <div class="kpi-sub">Basket variety</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Avg Units / Invoice</div>
+              <div class="kpi-val">${basket.avgQtyPerInvoice} Qty</div>
+              <div class="kpi-sub">${basket.lifetimeQty.toLocaleString('en-IN')} Lifetime Qty</div>
+            </div>
+          </div>
+
+          <div class="section-title">2. MULTI-PERIOD GROWTH & PERFORMANCE SCORECARD</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Growth Metric & Interval</th>
+                <th class="text-right">Sales Amount (₹)</th>
+                <th class="text-right">Comparative Period</th>
+                <th class="text-right">Growth Rate %</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-bold">MTD Performance (@ ${month}'${String(fiscalYear).slice(-2)})</td>
+                <td class="text-right font-bold font-mono">₹${Math.round(currentSales).toLocaleString('en-IN')}</td>
+                <td class="text-right font-mono">LY Same Month: ₹${Math.round(Number(merged.lySameMonthSales) || 0).toLocaleString('en-IN')}</td>
+                <td class="text-right font-bold">${formatPercent(merged.mtdSep26Growth)}</td>
+              </tr>
+              <tr>
+                <td class="font-bold">QTD Performance (Q2 FY${fiscalYear})</td>
+                <td class="text-right font-bold font-mono">₹${Math.round(Number(merged.qtdQ2Cur) || 0).toLocaleString('en-IN')}</td>
+                <td class="text-right font-mono">Prev Qtr: ₹${Math.round(Number(merged.qtdQ1CurTotal) || 0).toLocaleString('en-IN')}</td>
+                <td class="text-right font-bold">${formatPercent(merged.qtdSep26Growth)}</td>
+              </tr>
+              <tr>
+                <td class="font-bold">Annual Evolution (FY${fiscalYear} YTD)</td>
+                <td class="text-right font-bold font-mono">₹${Math.round(Number(merged.ytdCur || merged.ytdSales) || 0).toLocaleString('en-IN')}</td>
+                <td class="text-right font-mono">FY${fiscalYear - 1} Full: ₹${Math.round(Number(merged.fy2Total) || 0).toLocaleString('en-IN')}</td>
+                <td class="text-right font-bold">${formatPercent(merged.ytdGrowth || merged.yoyGrowthPercent)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="section-title">3. PRODUCT CATEGORY SALES & PARTLINE DISTRIBUTION</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th class="text-center">Unique Partlines</th>
+                <th class="text-center">Invoices</th>
+                <th class="text-right">${month}'${String(fiscalYear).slice(-2)} Sales (₹)</th>
+                <th class="text-right">YTD FY${fiscalYear} (₹)</th>
+                <th class="text-right">Lifetime Sales (₹)</th>
+                <th class="text-center">Share %</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${categoriesRows || '<tr><td colspan="7" class="text-center">No categories recorded</td></tr>'}
+            </tbody>
+          </table>
+
+          <div class="page-break"></div>
+
+          <div class="header-banner">
+            <div>
+              <div class="company-title">THE SS BUDDY • SALES ACTION & LINE-ITEM INTELLIGENCE</div>
+              <div class="report-subtitle">PARTY: ${merged.partyName} (${merged.partyCode})</div>
+            </div>
+            <div style="text-align: right; font-size: 9px; color: #475569;">
+              <div>Page 2 of 2</div>
+            </div>
+          </div>
+
+          <div class="section-title">4. SALES PITCH OPPORTUNITIES: DORMANT RE-ORDER & CROSS-SELL CANDIDATES</div>
+          <table>
+            <thead>
+              <tr>
+                <th class="text-center">#</th>
+                <th>Part Number</th>
+                <th>Root Part Number</th>
+                <th class="text-center">Cat</th>
+                <th class="text-right">Historical / Branch Spend (₹)</th>
+                <th class="text-center">Last Bought / Volume</th>
+                <th class="text-center">Pitch Recommendation</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pitchReorderRows || ''}
+              ${pitchCrossSellRows || ''}
+            </tbody>
+          </table>
+
+          <div class="section-title">5. TOP 20 PURCHASED PARTLINES (RANKED BY REVENUE)</div>
+          <table>
+            <thead>
+              <tr>
+                <th class="text-center">#</th>
+                <th>Part Number</th>
+                <th>Root Part Number</th>
+                <th class="text-center">Cat</th>
+                <th class="text-center">Total Qty</th>
+                <th class="text-right">Total Revenue (₹)</th>
+                <th class="text-center">Share %</th>
+                <th class="text-center">Last Purchase</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${topPartsRows || '<tr><td colspan="8" class="text-center">No line item records</td></tr>'}
+            </tbody>
+          </table>
+
+          <div class="section-title">6. MONTHLY HISTORICAL TURNOVER TIMELINE</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th class="text-center">Fiscal Year</th>
+                <th class="text-right">Total Sales (₹)</th>
+                <th class="text-center">Units Sold</th>
+                <th class="text-center">Invoices</th>
+                <th class="text-center">Partlines</th>
+                <th class="text-right">Avg Invoice Value (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${timelineRows || '<tr><td colspan="7" class="text-center">No timeline records</td></tr>'}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <div>Confidential & Proprietary • The SS Buddy Automotive Management Platform</div>
+            <div>Authorized Financial & Sales Intelligence System</div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWin.document.write(htmlDoc);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => {
+      printWin.print();
+    }, 450);
   };
 
   return (
@@ -220,8 +641,8 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
               </button>
 
               <button
-                onClick={handlePrint}
-                title="Print / Save as PDF"
+                onClick={handleFormattedPDF}
+                title="Print / Save Formatted PDF Dossier"
                 className="px-2.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
               >
                 <Printer size={14} />
@@ -1055,7 +1476,7 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
               <span>{isExporting ? 'Generating...' : 'Export Excel (.xlsx)'}</span>
             </button>
             <button
-              onClick={handlePrint}
+              onClick={handleFormattedPDF}
               className="px-4 py-2.5 bg-blue-700/40 hover:bg-blue-600/50 text-blue-200 border border-blue-500/40 font-bold rounded-xl transition text-xs flex items-center gap-2 shadow-xs cursor-pointer"
             >
               <Printer size={15} />
