@@ -54,7 +54,7 @@ const ALL_POSSIBLE_PARTY_TYPES = [
   'FINANCIER',
 ];
 
-type SortField = 'rank' | 'currentSales' | 'finalTarget' | 'achievementPercent' | 'ytdSales' | 'yoyGrowthPercent' | 'partyName' | 'branchCode' | 'weightedBase';
+type SortField = 'rank' | 'currentSales' | 'finalTarget' | 'achievementPercent' | 'ytdSales' | 'yoyGrowthPercent' | 'partyName' | 'partyCode' | 'originalCode' | 'branchCode' | 'weightedBase';
 type SortOrder = 'asc' | 'desc';
 type StatusFilter = 'ALL' | 'ACHIEVED' | 'ON_TRACK' | 'UNDER';
 
@@ -683,13 +683,13 @@ export default function TargetVsAchievementPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3.5">
           <StatCard
             title="Total Sales"
-            value={`₹${((summary.totalCurrentSales || 0) / 100000).toFixed(2)}L`}
+            value={`${((summary.totalCurrentSales || 0) / 100000).toFixed(2)} L`}
             subtitle={`${currentPeriodLabel} Total Achieved`}
             icon={<DollarSign size={16} />}
           />
           <StatCard
             title="Final Target"
-            value={`₹${((summary.totalFinalTarget || 0) / 100000).toFixed(2)}L`}
+            value={`${((summary.totalFinalTarget || 0) / 100000).toFixed(2)} L`}
             subtitle={`${currentPeriodLabel} Budgeted Target`}
             icon={<Target size={16} />}
           />
@@ -732,12 +732,13 @@ export default function TargetVsAchievementPage() {
                       <ArrowUpDown size={11} className="opacity-60" />
                     </div>
                   </th>
-                  <th onClick={() => handleSort('partyName')} className="px-3.5 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition text-center">
+                  <th onClick={() => handleSort('partyCode')} className="px-3.5 py-3 border-r border-slate-700/80 cursor-pointer hover:bg-white/10 transition text-center">
                     <div className="flex items-center justify-center gap-1">
                       <span>PARTY CODE</span>
                       <ArrowUpDown size={11} className="opacity-60" />
                     </div>
                   </th>
+                  <th className="px-3.5 py-3 border-r border-slate-700/80 text-center">ORIGINAL CODE</th>
                   <th onClick={() => handleSort('partyName')} className="px-4 py-3 border-r border-slate-700/80 text-left cursor-pointer hover:bg-white/10 transition min-w-[180px]">
                     <div className="flex items-center gap-1">
                       <span>PARTY NAME</span>
@@ -790,14 +791,14 @@ export default function TargetVsAchievementPage() {
               <tbody className="bg-white font-medium text-slate-800 align-middle text-xs">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={11} className="py-16 text-center text-slate-400 border-b border-slate-200">
+                    <td colSpan={12} className="py-16 text-center text-slate-400 border-b border-slate-200">
                       <RefreshCw size={26} className="animate-spin text-blue-600 mx-auto mb-2" />
                       <span className="font-bold">Loading party-wise target & sales matrix...</span>
                     </td>
                   </tr>
                 ) : paginatedRows.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="py-16 text-center text-slate-400 border-b border-slate-200">
+                    <td colSpan={12} className="py-16 text-center text-slate-400 border-b border-slate-200">
                       <Info size={32} className="mx-auto mb-2 text-slate-300" />
                       <p className="font-bold text-slate-700">No records found for the selected criteria.</p>
                       <button
@@ -826,6 +827,10 @@ export default function TargetVsAchievementPage() {
                           <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-mono font-bold text-xs border border-blue-200">
                             {r.partyCode}
                           </span>
+                        </td>
+
+                        <td className="px-3.5 py-2.5 text-center border-r border-slate-200 whitespace-nowrap font-mono text-xs text-slate-600">
+                          {r.originalCode || r.partyCode || '—'}
                         </td>
 
                         <td
