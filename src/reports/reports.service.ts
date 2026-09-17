@@ -816,8 +816,8 @@ export class ReportsService {
 
     // Master maps
     const [parties, partyMasters, branches] = await Promise.all([
-      this.prisma.party.findMany({ select: { code: true, name: true, type: true } }),
-      this.prisma.partyMaster.findMany({ select: { consPartyCode: true, originalCode: true, consPartyName: true } }),
+      this.prisma.party.findMany({ select: { code: true, name: true, type: true, primaryBranchCode: true } }),
+      this.prisma.partyMaster.findMany({ select: { consPartyCode: true, originalCode: true, consPartyName: true, partyType: true, baseLoc: true } }),
       this.prisma.branch.findMany({ select: { code: true, name: true } }),
     ]);
     const partyMap = new Map<string, any>();
@@ -841,7 +841,7 @@ export class ReportsService {
 
       const primaryBranch = pmRecord?.baseLoc || pMaster?.primaryBranchCode || r.branchCode || 'VBZ';
       const primaryBranchName = branchMap.get(primaryBranch.toUpperCase()) || primaryBranch;
-      const primaryPartyType = pmRecord?.partyType || r.partyType || pMaster?.type || 'TRADER/RETAILER';
+      const primaryPartyType = pmRecord?.partyType || r.partyType || pMaster?.type || 'INDEPENDENT WORKSHOP';
       const primaryPartyName = pmRecord?.consPartyName || pMaster?.name || r.partyName || r.partyCode;
 
       const key = isAllBranches
@@ -907,7 +907,8 @@ export class ReportsService {
     if (metadata?.partyType && metadata.partyType !== 'ALL') {
       const pTypes = metadata.partyType.split(',').map((t: string) => t.trim().toUpperCase());
       processedRows = processedRows.filter((r) => {
-        const pt = (r.partyType || partyMap.get(r.partyCode.toUpperCase())?.type || '').toUpperCase();
+        const pmRecord = partyMasterMap.get(r.partyCode.toUpperCase());
+        const pt = (pmRecord?.partyType || r.partyType || partyMap.get(r.partyCode.toUpperCase())?.type || '').toUpperCase();
         return pTypes.includes(pt) || (pt === 'DEALER' && pTypes.some((x: string) => x.includes('TRADER') || x.includes('DEALER')));
       });
     }
@@ -973,7 +974,7 @@ export class ReportsService {
       const pmRecord = partyMasterMap.get(r.partyCode.toUpperCase());
       const originalCode = pmRecord?.originalCode || r.partyCode || '-';
       const partyName = pmRecord?.consPartyName || pMaster?.name || r.partyName || r.partyCode;
-      const partyType = pmRecord?.partyType || r.partyType || pMaster?.type || 'TRADER/RETAILER';
+      const partyType = pmRecord?.partyType || r.partyType || pMaster?.type || 'INDEPENDENT WORKSHOP';
       const branchName = r.branchName || branchMap.get(r.branchCode.toUpperCase()) || r.branchCode;
 
       const curSales = Number(r.curSales) || 0;
@@ -1212,7 +1213,7 @@ export class ReportsService {
         const pMaster = pLookup.get(pCode);
 
         const primaryBranch = pmRecord?.baseLoc || pMaster?.primaryBranchCode || r.branchCode || 'VBZ';
-        const primaryPartyType = pmRecord?.partyType || r.partyType || pMaster?.type || 'TRADER/RETAILER';
+        const primaryPartyType = pmRecord?.partyType || r.partyType || pMaster?.type || 'INDEPENDENT WORKSHOP';
         const primaryPartyName = pmRecord?.consPartyName || pMaster?.name || r.partyName || r.partyCode;
 
         const key = isAllBranchesFilter
@@ -1279,13 +1280,6 @@ export class ReportsService {
     let totalRecommendedTarget = 0;
     let totalGapAdjustment = 0;
 
-    // Fetch party master mappings for originalCode
-    const partyMasters = await this.prisma.partyMaster.findMany({
-      select: { consPartyCode: true, originalCode: true },
-    });
-    const partyMasterMap = new Map();
-    partyMasters.forEach((pm) => partyMasterMap.set(pm.consPartyCode.toUpperCase(), pm.originalCode));
-
     const formattedRows = processedSnapshots.map((r, index) => {
       const currentSales = Number(r.currentSales) || 0;
       const rawFinalTarget = Number(r.finalTarget) || 0;
@@ -1314,7 +1308,9 @@ export class ReportsService {
 
       const achievementPercent = finalTarget > 0 ? Math.round((currentSales / finalTarget) * 1000) / 10 : 0;
       const yoyGrowthPercent = lastYearYTDSales > 0 ? Math.round(((ytdSales - lastYearYTDSales) / lastYearYTDSales) * 1000) / 10 : 0;
-      const originalCode = partyMasterMap.get(r.partyCode.toUpperCase()) || r.partyCode || '-';
+      const pmRecord = pmLookup.get(r.partyCode.toUpperCase());
+      const originalCode = pmRecord?.originalCode || r.partyCode || '-';
+      const partyType = pmRecord?.partyType || r.partyType || 'INDEPENDENT WORKSHOP';
 
       return {
         id: r.id || `${r.partyCode}_${r.branchCode}_${index}`,
@@ -1324,7 +1320,7 @@ export class ReportsService {
         partyCode: r.partyCode,
         originalCode,
         partyName: r.partyName,
-        partyType: r.partyType,
+        partyType,
         partCategoryCode: r.partCategoryCode || 'ALL',
         executiveName: r.salesExecutive || 'Branch Owned',
 
@@ -1537,6 +1533,7 @@ export class ReportsService {
     return { ok: true, message: `Updated targets for ${updatedCount} dealers` };
   }
 
+  // ─── EXPORT REPORT TO EXCEL ───────────────────────────────────────────────
   async exportReportToExcel(reportName: string, data: any[], metadata: any = {}): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'The SS Buddy Intelligence Portal';
@@ -1571,16 +1568,18 @@ export class ReportsService {
       const prevMonthFY = monthIdx === 0 ? targetFY - 1 : targetFY;
       const lyMonth = targetMonth;
 
-      const worksheet = workbook.addWorksheet('Partywise Performance', {
-        views: [{ state: 'frozen', xSplit: 0, ySplit: 5 }],
+      const worksheet = workbook.addWorksheet('Sheet1', {
+        views: [{ state: 'frozen', xSplit: 0, ySplit: 2 }],
         pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1 },
       });
 
-      const NAVY_BANNER = 'FF002B55';
       const NAVY_HEADER = 'FF003366';
       const PURPLE_HEADER = 'FF581C87';
+      const PURPLE_COL = 'FF4C1D95';
       const INDIGO_HEADER = 'FF3730A3';
+      const INDIGO_COL = 'FF312E81';
       const BLUE_HEADER = 'FF1D4ED8';
+      const BLUE_COL = 'FF1E40AF';
       const TEAL_HEADER = 'FF0F766E';
       const EMERALD_TARGET = 'FF047857';
       const GREEN_STATUS = 'FF065F46';
@@ -1594,107 +1593,64 @@ export class ReportsService {
       const RED_FILL = 'FFFEE2E2';
       const RED_TEXT = 'FF991B1B';
 
-      const TOTAL_COLS = 33;
       const shortYear = String(targetFY).slice(-2);
       const prevShortYear = String(targetFY - 1).slice(-2);
-      const twoPrevShortYear = String(targetFY - 2).slice(-2);
       const prevMonthShortYear = String(prevMonthFY).slice(-2);
 
-      // ─── ROW 1: TITLE BANNER ───────────────────────────────────────────
-      worksheet.mergeCells(1, 1, 1, TOTAL_COLS);
-      const titleRow = worksheet.getRow(1);
-      titleRow.height = 34;
-      const titleCell = worksheet.getCell(1, 1);
-      titleCell.value = 'MARUTI SUZUKI — COMPREHENSIVE DEALER PERFORMANCE, GROWTH & TARGET INTELLIGENCE';
-      titleCell.font = { name: 'Abadi', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
-      titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
-      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_BANNER } };
-
-      // ─── ROW 2: SUB-BANNER ─────────────────────────────────────────────
-      worksheet.mergeCells(2, 1, 2, TOTAL_COLS);
-      const metaRow = worksheet.getRow(2);
-      metaRow.height = 20;
-      const metaCell = worksheet.getCell(2, 1);
-      const printDate = new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-      const categoryLabel = catFilter || 'ALL Categories';
-      const branchLabel = branchFilter || 'ALL Branches';
-      metaCell.value = `Period: ${targetMonth}'${shortYear} (FY${targetFY})   |   Category: ${categoryLabel}   |   Branch: ${branchLabel}   |   Generated: ${printDate}   |   Classification: STRICTLY CONFIDENTIAL`;
-      metaCell.font = { name: 'Abadi', size: 9, italic: true, bold: true, color: { argb: 'FFD1D5DB' } };
-      metaCell.alignment = { vertical: 'middle', horizontal: 'center' };
-      metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B1C30' } };
-
-      // ─── ROW 3: KPI SUMMARY STATS ──────────────────────────────────────
-      worksheet.mergeCells(3, 1, 3, TOTAL_COLS);
-      const kpiRow = worksheet.getRow(3);
-      kpiRow.height = 22;
-      const totalTarget = calculatedRows.reduce((s: number, x: any) => s + (Number(x.finalTarget) || 0), 0);
-      const totalSales = calculatedRows.reduce((s: number, x: any) => s + (Number(x.mtdCur) || Number(x.currentSales) || 0), 0);
-      const overallAch = totalTarget > 0 ? (totalSales / totalTarget) * 100 : 0;
-      const achievedCount = calculatedRows.filter((x) => (x.achievementPercent || 0) >= 1.0).length;
-      const onTrackCount = calculatedRows.filter((x) => (x.achievementPercent || 0) >= 0.70 && (x.achievementPercent || 0) < 1.0).length;
-      const underCount = calculatedRows.filter((x) => (x.achievementPercent || 0) < 0.70).length;
-      const totalUniquePartlines = calculatedRows.reduce((s: number, x: any) => s + (Number(x.uniquePartlines) || 0), 0);
-
-      const kpiCell = worksheet.getCell(3, 1);
-      kpiCell.value = `TOTAL DEALERS: ${calculatedRows.length}   |   UNIQUE PARTLINES: ${totalUniquePartlines.toLocaleString('en-IN')}   |   ACHIEVED (>=100%): ${achievedCount}   |   ON-TRACK (70-99%): ${onTrackCount}   |   UNDER (<70%): ${underCount}   |   TOTAL TARGET: ${(totalTarget / 100000).toFixed(2)} L   |   TOTAL SALES: ${(totalSales / 100000).toFixed(2)} L   |   OVERALL ACH: ${overallAch.toFixed(1)}%`;
-      kpiCell.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FF1E3A8A' } };
-      kpiCell.alignment = { vertical: 'middle', horizontal: 'center' };
-      kpiCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E7FF' } };
-
-      // ─── ROW 4: SECTION GROUP BANDS (Exact 6 Groups over 33 Cols) ──────
-      // Group 1: Cols 1-8 (Dealer & Branch Identification)
-      worksheet.mergeCells(4, 1, 4, 8);
-      const g1 = worksheet.getCell(4, 1);
+      // ─── ROW 1: SECTION GROUP BANDS (Exact 28 Columns matching reference file) ──────
+      // Group 1: Cols 1-8 (A-H) - Dealer & Branch Identification
+      worksheet.mergeCells(1, 1, 1, 8);
+      const g1 = worksheet.getCell(1, 1);
       g1.value = '1. DEALER & BRANCH IDENTIFICATION';
-      g1.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+      g1.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
       g1.alignment = { vertical: 'middle', horizontal: 'center' };
       g1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_HEADER } };
 
-      // Group 2: Cols 9-13 (Multi-Year Sales & YoY Growth)
-      worksheet.mergeCells(4, 9, 4, 13);
-      const g2 = worksheet.getCell(4, 9);
+      // Group 2: Cols 9-11 (I-K) - Multi-Year Sales & Growth
+      worksheet.mergeCells(1, 9, 1, 11);
+      const g2 = worksheet.getCell(1, 9);
       g2.value = `2. MULTI-YEAR SALES & GROWTH (FY${targetFY - 3} - FY${targetFY})`;
-      g2.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
-      g2.alignment = { vertical: 'middle', horizontal: 'center' };
+      g2.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+      g2.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       g2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PURPLE_HEADER } };
 
-      // Group 3: Cols 14-17 (YTD Performance & Growth)
-      worksheet.mergeCells(4, 14, 4, 17);
-      const g3 = worksheet.getCell(4, 14);
+      // Group 3: Cols 12-14 (L-N) - YTD Performance & Growth
+      worksheet.mergeCells(1, 12, 1, 14);
+      const g3 = worksheet.getCell(1, 12);
       g3.value = `3. YTD PERFORMANCE & GROWTH (FY${prevShortYear}-${shortYear})`;
-      g3.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
-      g3.alignment = { vertical: 'middle', horizontal: 'center' };
+      g3.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+      g3.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       g3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INDIGO_HEADER } };
 
-      // Group 4: Cols 18-24 (Quarterly Performance - Q1 & Q2)
-      worksheet.mergeCells(4, 18, 4, 24);
-      const g4 = worksheet.getCell(4, 18);
+      // Group 4: Cols 15-18 (O-R) - Quarterly Performance
+      worksheet.mergeCells(1, 15, 1, 18);
+      const g4 = worksheet.getCell(1, 15);
       g4.value = `4. QUARTERLY PERFORMANCE (Q1 & Q2 FY${prevShortYear}-${shortYear})`;
-      g4.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+      g4.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
       g4.alignment = { vertical: 'middle', horizontal: 'center' };
       g4.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE_HEADER } };
 
-      // Group 5: Cols 25-30 (MTD Performance & Growth)
-      worksheet.mergeCells(4, 25, 4, 30);
-      const g5 = worksheet.getCell(4, 25);
+      // Group 5: Cols 19-24 (S-X) - MTD Performance & Growth
+      worksheet.mergeCells(1, 19, 1, 24);
+      const g5 = worksheet.getCell(1, 19);
       g5.value = `5. MTD PERFORMANCE & GROWTH (@ ${targetMonth}'${shortYear})`;
-      g5.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+      g5.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
       g5.alignment = { vertical: 'middle', horizontal: 'center' };
       g5.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TEAL_HEADER } };
 
-      // Group 6: Cols 31-33 (Target & Fulfillment)
-      worksheet.mergeCells(4, 31, 4, 33);
-      const g6 = worksheet.getCell(4, 31);
+      // Group 6: Cols 25-28 (Y-AB) - Target & Fulfillment
+      worksheet.mergeCells(1, 25, 1, 28);
+      const g6 = worksheet.getCell(1, 25);
       g6.value = '6. TARGET & FULFILLMENT';
-      g6.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+      g6.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
       g6.alignment = { vertical: 'middle', horizontal: 'center' };
       g6.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: EMERALD_TARGET } };
 
-      worksheet.getRow(4).height = 22;
+      worksheet.getRow(1).height = 22;
 
-      // ─── ROW 5: DETAILED COLUMN HEADERS (Exact 33 Columns from Reference Image) ───
+      // ─── ROW 2: DETAILED COLUMN HEADERS (Exact 28 Columns) ─────────────
       const headers = [
-        // 1. Core Dimensions (1-8)
+        // 1. Core Dimensions (1-8 / A-H)
         { key: 'branchCode', label: 'BRANCH CODE', width: 14, align: 'center', bg: NAVY_HEADER },
         { key: 'branchName', label: 'BRANCH NAME', width: 26, align: 'left', bg: NAVY_HEADER },
         { key: 'partyCode', label: 'PARTY CODE', width: 16, align: 'center', bg: NAVY_HEADER },
@@ -1704,43 +1660,38 @@ export class ReportsService {
         { key: 'partCategoryCode', label: 'CAT', width: 10, align: 'center', bg: NAVY_HEADER },
         { key: 'uniquePartlines', label: 'UNIQUE PARTLINE', width: 16, align: 'center', bg: NAVY_HEADER },
 
-        // 2. Multi-Year Sales (9-13)
-        { key: 'fy0Total', label: `FY ${targetFY - 3} Total Sale`, width: 18, align: 'right', bg: 'FF4C1D95' },
-        { key: 'fy1Total', label: `FY ${targetFY - 2} Total Sale`, width: 18, align: 'right', bg: 'FF4C1D95' },
-        { key: 'fy2Total', label: `FY ${targetFY - 1} Total Sale`, width: 18, align: 'right', bg: 'FF4C1D95' },
-        { key: 'fy3Total', label: `FY ${targetFY} Sales`, width: 18, align: 'right', bg: 'FF4C1D95' },
-        { key: 'fyYoYGrowth', label: 'YoY Growth% (Current FY/LY-1)', width: 18, align: 'center', bg: 'FF3B0764' },
+        // 2. Multi-Year Sales (9-11 / I-K)
+        { key: 'fy0Total', label: `FY ${targetFY - 3} Total Sale`, width: 18, align: 'center', bg: PURPLE_COL },
+        { key: 'fy1Total', label: `FY ${targetFY - 2} Total Sale`, width: 18, align: 'center', bg: PURPLE_COL },
+        { key: 'fy2Total', label: `FY ${targetFY - 1} Total Sale`, width: 18, align: 'center', bg: PURPLE_COL },
 
-        // 3. YTD Performance (14-17)
-        { key: 'ytdCur', label: `YTD ${targetFY}`, width: 18, align: 'right', bg: 'FF312E81' },
-        { key: 'ytdGrowth', label: 'YTD Growth% YTD', width: 16, align: 'center', bg: 'FF1E1B4B' },
-        { key: 'ytdLy', label: `FY ${targetFY - 1} YTD`, width: 18, align: 'right', bg: 'FF312E81' },
-        { key: 'growthYtd', label: 'Growth%', width: 14, align: 'center', bg: 'FF1E1B4B' },
+        // 3. YTD Performance (12-14 / L-N)
+        { key: 'ytdLy', label: `YTD @ ${targetFY - 1}`, width: 18, align: 'center', bg: INDIGO_COL },
+        { key: 'ytdCur', label: `YTD @ ${targetFY}`, width: 18, align: 'center', bg: INDIGO_COL },
+        { key: 'ytdGrowth', label: 'YTD Growth%', width: 15, align: 'center', bg: 'FF1E1B4B' },
 
-        // 4. Quarterly Performance (18-24)
-        { key: 'q1CurTotal', label: `Q1 (FY${targetFY - 1}-${shortYear}) Total`, width: 18, align: 'right', bg: 'FF1E40AF' },
-        { key: 'q1CurTill', label: `Q1 (FY${targetFY - 1}-${shortYear}) Till date`, width: 18, align: 'right', bg: 'FF1E40AF' },
-        { key: 'q1LyTotal', label: `Q1 (FY${targetFY - 2}-${prevShortYear}) Total`, width: 18, align: 'right', bg: 'FF1E40AF' },
-        { key: 'q1LyTill', label: `Q1 (FY${targetFY - 2}-${prevShortYear}) Till date`, width: 18, align: 'right', bg: 'FF1E40AF' },
-        { key: 'q2CurTill', label: `Q2 (FY${targetFY - 1}-${shortYear}) Till date`, width: 18, align: 'right', bg: 'FF1E40AF' },
-        { key: 'q2LyTill', label: `Q2 (FY${targetFY - 2}-${prevShortYear}) Till date`, width: 18, align: 'right', bg: 'FF1E40AF' },
-        { key: 'q2Growth', label: 'Growth% over ly same periods', width: 18, align: 'center', bg: 'FF172554' },
+        // 4. Quarterly Performance (15-18 / O-R)
+        { key: 'q1CurTotal', label: `Q1 (FY${targetFY - 1}-${shortYear}) Total`, width: 18, align: 'center', bg: BLUE_COL },
+        { key: 'q2LyTill', label: `Q2 (FY${targetFY - 2}-${prevShortYear}) Till date`, width: 18, align: 'center', bg: BLUE_COL },
+        { key: 'q2CurTill', label: `Q2 (FY${targetFY - 1}-${shortYear}) Till date`, width: 18, align: 'center', bg: BLUE_COL },
+        { key: 'q2Growth', label: 'QTD Growth% ', width: 15, align: 'center', bg: 'FF172554' },
 
-        // 5. Monthly Performance (25-30)
-        { key: 'mtdCur', label: `MTD @ ${targetMonth}'${shortYear}`, width: 18, align: 'right', bg: 'FF0F766E' },
-        { key: 'lmTotal', label: `${prevMonth}'${prevMonthShortYear} Total`, width: 18, align: 'right', bg: 'FF0F766E' },
-        { key: 'lmTill', label: `MTD @ ${prevMonth}'${prevMonthShortYear}`, width: 18, align: 'right', bg: 'FF0F766E' },
-        { key: 'lySameMonthSales', label: `MTD @ ${lyMonth}'${prevShortYear}`, width: 18, align: 'right', bg: 'FF0F766E' },
-        { key: 'mtdLyGrowth', label: 'Growth% over last ly', width: 16, align: 'center', bg: 'FF134E4A' },
-        { key: 'mtdLmGrowth', label: 'Growth% over last LM', width: 16, align: 'center', bg: 'FF134E4A' },
+        // 5. Monthly Performance (19-24 / S-X)
+        { key: 'lmTotal', label: `${prevMonth}'${prevMonthShortYear} Total`, width: 18, align: 'center', bg: TEAL_HEADER },
+        { key: 'lmTill', label: `MTD @ ${prevMonth}'${prevMonthShortYear}`, width: 18, align: 'center', bg: TEAL_HEADER },
+        { key: 'lySameMonthSales', label: `MTD @ ${lyMonth}'${prevShortYear}`, width: 18, align: 'center', bg: TEAL_HEADER },
+        { key: 'mtdCur', label: `MTD @ ${targetMonth}'${shortYear}`, width: 18, align: 'center', bg: TEAL_HEADER },
+        { key: 'mtdLyGrowth', label: 'MTD Growth%', width: 15, align: 'center', bg: 'FF134E4A' },
+        { key: 'mtdLmGrowth', label: 'MTD Growth% (LM)', width: 16, align: 'center', bg: 'FF134E4A' },
 
-        // 6. Target & Status (31-33)
-        { key: 'finalTarget', label: `${targetMonth}'${shortYear} TARGET`, width: 18, align: 'right', bg: EMERALD_TARGET },
+        // 6. Target & Fulfillment (25-28 / Y-AB)
+        { key: 'finalTarget', label: `${targetMonth}'${shortYear} TARGET`, width: 18, align: 'center', bg: EMERALD_TARGET },
+        { key: 'mtdCurTill', label: `${targetMonth}'${shortYear} Till Date`, width: 18, align: 'center', bg: EMERALD_TARGET },
         { key: 'achievementPercent', label: 'ACH %', width: 14, align: 'center', bg: GREEN_STATUS },
         { key: 'status', label: 'STATUS', width: 16, align: 'center', bg: GREEN_STATUS },
       ];
 
-      const headerRow = worksheet.getRow(5);
+      const headerRow = worksheet.getRow(2);
       headerRow.height = 28;
 
       headers.forEach((h, idx) => {
@@ -1749,18 +1700,18 @@ export class ReportsService {
         const cell = headerRow.getCell(colIdx);
         cell.value = h.label;
         cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
-        cell.alignment = { vertical: 'middle', horizontal: h.align === 'left' ? 'left' : h.align === 'right' ? 'right' : 'center', wrapText: true };
+        cell.alignment = { vertical: 'middle', horizontal: h.align === 'left' ? 'left' : 'center', wrapText: true };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: h.bg } };
         cell.border = {
           top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-          bottom: { style: 'medium', color: { argb: NAVY_BANNER } },
+          bottom: { style: 'medium', color: { argb: NAVY_HEADER } },
           left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
           right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
         };
       });
 
-      // ─── DATA ROWS ─────────────────────────────────────────────────────
-      let currentRowIdx = 6;
+      // ─── DATA ROWS (Row 3 onwards) ─────────────────────────────────────
+      let currentRowIdx = 3;
       calculatedRows.forEach((item, idx) => {
         const row = worksheet.getRow(currentRowIdx);
         row.height = 20;
@@ -1773,43 +1724,38 @@ export class ReportsService {
           item.partyCode || '-',
           item.originalCode || '-',
           (item.partyName || '-').toUpperCase(),
-          (item.partyType || 'TRADER/RETAILER').toUpperCase(),
+          (item.partyType || 'INDEPENDENT WORKSHOP').toUpperCase(),
           (item.partCategoryCode || 'ALL').toUpperCase(),
           item.uniquePartlines || 0,
 
-          // Multi-Year (Cols 9-13)
+          // Multi-Year (Cols 9-11 / I-K)
           item.fy0Total,
           item.fy1Total,
           item.fy2Total,
-          item.fy3Total,
-          item.fyYoYGrowth,
 
-          // YTD (Cols 14-17)
-          item.ytdCur,
-          item.ytdGrowth,
+          // YTD (Cols 12-14 / L-N)
           item.ytdLy,
-          item.ytdGrowth,
+          item.ytdCur,
+          { formula: `IFERROR(M${currentRowIdx}/L${currentRowIdx}-1,0)` },
 
-          // Quarterly (Cols 18-24)
+          // Quarterly (Cols 15-18 / O-R)
           item.q1CurTotal,
-          item.q1CurTill,
-          item.q1LyTotal,
-          item.q1LyTill,
-          item.q2CurTill,
           item.q2LyTill,
-          item.q2Growth,
+          item.q2CurTill,
+          { formula: `IFERROR(Q${currentRowIdx}/P${currentRowIdx}-1,0)` },
 
-          // Monthly (Cols 25-30)
-          item.mtdCur,
+          // Monthly (Cols 19-24 / S-X)
           item.lmTotal,
           item.lmTill,
           item.lySameMonthSales,
-          item.mtdLyGrowth,
-          item.mtdLmGrowth,
+          item.mtdCur,
+          { formula: `IFERROR(V${currentRowIdx}/U${currentRowIdx}-1,0)` },
+          { formula: `IFERROR(V${currentRowIdx}/T${currentRowIdx}-1,0)` },
 
-          // Target & Status (Cols 31-33)
+          // Target & Status (Cols 25-28 / Y-AB)
           item.finalTarget,
-          item.achievementPercent,
+          { formula: `V${currentRowIdx}` },
+          { formula: `IFERROR(Z${currentRowIdx}/Y${currentRowIdx},0)` },
           item.status,
         ];
 
@@ -1820,7 +1766,7 @@ export class ReportsService {
           cell.font = { name: 'Abadi', size: 9 };
           cell.alignment = {
             vertical: 'middle',
-            horizontal: headers[cIdx].align === 'left' ? 'left' : headers[cIdx].align === 'right' ? 'right' : 'center',
+            horizontal: headers[cIdx].align === 'left' ? 'left' : 'center',
           };
           cell.border = {
             top: { style: 'thin', color: { argb: GRAY_BORDER } },
@@ -1830,19 +1776,19 @@ export class ReportsService {
           };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: defaultBg } };
 
-          // Number Formatting without INR / ₹ sign
-          const amountCols = [9, 10, 11, 12, 14, 16, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28, 31];
-          const percentCols = [13, 15, 17, 24, 29, 30, 32];
+          // Number Formatting matching user's exact format ###,##0;[Red]-###,##0;"—"
+          const amountCols = [9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 22, 25, 26];
+          const percentCols = [14, 18, 23, 24, 27];
 
           if (amountCols.includes(colIdx)) {
-            cell.numFmt = '#,##,##0;[Red]-#,##,##0;"—"';
+            cell.numFmt = '###,##0;[Red]-###,##0;"—"';
           } else if (colIdx === 8) {
             cell.numFmt = '#,##0';
             cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FF0F172A' } };
           } else if (percentCols.includes(colIdx)) {
             cell.numFmt = '0.0%';
-            const pVal = Number(val) || 0;
-            if (colIdx === 32) {
+            if (colIdx === 27) {
+              const pVal = Number(item.achievementPercent) || 0;
               cell.font = { name: 'Abadi', size: 9, bold: true };
               if (pVal >= 1.0) {
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_FILL } };
@@ -1854,14 +1800,8 @@ export class ReportsService {
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: RED_FILL } };
                 cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: RED_TEXT } };
               }
-            } else {
-              if (pVal > 0) {
-                cell.font = { name: 'Abadi', size: 9, color: { argb: 'FF15803D' } };
-              } else if (pVal < 0) {
-                cell.font = { name: 'Abadi', size: 9, color: { argb: 'FFDC2626' } };
-              }
             }
-          } else if (colIdx === 33) {
+          } else if (colIdx === 28) {
             cell.font = { name: 'Abadi', size: 8.5, bold: true };
             if (item.status === 'ACHIEVED') {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_FILL } };
@@ -1885,7 +1825,7 @@ export class ReportsService {
       if (calculatedRows.length > 0) {
         const totalRow = worksheet.getRow(currentRowIdx);
         totalRow.height = 24;
-        const firstDataRow = 6;
+        const firstDataRow = 3;
         const lastDataRow = currentRowIdx - 1;
 
         worksheet.mergeCells(currentRowIdx, 1, currentRowIdx, 7);
@@ -1895,7 +1835,7 @@ export class ReportsService {
         grandLabelCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
         grandLabelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
 
-        // Unique partlines total (Col 8)
+        // Unique partlines total (Col 8 / H)
         const partlineCell = totalRow.getCell(8);
         partlineCell.value = { formula: `SUM(H${firstDataRow}:H${lastDataRow})` };
         partlineCell.numFmt = '#,##0';
@@ -1907,9 +1847,9 @@ export class ReportsService {
           bottom: { style: 'medium', color: { argb: 'FF60A5FA' } },
         };
 
-        const amountCols = [9, 10, 11, 12, 14, 16, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28, 31];
+        const amountCols = [9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 22, 25, 26];
 
-        for (let c = 9; c <= TOTAL_COLS; c++) {
+        for (let c = 9; c <= 28; c++) {
           const colLetter = worksheet.getColumn(c).letter;
           const cell = totalRow.getCell(c);
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
@@ -1921,43 +1861,38 @@ export class ReportsService {
 
           if (amountCols.includes(c)) {
             cell.value = { formula: `SUM(${colLetter}${firstDataRow}:${colLetter}${lastDataRow})` };
-            cell.numFmt = '#,##,##0';
-            cell.alignment = { vertical: 'middle', horizontal: 'right' };
-            if (c === 31 || c === 25) {
+            cell.numFmt = '###,##0;[Red]-###,##0;"—"';
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            if (c === 25 || c === 22 || c === 26) {
               cell.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
             }
-          } else if (c === 13) {
-            // YoY Growth% = (FY26 - FY25) / FY25 (L vs K)
-            cell.value = { formula: `IF(K${currentRowIdx}>0, (L${currentRowIdx}-K${currentRowIdx})/K${currentRowIdx}, 0)` };
+          } else if (c === 14) {
+            // YTD Growth% = (M - L) / L
+            cell.value = { formula: `IFERROR(M${currentRowIdx}/L${currentRowIdx}-1,0)` };
             cell.numFmt = '0.0%';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
-          } else if (c === 15 || c === 17) {
-            // YTD Growth% = (YTD26 - YTD25) / YTD25 (N vs P)
-            cell.value = { formula: `IF(P${currentRowIdx}>0, (N${currentRowIdx}-P${currentRowIdx})/P${currentRowIdx}, 0)` };
+          } else if (c === 18) {
+            // QTD Growth% = (Q - P) / P
+            cell.value = { formula: `IFERROR(Q${currentRowIdx}/P${currentRowIdx}-1,0)` };
+            cell.numFmt = '0.0%';
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          } else if (c === 23) {
+            // MTD Growth% = (V - U) / U
+            cell.value = { formula: `IFERROR(V${currentRowIdx}/U${currentRowIdx}-1,0)` };
             cell.numFmt = '0.0%';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
           } else if (c === 24) {
-            // Q2 Growth% = (Q2_26 - Q2_25) / Q2_25 (V vs W)
-            cell.value = { formula: `IF(W${currentRowIdx}>0, (V${currentRowIdx}-W${currentRowIdx})/W${currentRowIdx}, 0)` };
+            // MTD Growth% (LM) = (V - T) / T
+            cell.value = { formula: `IFERROR(V${currentRowIdx}/T${currentRowIdx}-1,0)` };
             cell.numFmt = '0.0%';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
-          } else if (c === 29) {
-            // MTD LY Growth% = (Sep26 - Sep25) / Sep25 (Y vs AB)
-            cell.value = { formula: `IF(AB${currentRowIdx}>0, (Y${currentRowIdx}-AB${currentRowIdx})/AB${currentRowIdx}, 0)` };
-            cell.numFmt = '0.0%';
-            cell.alignment = { vertical: 'middle', horizontal: 'center' };
-          } else if (c === 30) {
-            // MTD LM Growth% = (Sep26 - Aug26) / Aug26 (Y vs AA)
-            cell.value = { formula: `IF(AA${currentRowIdx}>0, (Y${currentRowIdx}-AA${currentRowIdx})/AA${currentRowIdx}, 0)` };
-            cell.numFmt = '0.0%';
-            cell.alignment = { vertical: 'middle', horizontal: 'center' };
-          } else if (c === 32) {
-            // ACH % = Sales / Target (Y vs AE)
-            cell.value = { formula: `IF(AE${currentRowIdx}>0, Y${currentRowIdx}/AE${currentRowIdx}, 0)` };
+          } else if (c === 27) {
+            // ACH % = Till Date / Target (Z / Y)
+            cell.value = { formula: `IFERROR(Z${currentRowIdx}/Y${currentRowIdx},0)` };
             cell.numFmt = '0.0%';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
             cell.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
-          } else if (c === 33) {
+          } else if (c === 28) {
             cell.value = 'PORTFOLIO';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
             cell.font = { name: 'Abadi', size: 8.5, bold: true, color: { argb: 'FF94A3B8' } };
@@ -1970,8 +1905,8 @@ export class ReportsService {
       // ─── AUTOFILTER ────────────────────────────────────────────────────
       if (calculatedRows.length > 0) {
         worksheet.autoFilter = {
-          from: { row: 5, column: 1 },
-          to: { row: currentRowIdx - 1, column: TOTAL_COLS },
+          from: { row: 2, column: 1 },
+          to: { row: currentRowIdx - 1, column: 28 },
         };
       }
     } else {
