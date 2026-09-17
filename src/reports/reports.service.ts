@@ -2066,31 +2066,6 @@ export class ReportsService {
     }
     const timeline = Array.from(timelineMap.values());
 
-    // 4. Category Breakdown
-    const categoryRecords: any[] = await this.prisma.$queryRawUnsafe(`
-      SELECT 
-        COALESCE(part_category_code, 'M') as cat,
-        COUNT(DISTINCT part_num)::int as unique_partlines,
-        COUNT(DISTINCT document_num)::int as total_invoices,
-        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as cur_month_sales,
-        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} THEN net_retail_selling ELSE 0 END)::numeric, 2) as ytd_sales,
-        ROUND(SUM(net_retail_selling)::numeric, 2) as lifetime_sales
-      FROM retail_sales_records
-      WHERE (${partyMatchCondition})
-      GROUP BY COALESCE(part_category_code, 'M')
-      ORDER BY ytd_sales DESC
-    `);
-
-    const categories = categoryRecords.map((c) => ({
-      cat: c.cat,
-      uniquePartlines: Number(c.unique_partlines) || 0,
-      totalInvoices: Number(c.total_invoices) || 0,
-      curMonthSales: Number(c.cur_month_sales) || 0,
-      ytdSales: Number(c.ytd_sales) || 0,
-      lifetimeSales: Number(c.lifetime_sales) || 0,
-      sharePercent: lifetimeSales > 0 ? Number(((Number(c.lifetime_sales) / lifetimeSales) * 100).toFixed(1)) : 0,
-    }));
-
     // Detailed Category Multi-Period Matrix Query
     const MONTH_ORDER = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
     const monthIdx = MONTH_ORDER.indexOf(targetMonth);
@@ -2422,21 +2397,21 @@ export class ReportsService {
     }
 
     // 8. Enhanced Customer 360 Intelligence Analytics
-    const curYtdSales = Number(allCategoryMultiPeriod?.ytd?.ytdCur) || 0;
-    const lyYtdSales = Number(allCategoryMultiPeriod?.ytd?.ytdLy) || 0;
-    const ytdGrowthRate = lyYtdSales > 0 ? (curYtdSales - lyYtdSales) / lyYtdSales : 0;
+    const curYtdSales = Number(allCategoryMultiPeriod?.ytd?.current) || 0;
+    const lyYtdSales = Number(allCategoryMultiPeriod?.ytd?.lySamePeriod) || 0;
+    const ytdGrowthRate = allCategoryMultiPeriod?.ytd?.growthPercent ?? (lyYtdSales > 0 ? (curYtdSales - lyYtdSales) / lyYtdSales : 0);
 
-    const curMtdSales = Number(allCategoryMultiPeriod?.mtd?.mtdCur) || 0;
-    const lyMtdSales = Number(allCategoryMultiPeriod?.mtd?.lymtd) || 0;
-    const mtdGrowthRate = lyMtdSales > 0 ? (curMtdSales - lyMtdSales) / lyMtdSales : 0;
+    const curMtdSales = Number(allCategoryMultiPeriod?.mtd?.current) || 0;
+    const lyMtdSales = Number(allCategoryMultiPeriod?.mtd?.lySamePeriod) || 0;
+    const mtdGrowthRate = allCategoryMultiPeriod?.mtd?.growthPercent ?? (lyMtdSales > 0 ? (curMtdSales - lyMtdSales) / lyMtdSales : 0);
 
     const curMqtdSales = Number(allCategoryMultiPeriod?.mtd?.lmmtd) || 0;
     const lyMqtdSales = Number(allCategoryMultiPeriod?.mtd?.lyPrevMonth) || 0;
     const mqtdGrowthRate = lyMqtdSales > 0 ? (curMqtdSales - lyMqtdSales) / lyMqtdSales : 0;
 
-    const curQtdSales = Number(allCategoryMultiPeriod?.qtd?.qtdCur) || 0;
-    const lyQtdSales = Number(allCategoryMultiPeriod?.qtd?.qtdLyTill) || 0;
-    const qtdGrowthRate = lyQtdSales > 0 ? (curQtdSales - lyQtdSales) / lyQtdSales : 0;
+    const curQtdSales = Number(allCategoryMultiPeriod?.qtd?.current) || 0;
+    const lyQtdSales = Number(allCategoryMultiPeriod?.qtd?.lySamePeriod) || 0;
+    const qtdGrowthRate = allCategoryMultiPeriod?.qtd?.growthPercent ?? (lyQtdSales > 0 ? (curQtdSales - lyQtdSales) / lyQtdSales : 0);
 
     // HTD (Half-Year to Date) calculations
     const [htdRaw]: any[] = await this.prisma.$queryRawUnsafe(`
