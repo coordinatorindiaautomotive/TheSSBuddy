@@ -6,7 +6,7 @@ import {
   GitBranch, BookOpen, UserCog, ChevronRight,
   Receipt, Target, ChevronLeft, ChevronsLeft, ChevronsRight,
   Menu, Sparkles, Shield, Layers, BarChart3, Sliders,
-  Activity, Boxes, LifeBuoy, Lock, Radio, LineChart
+  Activity, Boxes, LifeBuoy, Lock, Radio, LineChart, Compass
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -74,6 +74,12 @@ const nav = [
   {
     label: 'FINANCIAL & LEDGER',
     items: [
+      {
+        href: '/customer-360',
+        icon: Compass,
+        label: 'Customer 360',
+        iconColor: 'text-blue-600',
+      },
       {
         href: '/target-vs-achievement',
         icon: Target,

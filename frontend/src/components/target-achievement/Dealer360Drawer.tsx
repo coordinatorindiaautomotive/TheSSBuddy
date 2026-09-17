@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import api from '@/lib/api';
 import {
@@ -8,7 +9,7 @@ import {
   XCircle, Clock, ShoppingCart, ArrowUpRight, BarChart2, ShieldCheck,
   Building2, Hash, Percent, RefreshCw, Printer, Maximize2,
   Minimize2, FileSpreadsheet, Sparkles, Target, Zap, HelpCircle,
-  Check, ArrowRight, DollarSign, BarChart3, PieChart
+  Check, ArrowRight, DollarSign, BarChart3, PieChart, ExternalLink, Compass
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -62,6 +63,7 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
   fiscalYear = 2026,
   month = 'Sep',
 }) => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [freqFilter, setFreqFilter] = useState<'all' | 'frequent' | 'regular' | 'rare'>('all');
@@ -687,6 +689,15 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
 
             {/* Quick Actions in Header */}
             <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => router.push(`/customer-360?partyCode=${encodeURIComponent(partyCode)}&fiscalYear=${fiscalYear}&month=${encodeURIComponent(month)}`)}
+                title="Open Dedicated Customer 360 One-Pager"
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Compass size={15} />
+                <span className="hidden sm:inline">One-Pager</span>
+              </button>
+
               <button
                 onClick={handleDownloadExcel}
                 disabled={isExporting}
