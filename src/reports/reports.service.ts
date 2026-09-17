@@ -1779,27 +1779,43 @@ export class ReportsService {
           // Number Formatting matching user's exact format ###,##0;[Red]-###,##0;"—"
           const amountCols = [9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 22, 25, 26];
           const percentCols = [14, 18, 23, 24, 27];
+          const growthCols = [14, 18, 23, 24];
 
           if (amountCols.includes(colIdx)) {
             cell.numFmt = '###,##0;[Red]-###,##0;"—"';
           } else if (colIdx === 8) {
             cell.numFmt = '#,##0';
             cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FF0F172A' } };
-          } else if (percentCols.includes(colIdx)) {
+          } else if (growthCols.includes(colIdx)) {
             cell.numFmt = '0.0%';
-            if (colIdx === 27) {
-              const pVal = Number(item.achievementPercent) || 0;
-              cell.font = { name: 'Abadi', size: 9, bold: true };
-              if (pVal >= 1.0) {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_FILL } };
-                cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: GREEN_TEXT } };
-              } else if (pVal >= 0.70) {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMBER_FILL } };
-                cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: AMBER_TEXT } };
-              } else {
-                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: RED_FILL } };
-                cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: RED_TEXT } };
-              }
+            const gVal =
+              colIdx === 14 ? (Number(item.ytdGrowth) || 0)
+              : colIdx === 18 ? (Number(item.q2Growth) || 0)
+              : colIdx === 23 ? (Number(item.mtdLyGrowth) || 0)
+              : (Number(item.mtdLmGrowth) || 0);
+
+            if (gVal > 0) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_FILL } };
+              cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: GREEN_TEXT } };
+            } else if (gVal < 0) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: RED_FILL } };
+              cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: RED_TEXT } };
+            } else {
+              cell.font = { name: 'Abadi', size: 9, color: { argb: 'FF64748B' } };
+            }
+          } else if (colIdx === 27) {
+            cell.numFmt = '0.0%';
+            const pVal = Number(item.achievementPercent) || 0;
+            cell.font = { name: 'Abadi', size: 9, bold: true };
+            if (pVal >= 1.0) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_FILL } };
+              cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: GREEN_TEXT } };
+            } else if (pVal >= 0.70) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMBER_FILL } };
+              cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: AMBER_TEXT } };
+            } else {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: RED_FILL } };
+              cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: RED_TEXT } };
             }
           } else if (colIdx === 28) {
             cell.font = { name: 'Abadi', size: 8.5, bold: true };
@@ -1871,21 +1887,25 @@ export class ReportsService {
             cell.value = { formula: `IFERROR(M${currentRowIdx}/L${currentRowIdx}-1,0)` };
             cell.numFmt = '0.0%';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
           } else if (c === 18) {
             // QTD Growth% = (Q - P) / P
             cell.value = { formula: `IFERROR(Q${currentRowIdx}/P${currentRowIdx}-1,0)` };
             cell.numFmt = '0.0%';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
           } else if (c === 23) {
             // MTD Growth% = (V - U) / U
             cell.value = { formula: `IFERROR(V${currentRowIdx}/U${currentRowIdx}-1,0)` };
             cell.numFmt = '0.0%';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
           } else if (c === 24) {
             // MTD Growth% (LM) = (V - T) / T
             cell.value = { formula: `IFERROR(V${currentRowIdx}/T${currentRowIdx}-1,0)` };
             cell.numFmt = '0.0%';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
           } else if (c === 27) {
             // ACH % = Till Date / Target (Z / Y)
             cell.value = { formula: `IFERROR(Z${currentRowIdx}/Y${currentRowIdx},0)` };
@@ -1900,6 +1920,75 @@ export class ReportsService {
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
           }
         }
+      }
+
+      // ─── CONDITIONAL FORMATTING RULES (N, R, W, X & AA) ────────────────
+      if (calculatedRows.length > 0) {
+        const lastRow = currentRowIdx - 1;
+        const growthColLetters = ['N', 'R', 'W', 'X'];
+        growthColLetters.forEach((colLetter, cIdx) => {
+          worksheet.addConditionalFormatting({
+            ref: `${colLetter}3:${colLetter}${lastRow}`,
+            rules: [
+              {
+                priority: cIdx * 2 + 1,
+                type: 'cellIs',
+                operator: 'greaterThan',
+                formulae: [0],
+                style: {
+                  font: { color: { argb: GREEN_TEXT }, bold: true },
+                  fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: GREEN_FILL } },
+                },
+              },
+              {
+                priority: cIdx * 2 + 2,
+                type: 'cellIs',
+                operator: 'lessThan',
+                formulae: [0],
+                style: {
+                  font: { color: { argb: RED_TEXT }, bold: true },
+                  fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: RED_FILL } },
+                },
+              },
+            ],
+          });
+        });
+
+        worksheet.addConditionalFormatting({
+          ref: `AA3:AA${lastRow}`,
+          rules: [
+            {
+              priority: 9,
+              type: 'cellIs',
+              operator: 'greaterThan',
+              formulae: [0.9999],
+              style: {
+                font: { color: { argb: GREEN_TEXT }, bold: true },
+                fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: GREEN_FILL } },
+              },
+            },
+            {
+              priority: 10,
+              type: 'cellIs',
+              operator: 'between',
+              formulae: [0.7, 0.9999],
+              style: {
+                font: { color: { argb: AMBER_TEXT }, bold: true },
+                fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: AMBER_FILL } },
+              },
+            },
+            {
+              priority: 11,
+              type: 'cellIs',
+              operator: 'lessThan',
+              formulae: [0.7],
+              style: {
+                font: { color: { argb: RED_TEXT }, bold: true },
+                fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: RED_FILL } },
+              },
+            },
+          ],
+        });
       }
 
       // ─── AUTOFILTER ────────────────────────────────────────────────────
