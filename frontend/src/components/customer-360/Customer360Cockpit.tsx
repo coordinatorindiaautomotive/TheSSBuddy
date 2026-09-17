@@ -82,20 +82,31 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
   // Filter parties for search dropdown
   const filteredParties = useMemo(() => {
     if (!partiesList || !Array.isArray(partiesList)) return [];
-    if (!partySearch.trim()) return partiesList.slice(0, 15);
     const q = partySearch.toLowerCase().trim();
-    return partiesList.filter((p: any) =>
-      p.consPartyCode?.toLowerCase().includes(q) ||
-      p.consPartyName?.toLowerCase().includes(q) ||
-      p.dealerCode?.toLowerCase().includes(q) ||
-      p.loc?.toLowerCase().includes(q)
-    ).slice(0, 20);
+    if (!q) return partiesList.slice(0, 40);
+    return partiesList.filter((p: any) => {
+      const code = (p.code || p.consPartyCode || p.dealerCode || '').toLowerCase();
+      const name = (p.name || p.consPartyName || p.partyName || '').toLowerCase();
+      const orig = (p.originalCode || '').toLowerCase();
+      const loc = (p.baseLoc || p.primaryBranchCode || p.loc || p.branchCode || '').toLowerCase();
+      const exec = (p.executiveName || p.assignedSalesExecutive || '').toLowerCase();
+      const type = (p.partyType || '').toLowerCase();
+      return (
+        code.includes(q) ||
+        name.includes(q) ||
+        orig.includes(q) ||
+        loc.includes(q) ||
+        exec.includes(q) ||
+        type.includes(q)
+      );
+    }).slice(0, 50);
   }, [partiesList, partySearch]);
 
   // Auto-select first party if none selected
   useEffect(() => {
     if (!partyCode && partiesList && Array.isArray(partiesList) && partiesList.length > 0) {
-      const firstCode = partiesList[0].consPartyCode || partiesList[0].dealerCode || '';
+      const first = partiesList[0];
+      const firstCode = first.code || first.consPartyCode || first.originalCode || first.dealerCode || '';
       if (firstCode) {
         setPartyCode(firstCode);
         if (onPartyChange) onPartyChange(firstCode);
@@ -203,7 +214,7 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
   };
 
   const handleSelectParty = (p: any) => {
-    const code = p.consPartyCode || p.dealerCode;
+    const code = p.code || p.consPartyCode || p.originalCode || p.dealerCode;
     setPartyCode(code);
     setSearchOpen(false);
     setPartySearch('');
@@ -212,6 +223,8 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
 
   const months = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
   const years = [2027, 2026, 2025, 2024, 2023];
+
+  const currentPartyName = profile.partyName || (partiesList && Array.isArray(partiesList) ? partiesList.find((p: any) => (p.code || p.consPartyCode) === partyCode)?.name : '') || partyCode;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased pb-12 print:bg-white print:pb-0 print:text-black">
@@ -267,47 +280,91 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                value={partySearch || (searchOpen ? '' : (profile.partyName ? `${profile.partyName} (${partyCode})` : partyCode))}
+                value={searchOpen ? partySearch : (currentPartyName ? `${currentPartyName} (${partyCode})` : partyCode)}
                 onFocus={() => { setSearchOpen(true); setPartySearch(''); }}
                 onChange={(e) => { setPartySearch(e.target.value); setSearchOpen(true); }}
-                placeholder="Search party code, name, dealer, city..."
-                className="w-full pl-9 pr-8 py-1.5 text-xs font-medium bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all"
+                placeholder="Search party code, name, original code, city..."
+                className="w-full pl-9 pr-14 py-1.5 text-xs font-semibold bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all text-slate-900"
               />
-              {partyCode && !searchOpen && (
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {searchOpen && partySearch && (
+                  <button
+                    onClick={() => setPartySearch('')}
+                    className="text-slate-400 hover:text-slate-600 p-0.5"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 <button
-                  onClick={() => { setSearchOpen(true); setPartySearch(''); }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                  onClick={() => { setSearchOpen(!searchOpen); setPartySearch(''); }}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-800 px-1 py-0.5"
                 >
-                  Change
+                  {searchOpen ? 'Close' : 'Change'}
                 </button>
-              )}
+              </div>
             </div>
 
             {/* Autocomplete dropdown */}
             {searchOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto divide-y divide-slate-100">
+              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto divide-y divide-slate-100">
+                <div className="p-2 bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 flex items-center justify-between">
+                  <span>Showing {filteredParties.length} matching parties</span>
+                  <span>Select to load 360</span>
+                </div>
                 {filteredParties.length === 0 ? (
-                  <div className="p-3 text-xs text-slate-500 text-center">No matching parties found</div>
+                  <div className="p-4 text-xs text-slate-500 text-center">
+                    No matching parties found for "{partySearch}"
+                  </div>
                 ) : (
-                  filteredParties.map((p: any) => (
-                    <button
-                      key={p.consPartyCode || p.dealerCode}
-                      onClick={() => handleSelectParty(p)}
-                      className="w-full text-left p-2.5 hover:bg-blue-50/80 transition-colors flex items-center justify-between group"
-                    >
-                      <div className="min-w-0 pr-2">
-                        <div className="text-xs font-semibold text-slate-900 group-hover:text-blue-600 truncate">
-                          {p.consPartyName || p.partyName || p.consPartyCode}
+                  filteredParties.map((p: any, idx: number) => {
+                    const pCode = p.code || p.consPartyCode || p.dealerCode || '';
+                    const pName = p.name || p.consPartyName || p.partyName || pCode;
+                    const pOrig = p.originalCode && p.originalCode !== pCode ? p.originalCode : '';
+                    const pLoc = p.baseLoc || p.primaryBranchCode || p.loc || p.branchCode || 'All';
+                    const pType = p.partyType || 'RETAILER';
+                    const isSelected = pCode === partyCode;
+
+                    return (
+                      <button
+                        key={`${pCode}-${idx}`}
+                        onClick={() => handleSelectParty(p)}
+                        className={`w-full text-left px-3.5 py-2.5 hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer ${
+                          isSelected ? 'bg-blue-50/80 font-semibold' : ''
+                        }`}
+                      >
+                        <div className="min-w-0 pr-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-slate-900 group-hover:text-blue-700">
+                              {pName}
+                            </span>
+                            <span className="text-[10px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
+                              {pType}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-1 flex-wrap">
+                            <span className="font-mono font-bold bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded border border-blue-200 text-[10px]">
+                              Code: {pCode}
+                            </span>
+                            {pOrig && (
+                              <span className="font-mono text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">
+                                Orig: {pOrig}
+                              </span>
+                            )}
+                            <span className="text-slate-600">
+                              📍 {pLoc}
+                            </span>
+                            {p.executiveName && p.executiveName !== 'Unassigned' && (
+                              <span className="text-slate-500 text-[10px]">
+                                👤 {p.executiveName}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                          <span className="font-mono bg-slate-100 px-1 rounded text-slate-600">{p.consPartyCode}</span>
-                          <span>• {p.loc || p.branchCode || 'All'}</span>
-                          <span>• {p.partyType || 'RETAILER'}</span>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 flex-shrink-0" />
-                    </button>
-                  ))
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 flex-shrink-0" />
+                      </button>
+                    );
+                  })
                 )}
               </div>
             )}
@@ -408,10 +465,15 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                   <h2 className="text-lg font-bold text-slate-900">
                     {profile.partyName || partyCode}
                   </h2>
-                  <span className="font-mono text-xs font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
-                    {partyCode}
+                  <span className="font-mono text-xs font-bold bg-blue-50 text-blue-800 px-2 py-0.5 rounded border border-blue-200">
+                    Code: {profile.partyCode || partyCode}
                   </span>
-                  <span className="text-xs font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">
+                  {profile.originalCode && profile.originalCode !== (profile.partyCode || partyCode) && (
+                    <span className="font-mono text-xs font-medium bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                      Orig: {profile.originalCode}
+                    </span>
+                  )}
+                  <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
                     {profile.partyType || 'TRADER/RETAILER'}
                   </span>
                 </div>

@@ -1941,16 +1941,31 @@ export class ReportsService {
 
     // 1. Party master & mapping details
     const [partyMaster, party, branch] = await Promise.all([
-      this.prisma.partyMaster.findFirst({ where: { consPartyCode: cleanCode } }),
-      this.prisma.party.findFirst({ where: { code: cleanCode } }),
+      this.prisma.partyMaster.findFirst({
+        where: {
+          OR: [
+            { consPartyCode: cleanCode },
+            { originalCode: cleanCode },
+          ],
+        },
+      }),
+      this.prisma.party.findFirst({
+        where: { code: cleanCode },
+      }),
       branchCode && branchCode !== 'ALL' ? this.prisma.branch.findFirst({ where: { code: branchCode } }) : null,
     ]);
 
     const partyName = partyMaster?.consPartyName || party?.name || cleanCode;
     const originalCode = partyMaster?.originalCode || cleanCode;
+    const consPartyCode = partyMaster?.consPartyCode || cleanCode;
     const partyType = party?.type || partyMaster?.partyType || 'TRADER/RETAILER';
-    const resolvedBranchCode = branchCode && branchCode !== 'ALL' ? branchCode : (branch?.code || 'HO');
+    const resolvedBranchCode = branchCode && branchCode !== 'ALL' ? branchCode : (partyMaster?.baseLoc || branch?.code || 'HO');
     const branchName = branch?.name || resolvedBranchCode;
+
+    const targetCodes = Array.from(new Set([cleanCode, consPartyCode, originalCode])).filter(Boolean);
+    const partyMatchCondition = targetCodes
+      .map((c) => `(cons_party_code = '${c.replace(/'/g, "''")}' OR dealer_code = '${c.replace(/'/g, "''")}')`)
+      .join(' OR ');
 
     // 2. Lifetime Basket & Order Statistics
     const [basketStatsRaw]: any[] = await this.prisma.$queryRawUnsafe(`
@@ -1964,7 +1979,7 @@ export class ReportsService {
         COUNT(DISTINCT CONCAT(fiscal_year, '-', month))::int as active_months,
         COUNT(*)::int as total_line_items
       FROM retail_sales_records
-      WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+      WHERE (${partyMatchCondition})
     `);
 
     const totalInvoices = Number(basketStatsRaw?.total_invoices) || 0;
@@ -1997,7 +2012,7 @@ export class ReportsService {
         ROUND(SUM(net_retail_selling)::numeric, 2) as sales,
         ROUND(SUM(net_retail_qty)::numeric, 2) as qty
       FROM retail_sales_records
-      WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+      WHERE (${partyMatchCondition})
       GROUP BY fiscal_year, month, COALESCE(part_category_code, 'M')
       ORDER BY fiscal_year ASC, 
         CASE month 
@@ -2061,7 +2076,7 @@ export class ReportsService {
         ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} THEN net_retail_selling ELSE 0 END)::numeric, 2) as ytd_sales,
         ROUND(SUM(net_retail_selling)::numeric, 2) as lifetime_sales
       FROM retail_sales_records
-      WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+      WHERE (${partyMatchCondition})
       GROUP BY COALESCE(part_category_code, 'M')
       ORDER BY ytd_sales DESC
     `);
@@ -2078,45 +2093,44 @@ export class ReportsService {
 
     // Detailed Category Multi-Period Matrix Query
     const MONTH_ORDER = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
-    const monthIdx = MONTH_ORDER.indexOf(targetMonth) >= 0 ? MONTH_ORDER.indexOf(targetMonth) : 5;
-    const prevMonth = monthIdx === 0 ? 'Mar' : MONTH_ORDER[monthIdx - 1];
+    const monthIdx = MONTH_ORDER.indexOf(targetMonth);
+    const prevMonthIdx = monthIdx > 0 ? monthIdx - 1 : 11;
+    const prevMonth = MONTH_ORDER[prevMonthIdx];
     const prevMonthFY = monthIdx === 0 ? targetFY - 1 : targetFY;
-    const lyFY = targetFY - 1;
+
     const lyMonth = targetMonth;
+    const lyFY = targetFY - 1;
     const lyPrevMonth = prevMonth;
     const lyPrevMonthFY = prevMonthFY - 1;
-    const ly2PrevMonthFY = lyPrevMonthFY - 1;
+    const ly2PrevMonthFY = prevMonthFY - 2;
 
-    let curQuarterMonths = ['Jul', 'Aug', 'Sep'];
-    let curQuarterTillMonths = ['Jul', 'Aug', 'Sep'];
-    let prevQuarterMonths = ['Apr', 'May', 'Jun'];
-    let prevQuarterTillMonths = ['Apr', 'May', 'Jun'];
+    let curQuarterMonths: string[] = [];
+    let prevQuarterMonths: string[] = [];
+    let curQuarterTillMonths: string[] = [];
+    let prevQuarterTillMonths: string[] = [];
     let prevQuarterFY = targetFY;
 
-    if (monthIdx <= 2) {
+    if (['Apr', 'May', 'Jun'].includes(targetMonth)) {
       curQuarterMonths = ['Apr', 'May', 'Jun'];
       curQuarterTillMonths = MONTH_ORDER.slice(0, monthIdx + 1);
       prevQuarterMonths = ['Jan', 'Feb', 'Mar'];
-      prevQuarterTillMonths = ['Jan', 'Feb', 'Mar'];
+      prevQuarterTillMonths = ['Jan', 'Feb', 'Mar'].slice(0, monthIdx + 1);
       prevQuarterFY = targetFY - 1;
-    } else if (monthIdx >= 3 && monthIdx <= 5) {
+    } else if (['Jul', 'Aug', 'Sep'].includes(targetMonth)) {
       curQuarterMonths = ['Jul', 'Aug', 'Sep'];
       curQuarterTillMonths = MONTH_ORDER.slice(3, monthIdx + 1);
       prevQuarterMonths = ['Apr', 'May', 'Jun'];
-      prevQuarterTillMonths = ['Apr', 'May', 'Jun'];
-      prevQuarterFY = targetFY;
-    } else if (monthIdx >= 6 && monthIdx <= 8) {
+      prevQuarterTillMonths = ['Apr', 'May', 'Jun'].slice(0, monthIdx - 3 + 1);
+    } else if (['Oct', 'Nov', 'Dec'].includes(targetMonth)) {
       curQuarterMonths = ['Oct', 'Nov', 'Dec'];
       curQuarterTillMonths = MONTH_ORDER.slice(6, monthIdx + 1);
       prevQuarterMonths = ['Jul', 'Aug', 'Sep'];
-      prevQuarterTillMonths = ['Jul', 'Aug', 'Sep'];
-      prevQuarterFY = targetFY;
+      prevQuarterTillMonths = ['Jul', 'Aug', 'Sep'].slice(0, monthIdx - 6 + 1);
     } else {
       curQuarterMonths = ['Jan', 'Feb', 'Mar'];
       curQuarterTillMonths = MONTH_ORDER.slice(9, monthIdx + 1);
       prevQuarterMonths = ['Oct', 'Nov', 'Dec'];
-      prevQuarterTillMonths = ['Oct', 'Nov', 'Dec'];
-      prevQuarterFY = targetFY;
+      prevQuarterTillMonths = ['Oct', 'Nov', 'Dec'].slice(0, monthIdx - 9 + 1);
     }
     const ytdMonths = MONTH_ORDER.slice(0, monthIdx + 1);
 
@@ -2146,7 +2160,7 @@ export class ReportsService {
         COUNT(DISTINCT CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN part_num END)::int as cur_partlines,
         COUNT(DISTINCT part_num)::int as total_partlines
       FROM retail_sales_records
-      WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+      WHERE (${partyMatchCondition})
       GROUP BY COALESCE(part_category_code, 'M')
     `);
 
@@ -2247,7 +2261,7 @@ export class ReportsService {
         MAX(fiscal_year)::int as "lastFY",
         MAX(month) as "lastMonth"
       FROM retail_sales_records
-      WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+      WHERE (${partyMatchCondition})
       GROUP BY part_num, COALESCE(root_part_num, part_num), COALESCE(part_category_code, 'M')
       ORDER BY "totalSales" DESC
     `);
@@ -2298,7 +2312,7 @@ export class ReportsService {
         WHERE (r.loc = '${resolvedBranchCode}' OR '${resolvedBranchCode}' = 'ALL' OR '${resolvedBranchCode}' = 'HO')
           AND r.part_num NOT IN (
             SELECT DISTINCT part_num FROM retail_sales_records 
-            WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+            WHERE (${partyMatchCondition})
           )
         GROUP BY r.part_num, COALESCE(r.root_part_num, r.part_num), COALESCE(r.part_category_code, 'M')
         ORDER BY "totalSales" DESC
@@ -2331,7 +2345,7 @@ export class ReportsService {
         ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month IN ('Apr','May','Jun','Jul','Aug','Sep') THEN net_retail_selling ELSE 0 END)::numeric, 2) as htd_cur,
         ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('Apr','May','Jun','Jul','Aug','Sep') THEN net_retail_selling ELSE 0 END)::numeric, 2) as htd_ly
       FROM retail_sales_records
-      WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+      WHERE (${partyMatchCondition})
     `);
     const curHtdSales = Number(htdRaw?.htd_cur) || curYtdSales;
     const lyHtdSales = Number(htdRaw?.htd_ly) || lyYtdSales;
@@ -2422,7 +2436,7 @@ export class ReportsService {
           MAX(net_retail_qty)::numeric as "maxHistoricalQty",
           MAX(month_year) as "lastPurchased"
         FROM retail_sales_records
-        WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+        WHERE (${partyMatchCondition})
         GROUP BY part_num, COALESCE(root_part_num, part_num), COALESCE(part_category_code, 'M')
         HAVING SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${ytdMonths.join("','")}') THEN net_retail_qty ELSE 0 END) > 0
            AND SUM(CASE WHEN fiscal_year = ${targetFY} AND month IN ('${ytdMonths.join("','")}') THEN net_retail_qty ELSE 0 END) < SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${ytdMonths.join("','")}') THEN net_retail_qty ELSE 0 END)
