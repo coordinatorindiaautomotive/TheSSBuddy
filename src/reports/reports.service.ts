@@ -827,69 +827,82 @@ export class ReportsService {
     const branchMap = new Map<string, string>();
     branches.forEach((b) => branchMap.set(b.code.toUpperCase(), b.name));
 
-    // Consolidate if ALL categories
-    let processedRows: any[] = [];
-    if (!catFilter || catFilter === 'ALL') {
-      const consolidatedMap = new Map<string, any>();
-      for (const r of rawRows) {
-        const key = `${r.branchCode}_${r.partyCode}`;
-        if (!consolidatedMap.has(key)) {
-          consolidatedMap.set(key, {
-            branchCode: r.branchCode,
-            partyCode: r.partyCode,
-            partCategoryCode: 'ALL',
-            partyName: r.partyName,
-            partyType: r.partyType,
-            curSales: 0,
-            uniquePartlines: 0,
-            lmSales: 0,
-            lySameMonthSales: 0,
-            lyPrevMonthSales: 0,
-            ly2PrevMonthSales: 0,
-            q1CurTotalSales: 0,
-            q1CurTillSales: 0,
-            q1LyTotalSales: 0,
-            q1LyTillSales: 0,
-            q2CurTillSales: 0,
-            q2LyTillSales: 0,
-            ytdCurSales: 0,
-            ytdLySales: 0,
-            fy0Total: 0,
-            fy1Total: 0,
-            fy2Total: 0,
-            fy3Total: 0,
-            lastQuarterAvg: 0,
-            lastFyAvg: 0,
-            adminDefinedTarget: 0,
-          });
-        }
-        const item = consolidatedMap.get(key);
-        item.curSales += Number(r.curSales) || 0;
-        item.uniquePartlines = Math.max(item.uniquePartlines, Number(r.uniquePartlines) || 0);
-        item.lmSales += Number(r.lmSales) || 0;
-        item.lySameMonthSales += Number(r.lySameMonthSales) || 0;
-        item.lyPrevMonthSales += Number(r.lyPrevMonthSales) || 0;
-        item.ly2PrevMonthSales += Number(r.ly2PrevMonthSales) || 0;
-        item.q1CurTotalSales += Number(r.q1CurTotalSales) || 0;
-        item.q1CurTillSales += Number(r.q1CurTillSales) || 0;
-        item.q1LyTotalSales += Number(r.q1LyTotalSales) || 0;
-        item.q1LyTillSales += Number(r.q1LyTillSales) || 0;
-        item.q2CurTillSales += Number(r.q2CurTillSales) || 0;
-        item.q2LyTillSales += Number(r.q2LyTillSales) || 0;
-        item.ytdCurSales += Number(r.ytdCurSales) || 0;
-        item.ytdLySales += Number(r.ytdLySales) || 0;
-        item.fy0Total += Number(r.fy0Total) || 0;
-        item.fy1Total += Number(r.fy1Total) || 0;
-        item.fy2Total += Number(r.fy2Total) || 0;
-        item.fy3Total += Number(r.fy3Total) || 0;
-        item.lastQuarterAvg += Number(r.lastQuarterAvg) || 0;
-        item.lastFyAvg += Number(r.lastFyAvg) || 0;
-        if (Number(r.adminDefinedTarget) > 0) item.adminDefinedTarget += Number(r.adminDefinedTarget);
+    // Consolidate rows:
+    // When no branchFilter (or branchFilter === 'ALL'), roll up all multi-branch sales into the party's primary base branch.
+    // When branchFilter is specific, group per that branch.
+    const isAllBranches = !branchFilter || branchFilter === 'ALL';
+    const isAllCats = !catFilter || catFilter === 'ALL';
+
+    const consolidatedMap = new Map<string, any>();
+    for (const r of rawRows) {
+      const pCode = (r.partyCode || '-').toUpperCase();
+      const pmRecord = partyMasterMap.get(pCode);
+      const pMaster = partyMap.get(pCode);
+
+      const primaryBranch = pmRecord?.baseLoc || pMaster?.primaryBranchCode || r.branchCode || 'VBZ';
+      const primaryBranchName = branchMap.get(primaryBranch.toUpperCase()) || primaryBranch;
+      const primaryPartyType = pmRecord?.partyType || r.partyType || pMaster?.type || 'TRADER/RETAILER';
+      const primaryPartyName = pmRecord?.consPartyName || pMaster?.name || r.partyName || r.partyCode;
+
+      const key = isAllBranches
+        ? (isAllCats ? pCode : `${pCode}_${r.partCategoryCode}`)
+        : (isAllCats ? `${r.branchCode}_${pCode}` : `${r.branchCode}_${pCode}_${r.partCategoryCode}`);
+
+      if (!consolidatedMap.has(key)) {
+        consolidatedMap.set(key, {
+          branchCode: isAllBranches ? primaryBranch : r.branchCode,
+          branchName: isAllBranches ? primaryBranchName : (branchMap.get(r.branchCode.toUpperCase()) || r.branchCode),
+          partyCode: r.partyCode,
+          partCategoryCode: isAllCats ? 'ALL' : r.partCategoryCode,
+          partyName: primaryPartyName,
+          partyType: primaryPartyType,
+          curSales: 0,
+          uniquePartlines: 0,
+          lmSales: 0,
+          lySameMonthSales: 0,
+          lyPrevMonthSales: 0,
+          ly2PrevMonthSales: 0,
+          q1CurTotalSales: 0,
+          q1CurTillSales: 0,
+          q1LyTotalSales: 0,
+          q1LyTillSales: 0,
+          q2CurTillSales: 0,
+          q2LyTillSales: 0,
+          ytdCurSales: 0,
+          ytdLySales: 0,
+          fy0Total: 0,
+          fy1Total: 0,
+          fy2Total: 0,
+          fy3Total: 0,
+          lastQuarterAvg: 0,
+          lastFyAvg: 0,
+          adminDefinedTarget: 0,
+        });
       }
-      processedRows = Array.from(consolidatedMap.values());
-    } else {
-      processedRows = rawRows;
+      const item = consolidatedMap.get(key);
+      item.curSales += Number(r.curSales) || 0;
+      item.uniquePartlines = Math.max(item.uniquePartlines, Number(r.uniquePartlines) || 0);
+      item.lmSales += Number(r.lmSales) || 0;
+      item.lySameMonthSales += Number(r.lySameMonthSales) || 0;
+      item.lyPrevMonthSales += Number(r.lyPrevMonthSales) || 0;
+      item.ly2PrevMonthSales += Number(r.ly2PrevMonthSales) || 0;
+      item.q1CurTotalSales += Number(r.q1CurTotalSales) || 0;
+      item.q1CurTillSales += Number(r.q1CurTillSales) || 0;
+      item.q1LyTotalSales += Number(r.q1LyTotalSales) || 0;
+      item.q1LyTillSales += Number(r.q1LyTillSales) || 0;
+      item.q2CurTillSales += Number(r.q2CurTillSales) || 0;
+      item.q2LyTillSales += Number(r.q2LyTillSales) || 0;
+      item.ytdCurSales += Number(r.ytdCurSales) || 0;
+      item.ytdLySales += Number(r.ytdLySales) || 0;
+      item.fy0Total += Number(r.fy0Total) || 0;
+      item.fy1Total += Number(r.fy1Total) || 0;
+      item.fy2Total += Number(r.fy2Total) || 0;
+      item.fy3Total += Number(r.fy3Total) || 0;
+      item.lastQuarterAvg += Number(r.lastQuarterAvg) || 0;
+      item.lastFyAvg += Number(r.lastFyAvg) || 0;
+      if (Number(r.adminDefinedTarget) > 0) item.adminDefinedTarget += Number(r.adminDefinedTarget);
     }
+    let processedRows: any[] = Array.from(consolidatedMap.values());
 
     if (metadata?.partyType && metadata.partyType !== 'ALL') {
       const pTypes = metadata.partyType.split(',').map((t: string) => t.trim().toUpperCase());
@@ -929,21 +942,26 @@ export class ReportsService {
     });
     const snapshotMap = new Map<string, any>();
     snapshotTargets.forEach((st) => {
-      const k = `${st.branchCode.toUpperCase()}_${st.partyCode.toUpperCase()}_${(st.partCategoryCode || 'ALL').toUpperCase()}`;
-      snapshotMap.set(k, st);
-      const kAll = `${st.branchCode.toUpperCase()}_${st.partyCode.toUpperCase()}_ALL`;
-      if (!snapshotMap.has(kAll)) {
-        snapshotMap.set(kAll, {
+      const pCode = st.partyCode.toUpperCase();
+      const cat = (st.partCategoryCode || 'ALL').toUpperCase();
+      const bCode = st.branchCode.toUpperCase();
+
+      const k = isAllBranches
+        ? (isAllCats ? pCode : `${pCode}_${cat}`)
+        : (isAllCats ? `${bCode}_${pCode}` : `${bCode}_${pCode}_${cat}`);
+
+      if (!snapshotMap.has(k)) {
+        snapshotMap.set(k, {
           branchCode: st.branchCode,
           partyCode: st.partyCode,
-          partCategoryCode: 'ALL',
+          partCategoryCode: isAllCats ? 'ALL' : st.partCategoryCode,
           weightedBase: 0,
           recommendedTarget: 0,
           adminDefinedTarget: 0,
           finalTarget: 0,
         });
       }
-      const allObj = snapshotMap.get(kAll);
+      const allObj = snapshotMap.get(k);
       allObj.weightedBase += Number(st.weightedBase) || 0;
       allObj.recommendedTarget += Number(st.recommendedTarget) || 0;
       if (Number(st.adminDefinedTarget) > 0) allObj.adminDefinedTarget += Number(st.adminDefinedTarget);
@@ -956,7 +974,7 @@ export class ReportsService {
       const originalCode = pmRecord?.originalCode || r.partyCode || '-';
       const partyName = pmRecord?.consPartyName || pMaster?.name || r.partyName || r.partyCode;
       const partyType = pmRecord?.partyType || r.partyType || pMaster?.type || 'TRADER/RETAILER';
-      const branchName = branchMap.get(r.branchCode.toUpperCase()) || r.branchCode;
+      const branchName = r.branchName || branchMap.get(r.branchCode.toUpperCase()) || r.branchCode;
 
       const curSales = Number(r.curSales) || 0;
       const uniquePartlines = Number(r.uniquePartlines) || 0;
@@ -983,7 +1001,13 @@ export class ReportsService {
       const lqAvg = Number(r.lastQuarterAvg) || 0;
       const lfyAvg = Number(r.lastFyAvg) || 0;
 
-      const snapKey = `${r.branchCode.toUpperCase()}_${r.partyCode.toUpperCase()}_${(r.partCategoryCode || 'ALL').toUpperCase()}`;
+      const pCode = r.partyCode.toUpperCase();
+      const cat = (r.partCategoryCode || 'ALL').toUpperCase();
+      const bCode = r.branchCode.toUpperCase();
+      const snapKey = isAllBranches
+        ? (isAllCats ? pCode : `${pCode}_${cat}`)
+        : (isAllCats ? `${bCode}_${pCode}` : `${bCode}_${pCode}_${cat}`);
+
       const snap = snapshotMap.get(snapKey);
       const snapFinalTarget = snap ? Number(snap.finalTarget) || 0 : 0;
       const snapRecTarget = snap ? Number(snap.recommendedTarget) || 0 : 0;
@@ -1094,7 +1118,7 @@ export class ReportsService {
       );
 
       const totalTarget = calculatedRows.reduce((s: number, x: any) => s + (Number(x.finalTarget) || 0), 0);
-      const totalSales = calculatedRows.reduce((s: number, x: any) => s + (Number(x.mtdSep26) || Number(x.currentSales) || 0), 0);
+      const totalSales = calculatedRows.reduce((s: number, x: any) => s + (Number(x.mtdCur) || Number(x.currentSales) || 0), 0);
       const overallAch = totalTarget > 0 ? Math.round((totalSales / totalTarget) * 1000) / 10 : 0;
 
       const page = Number(filter.page) || 1;
@@ -1165,23 +1189,46 @@ export class ReportsService {
       orderBy: { currentSales: 'desc' },
     });
 
-    // When partCategoryCode is ALL (or not filtered), consolidate rows by (branchCode, partyCode)
+    // Consolidate snapshots
+    const isAllBranchesFilter = !filter.branchCode || filter.branchCode === 'ALL';
+    const isAllCatsFilter = !filter.partCategoryCode || filter.partCategoryCode === 'ALL';
+
+    const [pmList, pList] = await Promise.all([
+      this.prisma.partyMaster.findMany({ select: { consPartyCode: true, partyType: true, baseLoc: true, consPartyName: true } }),
+      this.prisma.party.findMany({ select: { code: true, type: true, primaryBranchCode: true, name: true } }),
+    ]);
+    const pmLookup = new Map<string, any>();
+    pmList.forEach((pm) => pmLookup.set(pm.consPartyCode.toUpperCase(), pm));
+    const pLookup = new Map<string, any>();
+    pList.forEach((p) => pLookup.set(p.code.toUpperCase(), p));
+
     let processedSnapshots: any[] = [];
 
-    if (!filter.partCategoryCode || filter.partCategoryCode === 'ALL') {
+    if (isAllBranchesFilter || isAllCatsFilter) {
       const consolidatedMap = new Map<string, any>();
       for (const r of snapshots) {
-        const key = `${r.branchCode}_${r.partyCode}`;
+        const pCode = (r.partyCode || '-').toUpperCase();
+        const pmRecord = pmLookup.get(pCode);
+        const pMaster = pLookup.get(pCode);
+
+        const primaryBranch = pmRecord?.baseLoc || pMaster?.primaryBranchCode || r.branchCode || 'VBZ';
+        const primaryPartyType = pmRecord?.partyType || r.partyType || pMaster?.type || 'TRADER/RETAILER';
+        const primaryPartyName = pmRecord?.consPartyName || pMaster?.name || r.partyName || r.partyCode;
+
+        const key = isAllBranchesFilter
+          ? (isAllCatsFilter ? pCode : `${pCode}_${r.partCategoryCode}`)
+          : (isAllCatsFilter ? `${r.branchCode}_${pCode}` : `${r.branchCode}_${pCode}_${r.partCategoryCode}`);
+
         if (!consolidatedMap.has(key)) {
           consolidatedMap.set(key, {
             id: key,
-            branchCode: r.branchCode,
-            branchName: r.branchName,
+            branchCode: isAllBranchesFilter ? primaryBranch : r.branchCode,
+            branchName: isAllBranchesFilter ? r.branchName : r.branchName,
             partyCode: r.partyCode,
-            partyName: r.partyName,
-            partyType: r.partyType,
+            partyName: primaryPartyName,
+            partyType: primaryPartyType,
             salesExecutive: r.salesExecutive,
-            partCategoryCode: 'ALL',
+            partCategoryCode: isAllCatsFilter ? 'ALL' : r.partCategoryCode,
             lySameMonthSales: 0,
             lastMonthSales: 0,
             lastQuarterAvg: 0,
