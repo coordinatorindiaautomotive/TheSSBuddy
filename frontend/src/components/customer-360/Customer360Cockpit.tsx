@@ -62,6 +62,8 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
   const [fiscalYear, setFiscalYear] = useState<number>(initialFiscalYear);
   const [month, setMonth] = useState<string>(initialMonth);
   const [targetGrowthPercent, setTargetGrowthPercent] = useState<number>(15);
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [categoryViewMode, setCategoryViewMode] = useState<'cards' | 'table'>('cards');
   const [partySearch, setPartySearch] = useState<string>('');
   const [searchOpen, setSearchOpen] = useState<boolean>(false);
   const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
@@ -150,14 +152,39 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
   const riskAndSignals = party360?.riskAndSignals || { attentionRequired: [], positiveSignals: [] };
   const timeline = party360?.timeline || [];
 
+  // Active Category Metrics for Dynamic Period & KPI Cards
+  const activeCategoryMetrics = useMemo(() => {
+    if (selectedCategory === 'ALL' || !party360?.categoryMultiPeriod?.[selectedCategory]) {
+      return {
+        name: 'All Categories Combined',
+        code: 'ALL',
+        mtd: periodComparison.mtd || {},
+        mqtd: periodComparison.mqtd || {},
+        qtd: periodComparison.qtd || {},
+        htd: periodComparison.htd || {},
+        ytd: periodComparison.ytd || {},
+      };
+    }
+    const catObj = party360.categoryMultiPeriod[selectedCategory] || {};
+    return {
+      name: `Category ${selectedCategory}`,
+      code: selectedCategory,
+      mtd: catObj.mtd || {},
+      mqtd: catObj.mqtd || {},
+      qtd: catObj.qtd || {},
+      htd: catObj.htd || {},
+      ytd: catObj.ytd || {},
+    };
+  }, [selectedCategory, party360, periodComparison]);
+
   // Normalized Metric Calculations
-  const curYtd = periodComparison.ytd?.current ?? periodComparison.ytd?.curSales ?? matrix.curYtdSales ?? 0;
-  const lyYtd = periodComparison.ytd?.lySamePeriod ?? periodComparison.ytd?.lySales ?? matrix.lyYtdSales ?? 0;
-  const curQtd = periodComparison.qtd?.current ?? periodComparison.qtd?.curSales ?? 0;
-  const curMqtd = periodComparison.mqtd?.current ?? periodComparison.mqtd?.curSales ?? 0;
-  const curHtd = periodComparison.htd?.current ?? periodComparison.htd?.curSales ?? 0;
-  const curMtd = periodComparison.mtd?.current ?? periodComparison.mtd?.curSales ?? 0;
-  const ytdGrowth = periodComparison.ytd?.growthPercent ?? 0;
+  const curYtd = activeCategoryMetrics.ytd?.current ?? periodComparison.ytd?.current ?? 0;
+  const lyYtd = activeCategoryMetrics.ytd?.lySamePeriod ?? periodComparison.ytd?.lySamePeriod ?? 0;
+  const curQtd = activeCategoryMetrics.qtd?.current ?? periodComparison.qtd?.current ?? 0;
+  const curMqtd = activeCategoryMetrics.mqtd?.current ?? periodComparison.mqtd?.current ?? 0;
+  const curHtd = activeCategoryMetrics.htd?.current ?? periodComparison.htd?.current ?? 0;
+  const curMtd = activeCategoryMetrics.mtd?.current ?? periodComparison.mtd?.current ?? 0;
+  const ytdGrowth = activeCategoryMetrics.ytd?.growthPercent ?? periodComparison.ytd?.growthPercent ?? 0;
 
   // 4-Year Trend normalized items
   const trendYears: any[] = (fourYearTrend.years && Array.isArray(fourYearTrend.years) && fourYearTrend.years.length > 0)
@@ -629,116 +656,312 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           </div>
         </section>
 
+        {/* ─── CATEGORY SELECTOR & FILTER TOOLBAR ─── */}
+        <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-wrap items-center justify-between gap-3 print:hidden">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 mr-1">
+              <Layers className="w-3.5 h-3.5 text-blue-600" />
+              Category Focus:
+            </span>
+            <button
+              onClick={() => setSelectedCategory('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                selectedCategory === 'ALL'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+              }`}
+            >
+              All Categories Combined
+            </button>
+            {categories.map((c: any) => (
+              <button
+                key={c.cat}
+                onClick={() => setSelectedCategory(c.cat)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  selectedCategory === c.cat
+                    ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-400/30'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                }`}
+              >
+                <span className={`w-4 h-4 rounded text-[10px] font-mono flex items-center justify-center font-black ${
+                  selectedCategory === c.cat ? 'bg-white text-blue-700' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {c.cat}
+                </span>
+                <span>Category {c.cat}</span>
+                <span className="text-[10px] opacity-75 font-normal">({c.sharePercent}%)</span>
+              </button>
+            ))}
+          </div>
+          {selectedCategory !== 'ALL' && (
+            <button
+              onClick={() => setSelectedCategory('ALL')}
+              className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
+            >
+              <X className="w-3.5 h-3.5" />
+              Reset to All
+            </button>
+          )}
+        </div>
+
         {/* ─── SECTION 2: PRIMARY 7 KPI METRIC TILES ─── */}
-        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+          
           {/* Tile 1: YTD Sales */}
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs print-card">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">YTD Sales</div>
-            <div className="text-base font-extrabold text-slate-900 mt-1">
-              {formatLakhs(curYtd)}
+          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col justify-between print-card hover:border-blue-300 transition-colors">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  YTD Sales {selectedCategory !== 'ALL' ? `(Cat ${selectedCategory})` : '(Apr-Sep)'}
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-100 font-mono">
+                  FY{fiscalYear}
+                </span>
+              </div>
+              <div className="text-xl font-black text-slate-900 mt-1">
+                {formatLakhs(curYtd)}
+              </div>
+              <div className="text-xs font-mono font-semibold text-slate-500 mt-0.5">
+                {formatCurrency(curYtd)}
+              </div>
             </div>
-            <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
-              {formatCurrency(curYtd)}
+
+            {/* In Same Card: LY YTD & Growth */}
+            <div className="mt-2.5 pt-2 border-t border-slate-100 bg-slate-50/70 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-500 font-medium">LY Same Period:</span>
+                <span className="font-mono font-bold text-slate-700">{formatLakhs(lyYtd)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] mt-1">
+                <span className="text-slate-500 font-medium">YoY Growth:</span>
+                <span className={`font-bold inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                  ytdGrowth >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                }`}>
+                  {ytdGrowth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {formatGrowth(ytdGrowth)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+                <span>Qty Units:</span>
+                <span className="font-mono font-semibold text-slate-700">
+                  {(activeCategoryMetrics.ytd.curQty || 0).toLocaleString('en-IN')} vs {(activeCategoryMetrics.ytd.lyQty || 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5">
+                <span>Invoices:</span>
+                <span className="font-mono">{activeCategoryMetrics.ytd.curInvoices || 0} vs {activeCategoryMetrics.ytd.lyInvoices || 0}</span>
+              </div>
             </div>
           </div>
 
           {/* Tile 2: QTD Sales */}
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs print-card">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">QTD Sales</div>
-            <div className="text-base font-extrabold text-slate-900 mt-1">
-              {formatLakhs(curQtd)}
+          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col justify-between print-card hover:border-blue-300 transition-colors">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  QTD Sales {selectedCategory !== 'ALL' ? `(Cat ${selectedCategory})` : '(Jul-Sep)'}
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono">
+                  Q2
+                </span>
+              </div>
+              <div className="text-xl font-black text-slate-900 mt-1">
+                {formatLakhs(curQtd)}
+              </div>
+              <div className="text-xs font-mono font-semibold text-slate-500 mt-0.5">
+                {formatCurrency(curQtd)}
+              </div>
             </div>
-            <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
-              {formatCurrency(curQtd)}
+
+            {/* In Same Card: LY QTD & Growth */}
+            <div className="mt-2.5 pt-2 border-t border-slate-100 bg-slate-50/70 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-500 font-medium">LY Same Period:</span>
+                <span className="font-mono font-bold text-slate-700">{formatLakhs(activeCategoryMetrics.qtd.lySamePeriod)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] mt-1">
+                <span className="text-slate-500 font-medium">YoY Growth:</span>
+                <span className={`font-bold inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                  (activeCategoryMetrics.qtd.growthPercent || 0) >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                }`}>
+                  {(activeCategoryMetrics.qtd.growthPercent || 0) >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {formatGrowth(activeCategoryMetrics.qtd.growthPercent)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+                <span>Qty Units:</span>
+                <span className="font-mono font-semibold text-slate-700">
+                  {(activeCategoryMetrics.qtd.curQty || 0).toLocaleString('en-IN')} vs {(activeCategoryMetrics.qtd.lyQty || 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5">
+                <span>Invoices:</span>
+                <span className="font-mono">{activeCategoryMetrics.qtd.curInvoices || 0} vs {activeCategoryMetrics.qtd.lyInvoices || 0}</span>
+              </div>
             </div>
           </div>
 
-          {/* Tile 3: MQTD Sales */}
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs print-card">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">MQTD Sales</div>
-            <div className="text-base font-extrabold text-slate-900 mt-1">
-              {formatLakhs(curMqtd)}
+          {/* Tile 3: MTD Sales */}
+          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col justify-between print-card hover:border-blue-300 transition-colors">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  MTD Sales {selectedCategory !== 'ALL' ? `(Cat ${selectedCategory})` : `(${month})`}
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-100 font-mono">
+                  {month}
+                </span>
+              </div>
+              <div className="text-xl font-black text-slate-900 mt-1">
+                {formatLakhs(curMtd)}
+              </div>
+              <div className="text-xs font-mono font-semibold text-slate-500 mt-0.5">
+                {formatCurrency(curMtd)}
+              </div>
             </div>
-            <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
-              {formatCurrency(curMqtd)}
+
+            {/* In Same Card: LY MTD & Growth */}
+            <div className="mt-2.5 pt-2 border-t border-slate-100 bg-slate-50/70 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-500 font-medium">LY Same Period:</span>
+                <span className="font-mono font-bold text-slate-700">{formatLakhs(activeCategoryMetrics.mtd.lySamePeriod)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] mt-1">
+                <span className="text-slate-500 font-medium">YoY Growth:</span>
+                <span className={`font-bold inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                  (activeCategoryMetrics.mtd.growthPercent || 0) >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                }`}>
+                  {(activeCategoryMetrics.mtd.growthPercent || 0) >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {formatGrowth(activeCategoryMetrics.mtd.growthPercent)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+                <span>Qty Units:</span>
+                <span className="font-mono font-semibold text-slate-700">
+                  {(activeCategoryMetrics.mtd.curQty || 0).toLocaleString('en-IN')} vs {(activeCategoryMetrics.mtd.lyQty || 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5">
+                <span>Invoices:</span>
+                <span className="font-mono">{activeCategoryMetrics.mtd.curInvoices || 0} vs {activeCategoryMetrics.mtd.lyInvoices || 0}</span>
+              </div>
             </div>
           </div>
 
-          {/* Tile 4: HTD Sales */}
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs print-card">
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">HTD Sales</div>
-            <div className="text-base font-extrabold text-slate-900 mt-1">
-              {formatLakhs(curHtd)}
+          {/* Tile 4: MQTD Sales */}
+          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col justify-between print-card">
+            <div>
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">MQTD Sales</div>
+              <div className="text-lg font-black text-slate-900 mt-1">
+                {formatLakhs(curMqtd)}
+              </div>
+              <div className="text-xs font-mono text-slate-500 mt-0.5">
+                {formatCurrency(curMqtd)}
+              </div>
             </div>
-            <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
-              {formatCurrency(curHtd)}
+            <div className="mt-2.5 pt-2 border-t border-slate-100 bg-slate-50/70 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-500 font-medium">LY MQTD:</span>
+                <span className="font-mono font-bold text-slate-700">{formatLakhs(activeCategoryMetrics.mqtd.lySamePeriod)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] mt-1">
+                <span className="text-slate-500 font-medium">YoY %:</span>
+                <span className={`font-bold font-mono text-[10px] ${(activeCategoryMetrics.mqtd.growthPercent || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {formatGrowth(activeCategoryMetrics.mqtd.growthPercent)}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Tile 5: YTD Growth % */}
-          <div className={`rounded-xl border p-3 shadow-xs print-card ${
-            ytdGrowth >= 0
-              ? 'bg-emerald-50/70 border-emerald-200'
-              : 'bg-rose-50/70 border-rose-200'
-          }`}>
-            <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">YTD Growth YoY</div>
-            <div className={`text-base font-extrabold mt-1 flex items-center gap-1 ${
-              ytdGrowth >= 0 ? 'text-emerald-700' : 'text-rose-700'
-            }`}>
-              {ytdGrowth >= 0 ? (
-                <TrendingUp className="w-4 h-4" />
-              ) : (
-                <TrendingDown className="w-4 h-4" />
-              )}
-              {formatGrowth(ytdGrowth)}
+          {/* Tile 5: HTD Sales */}
+          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col justify-between print-card">
+            <div>
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">HTD Sales (H1)</div>
+              <div className="text-lg font-black text-slate-900 mt-1">
+                {formatLakhs(curHtd)}
+              </div>
+              <div className="text-xs font-mono text-slate-500 mt-0.5">
+                {formatCurrency(curHtd)}
+              </div>
             </div>
-            <div className="text-[11px] text-slate-500 mt-0.5">
-              vs LY Same Period
+            <div className="mt-2.5 pt-2 border-t border-slate-100 bg-slate-50/70 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-500 font-medium">LY HTD:</span>
+                <span className="font-mono font-bold text-slate-700">{formatLakhs(activeCategoryMetrics.htd.lySamePeriod)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] mt-1">
+                <span className="text-slate-500 font-medium">YoY %:</span>
+                <span className={`font-bold font-mono text-[10px] ${(activeCategoryMetrics.htd.growthPercent || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {formatGrowth(activeCategoryMetrics.htd.growthPercent)}
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Tile 6: Target Achievement % */}
-          <div className="bg-blue-50/70 rounded-xl border border-blue-200 p-3 shadow-xs print-card">
-            <div className="text-[11px] font-bold text-blue-900 uppercase tracking-wide">Target Achieved</div>
-            <div className="text-base font-black text-blue-700 mt-1">
-              {dynamicCalculations.dynamicAchievementPercent.toFixed(1)}%
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-xl border border-blue-200 p-3 shadow-xs flex flex-col justify-between print-card">
+            <div>
+              <div className="text-[10px] font-bold text-blue-900 uppercase tracking-wider">Target Achieved</div>
+              <div className="text-2xl font-black text-blue-700 mt-1 font-mono">
+                {dynamicCalculations.dynamicAchievementPercent.toFixed(1)}%
+              </div>
             </div>
-            <div className="text-[11px] text-blue-600 mt-0.5">
-              Target: {formatLakhs(dynamicCalculations.dynamicTarget)}
+            <div className="mt-2.5 pt-2 border-t border-blue-200/60 bg-blue-100/40 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-blue-800 font-medium">Target:</span>
+                <span className="font-mono font-bold text-blue-950">{formatLakhs(dynamicCalculations.dynamicTarget)}</span>
+              </div>
+              <div className="text-[10px] font-mono text-blue-700 text-right mt-0.5">
+                {formatCurrency(dynamicCalculations.dynamicTarget)}
+              </div>
             </div>
           </div>
 
-          {/* Tile 7: Target Gap */}
-          <div className={`rounded-xl border p-3 shadow-xs print-card ${
+          {/* Tile 7: Target Gap / Surplus */}
+          <div className={`rounded-xl border p-3 shadow-xs flex flex-col justify-between print-card ${
             dynamicCalculations.dynamicGap > 0
-              ? 'bg-amber-50/70 border-amber-200'
-              : 'bg-emerald-50/70 border-emerald-200'
+              ? 'bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-200'
+              : 'bg-gradient-to-br from-emerald-50 to-teal-50/50 border-emerald-200'
           }`}>
-            <div className="text-[11px] font-semibold text-slate-700 uppercase tracking-wide">
-              {dynamicCalculations.dynamicGap > 0 ? 'Target Gap' : 'Target Surplus'}
+            <div>
+              <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+                {dynamicCalculations.dynamicGap > 0 ? 'Target Gap' : 'Target Surplus'}
+              </div>
+              <div className={`text-2xl font-black mt-1 font-mono ${
+                dynamicCalculations.dynamicGap > 0 ? 'text-amber-700' : 'text-emerald-700'
+              }`}>
+                {formatLakhs(Math.abs(dynamicCalculations.dynamicGap))}
+              </div>
+              <div className="text-xs font-mono text-slate-500 mt-0.5">
+                {formatCurrency(Math.abs(dynamicCalculations.dynamicGap))}
+              </div>
             </div>
-            <div className={`text-base font-extrabold mt-1 ${
-              dynamicCalculations.dynamicGap > 0 ? 'text-amber-700' : 'text-emerald-700'
-            }`}>
-              {formatLakhs(Math.abs(dynamicCalculations.dynamicGap))}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-0.5">
-              @{targetGrowthPercent}% growth aim
+            <div className="mt-2.5 pt-2 border-t border-slate-200/60 bg-white/60 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+              <div className="flex items-center justify-between text-[10px] text-slate-600">
+                <span>Aim:</span>
+                <span className="font-bold">+{targetGrowthPercent}% growth</span>
+              </div>
             </div>
           </div>
+
         </section>
 
         {/* ─── SECTION 3: PERFORMANCE VS LAST YEAR TABLE (SAME PERIOD COMPARISON) ─── */}
         <section className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden print-card print-break-inside-avoid">
-          <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
+          <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <BarChart2 className="w-4 h-4 text-blue-600" />
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                 Period Performance vs Last Year (Exact Same-Period Comparison)
               </h3>
+              {selectedCategory !== 'ALL' && (
+                <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold">
+                  Showing Category {selectedCategory}
+                </span>
+              )}
             </div>
             <span className="text-[11px] font-medium text-slate-500">
-              *Prevents partial vs full period comparison distortions
+              *Full same-period comparison (Sales ₹, Qty units, Invoices)
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -746,13 +969,15 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/50 text-[11px] font-bold text-slate-600 uppercase">
                   <th className="py-2.5 px-4">Period</th>
-                  <th className="py-2.5 px-3 text-right">FY{fiscalYear} (Current)</th>
-                  <th className="py-2.5 px-3 text-right">FY{fiscalYear - 1} (LY Same Period)</th>
-                  <th className="py-2.5 px-3 text-right">YoY Growth %</th>
+                  <th className="py-2.5 px-3 text-right">FY{fiscalYear} (Current ₹)</th>
+                  <th className="py-2.5 px-3 text-right">FY{fiscalYear - 1} (LY Same Period ₹)</th>
+                  <th className="py-2.5 px-3 text-right">YoY Sales %</th>
                   <th className="py-2.5 px-3 text-right">Net Variance (₹)</th>
+                  <th className="py-2.5 px-3 text-right">Current Qty</th>
+                  <th className="py-2.5 px-3 text-right">LY Qty</th>
+                  <th className="py-2.5 px-3 text-right">Qty %</th>
                   <th className="py-2.5 px-3 text-right">Target (@+{targetGrowthPercent}%)</th>
                   <th className="py-2.5 px-3 text-right">Target Ach %</th>
-                  <th className="py-2.5 px-4 text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-800">
@@ -763,11 +988,14 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                   { label: 'HTD (Apr-Sep)', key: 'htd' },
                   { label: 'YTD (Apr-Sep)', key: 'ytd', isPrimary: true },
                 ].map((row) => {
-                  const pData = periodComparison[row.key] || {};
+                  const pData = (activeCategoryMetrics as any)[row.key] || {};
                   const cur = pData.current ?? pData.curSales ?? 0;
                   const ly = pData.lySamePeriod ?? pData.lySales ?? 0;
                   const growth = pData.growthPercent ?? 0;
                   const diff = pData.diffAmount ?? (cur - ly);
+                  const curQ = pData.curQty ?? 0;
+                  const lyQ = pData.lyQty ?? 0;
+                  const qGrowth = pData.qtyGrowthPercent ?? (lyQ > 0 ? (curQ - lyQ) / lyQ : 0);
                   const tgt = Math.round(ly * (1 + targetGrowthPercent / 100));
                   const ach = tgt > 0 ? (cur / tgt) * 100 : (cur > 0 ? 100 : 0);
                   const isPositive = growth >= 0;
@@ -782,16 +1010,27 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                         {row.label}
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono text-slate-900">
-                        {formatCurrency(cur)}
+                        <div>{formatCurrency(cur)}</div>
+                        <div className="text-[10px] text-slate-400 font-normal">{formatLakhs(cur)}</div>
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono text-slate-500">
-                        {formatCurrency(ly)}
+                        <div>{formatCurrency(ly)}</div>
+                        <div className="text-[10px] text-slate-400 font-normal">{formatLakhs(ly)}</div>
                       </td>
                       <td className={`py-2.5 px-3 text-right font-mono font-bold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {formatGrowth(growth)}
                       </td>
                       <td className={`py-2.5 px-3 text-right font-mono ${diff >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                         {diff >= 0 ? '+' : ''}{formatCurrency(diff)}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-slate-900">
+                        {curQ.toLocaleString('en-IN')}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-slate-500">
+                        {lyQ.toLocaleString('en-IN')}
+                      </td>
+                      <td className={`py-2.5 px-3 text-right font-mono font-bold ${qGrowth >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {formatGrowth(qGrowth)}
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono text-slate-700">
                         {formatCurrency(tgt)}
@@ -804,13 +1043,6 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                         }`}>
                           {ach.toFixed(1)}%
                         </span>
-                      </td>
-                      <td className="py-2.5 px-4 text-center">
-                        <span className={`inline-block w-2.5 h-2.5 rounded-full ${
-                          ach >= 100 ? 'bg-emerald-500' :
-                          ach >= 75 ? 'bg-blue-500' :
-                          'bg-rose-500'
-                        }`} />
                       </td>
                     </tr>
                   );
@@ -938,40 +1170,190 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           </div>
         </section>
 
-        {/* ─── SECTION 5: CATEGORY PERFORMANCE & TOP 5 PARTS YTD ─── */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 print-break-inside-avoid">
+        {/* ─── SECTION 5: CATEGORY-WISE INTELLIGENCE & SAME-PERIOD PERFORMANCE ─── */}
+        <section className="space-y-4 print-break-inside-avoid">
           
-          {/* Category Performance Breakdown */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden print-card">
-            <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-blue-600" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                  Category Breakdown & Share
+          {/* Header Bar with Toggle */}
+          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-blue-600" />
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                  Category-Wise Performance & Same-Period Comparative Matrix
                 </h3>
+                <p className="text-xs text-slate-500">
+                  Detailed MTD, QTD, and YTD analysis vs Last Year Same Period with Sales (₹ / Lakhs), Qty units, and growth %
+                </p>
               </div>
-              <span className="text-[11px] font-medium text-slate-500">{categories.length} Categories</span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/50 text-[11px] font-bold text-slate-600 uppercase">
-                    <th className="py-2 px-3">Cat</th>
-                    <th className="py-2 px-3 text-right">Cur YTD</th>
-                    <th className="py-2 px-3 text-right">LY Same Period</th>
-                    <th className="py-2 px-3 text-right">YoY %</th>
-                    <th className="py-2 px-3">Share %</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-800">
-                  {categories.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-4 text-center text-slate-400 text-xs">No category records found</td>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-lg self-start sm:self-auto">
+              <button
+                onClick={() => setCategoryViewMode('cards')}
+                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                  categoryViewMode === 'cards' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Comparative Cards
+              </button>
+              <button
+                onClick={() => setCategoryViewMode('table')}
+                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                  categoryViewMode === 'table' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Detailed Matrix Table
+              </button>
+            </div>
+          </div>
+
+          {/* Mode 1: Comparative Category Cards Grid */}
+          {categoryViewMode === 'cards' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {categories.map((c: any) => {
+                const cMtd = c.mtd || {};
+                const cQtd = c.qtd || {};
+                const cYtd = c.ytd || {};
+                const isSelected = selectedCategory === c.cat;
+
+                return (
+                  <div
+                    key={c.cat}
+                    onClick={() => setSelectedCategory(isSelected ? 'ALL' : c.cat)}
+                    className={`bg-white rounded-xl border p-4 shadow-xs cursor-pointer transition-all hover:shadow-md ${
+                      isSelected ? 'border-blue-500 ring-2 ring-blue-400/20 bg-blue-50/10' : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    {/* Card Header */}
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs font-bold font-mono shadow-xs">
+                          {c.cat}
+                        </span>
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900">
+                            Category {c.cat}
+                          </h4>
+                          <div className="text-[11px] text-slate-500 flex items-center gap-2">
+                            <span>Unique Parts: <strong className="text-slate-700">{c.uniquePartlines || 0}</strong></span>
+                            <span>•</span>
+                            <span>Invoices: <strong className="text-slate-700">{c.totalInvoices || 0}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Share</span>
+                        <div className="text-sm font-extrabold text-blue-700 font-mono">
+                          {c.sharePercent}%
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3-Column Comparative Grid: MTD | QTD | YTD */}
+                    <div className="grid grid-cols-3 gap-2 mt-3 pt-1">
+                      
+                      {/* Pillar 1: MTD */}
+                      <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase">
+                          <span>MTD ({month})</span>
+                          <span className={`font-mono text-[9px] px-1 py-0.2 rounded ${
+                            (cMtd.growthPercent || 0) >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {formatGrowth(cMtd.growthPercent)}
+                          </span>
+                        </div>
+                        <div className="text-xs font-extrabold text-slate-900 mt-1 font-mono">
+                          {formatLakhs(cMtd.current)}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-mono">
+                          {formatCurrency(cMtd.current)}
+                        </div>
+                        <div className="mt-2 pt-1 border-t border-slate-200/60 text-[10px] text-slate-500">
+                          <div>LY: <strong className="font-mono text-slate-700">{formatLakhs(cMtd.lySamePeriod)}</strong></div>
+                          <div className="mt-0.5 text-[9px]">Qty: {(cMtd.curQty || 0).toLocaleString('en-IN')} vs {(cMtd.lyQty || 0).toLocaleString('en-IN')}</div>
+                        </div>
+                      </div>
+
+                      {/* Pillar 2: QTD */}
+                      <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase">
+                          <span>QTD (Q2)</span>
+                          <span className={`font-mono text-[9px] px-1 py-0.2 rounded ${
+                            (cQtd.growthPercent || 0) >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {formatGrowth(cQtd.growthPercent)}
+                          </span>
+                        </div>
+                        <div className="text-xs font-extrabold text-slate-900 mt-1 font-mono">
+                          {formatLakhs(cQtd.current)}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-mono">
+                          {formatCurrency(cQtd.current)}
+                        </div>
+                        <div className="mt-2 pt-1 border-t border-slate-200/60 text-[10px] text-slate-500">
+                          <div>LY: <strong className="font-mono text-slate-700">{formatLakhs(cQtd.lySamePeriod)}</strong></div>
+                          <div className="mt-0.5 text-[9px]">Qty: {(cQtd.curQty || 0).toLocaleString('en-IN')} vs {(cQtd.lyQty || 0).toLocaleString('en-IN')}</div>
+                        </div>
+                      </div>
+
+                      {/* Pillar 3: YTD */}
+                      <div className="bg-blue-50/50 p-2.5 rounded-lg border border-blue-100">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-blue-900 uppercase">
+                          <span>YTD (H1)</span>
+                          <span className={`font-mono text-[9px] px-1 py-0.2 rounded ${
+                            (cYtd.growthPercent || 0) >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {formatGrowth(cYtd.growthPercent)}
+                          </span>
+                        </div>
+                        <div className="text-xs font-extrabold text-slate-900 mt-1 font-mono">
+                          {formatLakhs(cYtd.current)}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-mono">
+                          {formatCurrency(cYtd.current)}
+                        </div>
+                        <div className="mt-2 pt-1 border-t border-blue-200/60 text-[10px] text-slate-600">
+                          <div>LY: <strong className="font-mono text-slate-800">{formatLakhs(cYtd.lySamePeriod)}</strong></div>
+                          <div className="mt-0.5 text-[9px]">Qty: {(cYtd.curQty || 0).toLocaleString('en-IN')} vs {(cYtd.lyQty || 0).toLocaleString('en-IN')}</div>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Mode 2: Detailed Matrix Table */}
+          {categoryViewMode === 'table' && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50/50 text-[11px] font-bold text-slate-600 uppercase">
+                      <th className="py-2.5 px-3">Category</th>
+                      <th className="py-2.5 px-3 text-right">MTD Cur (₹)</th>
+                      <th className="py-2.5 px-3 text-right">MTD LY (₹)</th>
+                      <th className="py-2.5 px-3 text-right">MTD %</th>
+                      <th className="py-2.5 px-3 text-right">MTD Qty</th>
+                      <th className="py-2.5 px-3 text-right">QTD Cur (₹)</th>
+                      <th className="py-2.5 px-3 text-right">QTD LY (₹)</th>
+                      <th className="py-2.5 px-3 text-right">QTD %</th>
+                      <th className="py-2.5 px-3 text-right">YTD Cur (₹)</th>
+                      <th className="py-2.5 px-3 text-right">YTD LY (₹)</th>
+                      <th className="py-2.5 px-3 text-right">YTD %</th>
+                      <th className="py-2.5 px-3 text-right">YTD Qty</th>
+                      <th className="py-2.5 px-3 text-right">Share %</th>
                     </tr>
-                  ) : (
-                    categories.map((c: any) => {
-                      const share = c.sharePercent || 0;
-                      const growth = c.growthPercent || 0;
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-800">
+                    {categories.map((c: any) => {
+                      const cM = c.mtd || {};
+                      const cQ = c.qtd || {};
+                      const cY = c.ytd || {};
                       return (
                         <tr key={c.cat} className="hover:bg-slate-50/80 transition-colors">
                           <td className="py-2 px-3 font-bold text-slate-900 flex items-center gap-1.5">
@@ -980,36 +1362,26 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                             </span>
                             <span>Category {c.cat}</span>
                           </td>
-                          <td className="py-2 px-3 text-right font-mono text-slate-900">
-                            {formatCurrency(c.ytdSales || c.curYtdSales || c.curMonthSales)}
-                          </td>
-                          <td className="py-2 px-3 text-right font-mono text-slate-500">
-                            {formatCurrency(c.lyYtdSales || c.lyMonthSales)}
-                          </td>
-                          <td className={`py-2 px-3 text-right font-mono font-bold ${growth >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {formatGrowth(growth)}
-                          </td>
-                          <td className="py-2 px-3">
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                <div
-                                  className="bg-blue-600 h-1.5 rounded-full"
-                                  style={{ width: `${Math.min(100, share)}%` }}
-                                />
-                              </div>
-                              <span className="text-[11px] font-mono font-bold text-slate-600 w-8 text-right">
-                                {share}%
-                              </span>
-                            </div>
-                          </td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(cM.current)}</td>
+                          <td className="py-2 px-3 text-right font-mono text-slate-500">{formatCurrency(cM.lySamePeriod)}</td>
+                          <td className={`py-2 px-3 text-right font-mono font-bold ${(cM.growthPercent || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{formatGrowth(cM.growthPercent)}</td>
+                          <td className="py-2 px-3 text-right font-mono text-slate-700">{(cM.curQty || 0).toLocaleString('en-IN')}</td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(cQ.current)}</td>
+                          <td className="py-2 px-3 text-right font-mono text-slate-500">{formatCurrency(cQ.lySamePeriod)}</td>
+                          <td className={`py-2 px-3 text-right font-mono font-bold ${(cQ.growthPercent || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{formatGrowth(cQ.growthPercent)}</td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatCurrency(cY.current)}</td>
+                          <td className="py-2 px-3 text-right font-mono text-slate-500">{formatCurrency(cY.lySamePeriod)}</td>
+                          <td className={`py-2 px-3 text-right font-mono font-bold ${(cY.growthPercent || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{formatGrowth(cY.growthPercent)}</td>
+                          <td className="py-2 px-3 text-right font-mono text-slate-700">{(cY.curQty || 0).toLocaleString('en-IN')}</td>
+                          <td className="py-2 px-3 text-right font-mono font-bold text-blue-700">{c.sharePercent}%</td>
                         </tr>
                       );
-                    })
-                  )}
-                </tbody>
-              </table>
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Top 5 Parts YTD */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden print-card">
@@ -1017,10 +1389,10 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4 text-emerald-600" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                  Top 5 Partline Revenue Contributors
+                  Top 5 Partline Revenue Contributors (YTD)
                 </h3>
               </div>
-              <span className="text-[11px] font-medium text-slate-500">YTD Volume</span>
+              <span className="text-[11px] font-medium text-slate-500">Sorted by Sales Volume</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">

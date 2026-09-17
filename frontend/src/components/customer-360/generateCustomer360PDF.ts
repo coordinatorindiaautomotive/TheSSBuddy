@@ -165,7 +165,7 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
   const dynamicGap = dynamicTarget - curYtd;
   const dynamicAch = dynamicTarget > 0 ? (curYtd / dynamicTarget) * 100 : (curYtd > 0 ? 100 : 0);
 
-  // ─── 3. PRIMARY 7 KEY KPI TILES TABLE ───
+  // ─── 3. PRIMARY 7 KEY KPI TILES TABLE (WITH SAME-CARD LY COMPARISONS) ───
   autoTable(doc, {
     startY: currentY,
     margin: { left: margin, right: margin },
@@ -173,46 +173,48 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     head: [[
       'YTD SALES',
       'QTD SALES',
+      'MTD SALES',
       'MQTD SALES',
       'HTD SALES',
-      'YOY GROWTH',
       `TARGET ACH (@+${data.targetGrowthPercent}%)`,
       dynamicGap > 0 ? 'TARGET GAP' : 'TARGET SURPLUS',
     ]],
     body: [[
-      `${formatLakhs(curYtd)}\n(${formatCurrency(curYtd)})`,
-      `${formatLakhs(curQtd)}\n(${formatCurrency(curQtd)})`,
-      `${formatLakhs(curMqtd)}\n(${formatCurrency(curMqtd)})`,
-      `${formatLakhs(curHtd)}\n(${formatCurrency(curHtd)})`,
-      `${formatGrowth(ytdGrowth)}\nvs LY Same Period`,
-      `${dynamicAch.toFixed(1)}%\n(Tgt: ${formatLakhs(dynamicTarget)})`,
-      `${formatLakhs(Math.abs(dynamicGap))}\n(${formatCurrency(Math.abs(dynamicGap))})`,
+      `${formatLakhs(curYtd)}\n${formatCurrency(curYtd)}\nLY: ${formatLakhs(lyYtd)} (${formatGrowth(ytdGrowth)})`,
+      `${formatLakhs(curQtd)}\n${formatCurrency(curQtd)}\nLY: ${formatLakhs(period.qtd?.lySamePeriod)} (${formatGrowth(period.qtd?.growthPercent)})`,
+      `${formatLakhs(period.mtd?.current)}\n${formatCurrency(period.mtd?.current)}\nLY: ${formatLakhs(period.mtd?.lySamePeriod)} (${formatGrowth(period.mtd?.growthPercent)})`,
+      `${formatLakhs(curMqtd)}\n${formatCurrency(curMqtd)}\nLY: ${formatLakhs(period.mqtd?.lySamePeriod)} (${formatGrowth(period.mqtd?.growthPercent)})`,
+      `${formatLakhs(curHtd)}\n${formatCurrency(curHtd)}\nLY: ${formatLakhs(period.htd?.lySamePeriod)} (${formatGrowth(period.htd?.growthPercent)})`,
+      `${dynamicAch.toFixed(1)}%\nTgt: ${formatLakhs(dynamicTarget)}\n(${formatCurrency(dynamicTarget)})`,
+      `${formatLakhs(Math.abs(dynamicGap))}\n${formatCurrency(Math.abs(dynamicGap))}\n@+${data.targetGrowthPercent}% aim`,
     ]],
     headStyles: {
       fillColor: NAVY,
       textColor: [255, 255, 255],
-      fontSize: 7.5,
+      fontSize: 7,
       fontStyle: 'bold',
       halign: 'center',
-      cellPadding: 2,
+      cellPadding: 1.8,
     },
     bodyStyles: {
-      fontSize: 8,
+      fontSize: 6.8,
       fontStyle: 'bold',
       halign: 'center',
       textColor: DARK_SLATE,
-      cellPadding: 2.5,
+      cellPadding: 2,
     },
     columnStyles: {
-      4: { textColor: ytdGrowth >= 0 ? GREEN : RED },
+      0: { textColor: DARK_SLATE },
+      1: { textColor: DARK_SLATE },
+      2: { textColor: DARK_SLATE },
       5: { textColor: BLUE },
       6: { textColor: dynamicGap > 0 ? AMBER : GREEN },
     },
   });
 
-  currentY = (doc as any).lastAutoTable.finalY + 4;
+  currentY = (doc as any).lastAutoTable.finalY + 3.5;
 
-  // ─── 4. EXACT PERIOD PERFORMANCE VS LAST YEAR TABLE ───
+  // ─── 4. EXACT PERIOD PERFORMANCE VS LAST YEAR TABLE (WITH QTY & INVOICES) ───
   const periodRows = [
     { label: `MTD (${data.month})`, key: 'mtd' },
     { label: 'MQTD (Aug-Sep)', key: 'mqtd' },
@@ -225,21 +227,26 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     const l = d.lySamePeriod ?? d.lySales ?? 0;
     const g = d.growthPercent ?? 0;
     const diff = d.diffAmount ?? (c - l);
+    const curQ = d.curQty ?? 0;
+    const lyQ = d.lyQty ?? 0;
+    const qGrowth = d.qtyGrowthPercent ?? (lyQ > 0 ? (curQ - lyQ) / lyQ : 0);
     const tgt = Math.round(l * (1 + data.targetGrowthPercent / 100));
     const ach = tgt > 0 ? (c / tgt) * 100 : (c > 0 ? 100 : 0);
     return [
       r.label,
-      formatCurrency(c),
-      formatCurrency(l),
+      `${formatCurrency(c)} (${formatLakhs(c)})`,
+      `${formatCurrency(l)} (${formatLakhs(l)})`,
       formatGrowth(g),
       `${diff >= 0 ? '+' : ''}${formatCurrency(diff)}`,
+      `${curQ.toLocaleString('en-IN')} vs ${lyQ.toLocaleString('en-IN')} (${formatGrowth(qGrowth)})`,
+      `${d.curInvoices || 0} vs ${d.lyInvoices || 0}`,
       formatCurrency(tgt),
       `${ach.toFixed(1)}%`,
     ];
   });
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(...NAVY);
   doc.text('PERIOD PERFORMANCE VS LAST YEAR (EXACT SAME-PERIOD COMPARISON)', margin, currentY);
   currentY += 2;
@@ -250,26 +257,28 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     theme: 'grid',
     head: [[
       'Period',
-      `FY${data.fiscalYear} (Current)`,
-      `FY${data.fiscalYear - 1} (LY Same Period)`,
-      'YoY Growth %',
-      'Net Variance (₹)',
+      `FY${data.fiscalYear} (Current ₹)`,
+      `FY${data.fiscalYear - 1} (LY Same Period ₹)`,
+      'YoY Sales %',
+      'Net Var (₹)',
+      'Qty (Cur vs LY)',
+      'Invoices',
       `Target (@+${data.targetGrowthPercent}%)`,
-      'Target Ach %',
+      'Ach %',
     ]],
     body: periodRows,
     headStyles: {
       fillColor: NAVY,
       textColor: [255, 255, 255],
-      fontSize: 7.5,
+      fontSize: 6.8,
       fontStyle: 'bold',
       halign: 'center',
-      cellPadding: 2,
+      cellPadding: 1.8,
     },
     bodyStyles: {
-      fontSize: 7.5,
+      fontSize: 6.5,
       textColor: DARK_SLATE,
-      cellPadding: 2,
+      cellPadding: 1.8,
     },
     columnStyles: {
       0: { fontStyle: 'bold' },
@@ -277,8 +286,10 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
       2: { halign: 'right', textColor: SLATE },
       3: { halign: 'right', fontStyle: 'bold' },
       4: { halign: 'right' },
-      5: { halign: 'right' },
-      6: { halign: 'right', fontStyle: 'bold' },
+      5: { halign: 'center' },
+      6: { halign: 'center' },
+      7: { halign: 'right' },
+      8: { halign: 'right', fontStyle: 'bold' },
     },
     didParseCell: (hookData) => {
       if (hookData.section === 'body') {
@@ -297,9 +308,9 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     },
   });
 
-  currentY = (doc as any).lastAutoTable.finalY + 4;
+  currentY = (doc as any).lastAutoTable.finalY + 3.5;
 
-  // ─── 5. 4-YEAR TREND & CATEGORY BREAKDOWN (SIDE BY SIDE / COMPACT) ───
+  // ─── 5. 4-YEAR TREND & CATEGORY SAME-PERIOD MATRIX ───
   const trendYears = (data.fourYearTrend?.years && Array.isArray(data.fourYearTrend.years) && data.fourYearTrend.years.length > 0)
     ? data.fourYearTrend.years
     : [
@@ -317,29 +328,36 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     yr.yoyGrowth !== null && yr.yoyGrowth !== undefined ? formatGrowth(yr.yoyGrowth) : 'Base Year',
   ]);
 
-  const catRows = (data.categories || []).map((c: any) => [
-    `Category ${c.cat}`,
-    formatCurrency(c.curMonthSales),
-    formatCurrency(c.ytdSales || c.curYtdSales),
-    formatLakhs(c.lifetimeSales),
-    `${c.sharePercent || 0}%`,
-  ]);
+  const catRows = (data.categories || []).map((c: any) => {
+    const cM = c.mtd || {};
+    const cQ = c.qtd || {};
+    const cY = c.ytd || {};
+    return [
+      `Cat ${c.cat}`,
+      `${formatCurrency(cM.current || c.curMonthSales)}\n(${formatGrowth(cM.growthPercent)})`,
+      `${(cM.curQty || 0).toLocaleString('en-IN')}`,
+      `${formatCurrency(cQ.current)}\n(${formatGrowth(cQ.growthPercent)})`,
+      `${formatCurrency(cY.current || c.ytdSales)}\n(${formatGrowth(cY.growthPercent)})`,
+      `${(cY.curQty || 0).toLocaleString('en-IN')}`,
+      `${c.sharePercent || 0}%`,
+    ];
+  });
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(...NAVY);
-  doc.text(`4-YEAR SALES HISTORY (4Y CAGR: ${cagr}%) & CATEGORY BREAKDOWN`, margin, currentY);
+  doc.text(`4-YEAR SALES HISTORY (4Y CAGR: ${cagr}%) & CATEGORY SAME-PERIOD MATRIX`, margin, currentY);
   currentY += 2;
 
-  // 4-Year Table
+  // 4-Year Table (Left)
   autoTable(doc, {
     startY: currentY,
-    margin: { left: margin, right: pageWidth / 2 + 2 },
+    margin: { left: margin, right: pageWidth / 2 + 1 },
     theme: 'grid',
     head: [['Fiscal Year', 'Sales (Lakhs)', 'Turnover (₹)', 'YoY Growth %']],
     body: trendRows,
-    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', cellPadding: 1.8 },
-    bodyStyles: { fontSize: 7, cellPadding: 1.8 },
+    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 6.5, fontStyle: 'bold', cellPadding: 1.6 },
+    bodyStyles: { fontSize: 6.5, cellPadding: 1.6 },
     columnStyles: {
       0: { fontStyle: 'bold' },
       1: { halign: 'right', fontStyle: 'bold' },
@@ -348,25 +366,27 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     },
   });
 
-  // Category Table
+  // Category Table (Right)
   autoTable(doc, {
     startY: currentY,
-    margin: { left: pageWidth / 2 + 2, right: margin },
+    margin: { left: pageWidth / 2 + 1, right: margin },
     theme: 'grid',
-    head: [['Category', 'Month (₹)', 'YTD Sales (₹)', 'Lifetime (L)', 'Share %']],
-    body: catRows.length > 0 ? catRows : [['No categories', '-', '-', '-', '-']],
-    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', cellPadding: 1.8 },
-    bodyStyles: { fontSize: 7, cellPadding: 1.8 },
+    head: [['Cat', 'MTD (₹ | %)', 'MTD Qty', 'QTD (₹ | %)', 'YTD (₹ | %)', 'YTD Qty', 'Share %']],
+    body: catRows.length > 0 ? catRows : [['No categories', '-', '-', '-', '-', '-', '-']],
+    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 6.5, fontStyle: 'bold', cellPadding: 1.6 },
+    bodyStyles: { fontSize: 6.5, cellPadding: 1.6 },
     columnStyles: {
       0: { fontStyle: 'bold' },
       1: { halign: 'right' },
-      2: { halign: 'right', fontStyle: 'bold' },
-      3: { halign: 'right', textColor: SLATE },
-      4: { halign: 'right', fontStyle: 'bold', textColor: BLUE },
+      2: { halign: 'center' },
+      3: { halign: 'right' },
+      4: { halign: 'right', fontStyle: 'bold' },
+      5: { halign: 'center' },
+      6: { halign: 'right', fontStyle: 'bold', textColor: BLUE },
     },
   });
 
-  currentY = Math.max((doc as any).lastAutoTable.finalY, currentY + 24) + 4;
+  currentY = Math.max((doc as any).lastAutoTable.finalY, currentY + 24) + 3.5;
 
   // ─── 6. 5-PILLAR TARGET GAP DECOMPOSITION TABLE ───
   const gapAmount = Math.max(0, dynamicGap);

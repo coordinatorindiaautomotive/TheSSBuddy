@@ -2137,27 +2137,57 @@ export class ReportsService {
     const rawCatMatrix: any[] = await this.prisma.$queryRawUnsafe(`
       SELECT 
         COALESCE(part_category_code, 'M') as cat,
-        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as mtd_cur,
+        -- MTD
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as mtd_cur_sales,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN net_retail_qty ELSE 0 END)::numeric, 2) as mtd_cur_qty,
+        COUNT(DISTINCT CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN document_num END)::int as mtd_cur_inv,
+        COUNT(DISTINCT CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN part_num END)::int as mtd_cur_lines,
+
         ROUND(SUM(CASE WHEN fiscal_year = ${prevMonthFY} AND month = '${prevMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as lm_sales,
+        ROUND(SUM(CASE WHEN fiscal_year = ${prevMonthFY} AND month = '${prevMonth}' THEN net_retail_qty ELSE 0 END)::numeric, 2) as lm_qty,
+        COUNT(DISTINCT CASE WHEN fiscal_year = ${prevMonthFY} AND month = '${prevMonth}' THEN document_num END)::int as lm_inv,
+
         ROUND(SUM(CASE WHEN fiscal_year = ${lyFY} AND month = '${lyMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as ly_sm_sales,
+        ROUND(SUM(CASE WHEN fiscal_year = ${lyFY} AND month = '${lyMonth}' THEN net_retail_qty ELSE 0 END)::numeric, 2) as ly_sm_qty,
+        COUNT(DISTINCT CASE WHEN fiscal_year = ${lyFY} AND month = '${lyMonth}' THEN document_num END)::int as ly_sm_inv,
+
         ROUND(SUM(CASE WHEN fiscal_year = ${lyPrevMonthFY} AND month = '${lyPrevMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as ly_pm_sales,
         ROUND(SUM(CASE WHEN fiscal_year = ${ly2PrevMonthFY} AND month = '${lyPrevMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as ly2_pm_sales,
         
-        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month IN ('${curQuarterMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_cur,
+        -- QTD
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month IN ('${curQuarterMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_cur_sales,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month IN ('${curQuarterMonths.join("','")}') THEN net_retail_qty ELSE 0 END)::numeric, 2) as qtd_cur_qty,
+        COUNT(DISTINCT CASE WHEN fiscal_year = ${targetFY} AND month IN ('${curQuarterMonths.join("','")}') THEN document_num END)::int as qtd_cur_inv,
+
         ROUND(SUM(CASE WHEN fiscal_year = ${prevQuarterFY} AND month IN ('${prevQuarterMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_prev_qtr_total,
         ROUND(SUM(CASE WHEN fiscal_year = ${prevQuarterFY} AND month IN ('${prevQuarterTillMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_prev_qtr_till,
         ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${curQuarterMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_ly_total,
-        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${curQuarterTillMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_ly_till,
+        
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${curQuarterTillMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_ly_sales,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${curQuarterTillMonths.join("','")}') THEN net_retail_qty ELSE 0 END)::numeric, 2) as qtd_ly_qty,
+        COUNT(DISTINCT CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${curQuarterTillMonths.join("','")}') THEN document_num END)::int as qtd_ly_inv,
 
-        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month IN ('${ytdMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as ytd_cur,
-        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${ytdMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as ytd_ly,
+        -- YTD
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month IN ('${ytdMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as ytd_cur_sales,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month IN ('${ytdMonths.join("','")}') THEN net_retail_qty ELSE 0 END)::numeric, 2) as ytd_cur_qty,
+        COUNT(DISTINCT CASE WHEN fiscal_year = ${targetFY} AND month IN ('${ytdMonths.join("','")}') THEN document_num END)::int as ytd_cur_inv,
+        COUNT(DISTINCT CASE WHEN fiscal_year = ${targetFY} AND month IN ('${ytdMonths.join("','")}') THEN part_num END)::int as ytd_cur_lines,
 
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${ytdMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as ytd_ly_sales,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${ytdMonths.join("','")}') THEN net_retail_qty ELSE 0 END)::numeric, 2) as ytd_ly_qty,
+        COUNT(DISTINCT CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${ytdMonths.join("','")}') THEN document_num END)::int as ytd_ly_inv,
+        COUNT(DISTINCT CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${ytdMonths.join("','")}') THEN part_num END)::int as ytd_ly_lines,
+
+        -- Multi-Year Totals
         ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 3} THEN net_retail_selling ELSE 0 END)::numeric, 2) as fy0_total,
         ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 2} THEN net_retail_selling ELSE 0 END)::numeric, 2) as fy1_total,
         ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} THEN net_retail_selling ELSE 0 END)::numeric, 2) as fy2_total,
         ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} THEN net_retail_selling ELSE 0 END)::numeric, 2) as fy3_total,
 
-        COUNT(DISTINCT CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN part_num END)::int as cur_partlines,
+        -- Lifetime & Breadth
+        ROUND(SUM(net_retail_selling)::numeric, 2) as lifetime_sales,
+        ROUND(SUM(net_retail_qty)::numeric, 2) as lifetime_qty,
+        COUNT(DISTINCT document_num)::int as total_invoices,
         COUNT(DISTINCT part_num)::int as total_partlines
       FROM retail_sales_records
       WHERE (${partyMatchCondition})
@@ -2165,68 +2195,113 @@ export class ReportsService {
     `);
 
     const buildCategoryMatrixObject = (r: any, catName: string) => {
-      const mtdCur = Number(r?.mtd_cur) || 0;
+      const mtdCur = Number(r?.mtd_cur_sales ?? r?.mtd_cur) || 0;
+      const mtdCurQty = Number(r?.mtd_cur_qty) || 0;
+      const mtdCurInv = Number(r?.mtd_cur_inv) || 0;
+      const mtdCurLines = Number(r?.mtd_cur_lines) || 0;
+
       const lmmtd = Number(r?.lm_sales) || 0;
-      const lmTotal = Number(r?.lm_sales) || 0;
+      const lmmtdQty = Number(r?.lm_qty) || 0;
+      const lmmtdInv = Number(r?.lm_inv) || 0;
+
       const lymtd = Number(r?.ly_sm_sales) || 0;
-      const lySameMonthTotal = Number(r?.ly_sm_sales) || 0;
+      const lymtdQty = Number(r?.ly_sm_qty) || 0;
+      const lymtdInv = Number(r?.ly_sm_inv) || 0;
+
       const lyPrevMonth = Number(r?.ly_pm_sales) || 0;
       const ly2PrevMonth = Number(r?.ly2_pm_sales) || 0;
 
-      const qtdCur = Number(r?.qtd_cur) || 0;
+      const qtdCur = Number(r?.qtd_cur_sales ?? r?.qtd_cur) || 0;
+      const qtdCurQty = Number(r?.qtd_cur_qty) || 0;
+      const qtdCurInv = Number(r?.qtd_cur_inv) || 0;
+
       const qtdPrevQtrTill = Number(r?.qtd_prev_qtr_till) || 0;
       const qtdPrevQtrTotal = Number(r?.qtd_prev_qtr_total) || 0;
-      const qtdLyTill = Number(r?.qtd_ly_till) || 0;
+      const qtdLyTill = Number(r?.qtd_ly_sales ?? r?.qtd_ly_till) || 0;
+      const qtdLyQty = Number(r?.qtd_ly_qty) || 0;
+      const qtdLyInv = Number(r?.qtd_ly_inv) || 0;
       const qtdLyTotal = Number(r?.qtd_ly_total) || 0;
 
-      const ytdCur = Number(r?.ytd_cur) || 0;
-      const ytdLy = Number(r?.ytd_ly) || 0;
+      const ytdCur = Number(r?.ytd_cur_sales ?? r?.ytd_cur) || 0;
+      const ytdCurQty = Number(r?.ytd_cur_qty) || 0;
+      const ytdCurInv = Number(r?.ytd_cur_inv) || 0;
+      const ytdCurLines = Number(r?.ytd_cur_lines) || 0;
+
+      const ytdLy = Number(r?.ytd_ly_sales ?? r?.ytd_ly) || 0;
+      const ytdLyQty = Number(r?.ytd_ly_qty) || 0;
+      const ytdLyInv = Number(r?.ytd_ly_inv) || 0;
+      const ytdLyLines = Number(r?.ytd_ly_lines) || 0;
 
       const fy0Total = Number(r?.fy0_total) || 0;
       const fy1Total = Number(r?.fy1_total) || 0;
       const fy2Total = Number(r?.fy2_total) || 0;
       const fy3Total = Number(r?.fy3_total) || 0;
 
+      const mtdVsLymtdGrowth = lymtd > 0 ? (mtdCur - lymtd) / lymtd : 0;
+      const mtdQtyGrowth = lymtdQty > 0 ? (mtdCurQty - lymtdQty) / lymtdQty : 0;
+      const qtdVsLyGrowth = qtdLyTill > 0 ? (qtdCur - qtdLyTill) / qtdLyTill : 0;
+      const qtdQtyGrowth = qtdLyQty > 0 ? (qtdCurQty - qtdLyQty) / qtdLyQty : 0;
+      const ytdGrowth = ytdLy > 0 ? (ytdCur - ytdLy) / ytdLy : 0;
+      const ytdQtyGrowth = ytdLyQty > 0 ? (ytdCurQty - ytdLyQty) / ytdLyQty : 0;
+
       return {
         cat: catName,
-        curPartlines: Number(r?.cur_partlines) || 0,
+        curPartlines: mtdCurLines || Number(r?.cur_partlines) || 0,
         totalPartlines: Number(r?.total_partlines) || 0,
+        totalInvoices: Number(r?.total_invoices) || 0,
+        lifetimeSales: Number(r?.lifetime_sales) || 0,
+        lifetimeQty: Number(r?.lifetime_qty) || 0,
         mtd: {
-          mtdCur,
+          current: mtdCur,
+          lySamePeriod: lymtd,
+          growthPercent: mtdVsLymtdGrowth,
+          diffAmount: mtdCur - lymtd,
+          curQty: mtdCurQty,
+          lyQty: lymtdQty,
+          qtyGrowthPercent: mtdQtyGrowth,
+          curInvoices: mtdCurInv,
+          lyInvoices: lymtdInv,
+          curLines: mtdCurLines,
           lmmtd,
-          lmTotal,
-          lymtd,
-          lySameMonthTotal,
+          lmmtdQty,
+          lmmtdInv,
           lyPrevMonth,
           ly2PrevMonth,
-          mtdVsLmmtdGrowth: lmmtd > 0 ? ((mtdCur - lmmtd) / lmmtd) : 0,
-          mtdVsLymtdGrowth: lymtd > 0 ? ((mtdCur - lymtd) / lymtd) : 0,
-          mtdVsLmTotalGrowth: lmTotal > 0 ? ((mtdCur - lmTotal) / lmTotal) : 0,
-          mtdVsLySameMonthGrowth: lySameMonthTotal > 0 ? ((mtdCur - lySameMonthTotal) / lySameMonthTotal) : 0,
-          lyPrevMonthGrowth: ly2PrevMonth > 0 ? ((lyPrevMonth - ly2PrevMonth) / ly2PrevMonth) : 0,
+          mtdVsLmmtdGrowth: lmmtd > 0 ? (mtdCur - lmmtd) / lmmtd : 0,
         },
         qtd: {
-          qtdCur,
+          current: qtdCur,
+          lySamePeriod: qtdLyTill,
+          growthPercent: qtdVsLyGrowth,
+          diffAmount: qtdCur - qtdLyTill,
+          curQty: qtdCurQty,
+          lyQty: qtdLyQty,
+          qtyGrowthPercent: qtdQtyGrowth,
+          curInvoices: qtdCurInv,
+          lyInvoices: qtdLyInv,
           qtdPrevQtrTill,
           qtdPrevQtrTotal,
-          qtdLyTill,
           qtdLyTotal,
-          qtdCurVsLyTillGrowth: qtdLyTill > 0 ? ((qtdCur - qtdLyTill) / qtdLyTill) : 0,
-          qtdCurVsLyTotalGrowth: qtdLyTotal > 0 ? ((qtdCur - qtdLyTotal) / qtdLyTotal) : 0,
-          qtdCurVsPrevQtrTillGrowth: qtdPrevQtrTill > 0 ? ((qtdCur - qtdPrevQtrTill) / qtdPrevQtrTill) : 0,
-          qtdCurVsPrevQtrTotalGrowth: qtdPrevQtrTotal > 0 ? ((qtdCur - qtdPrevQtrTotal) / qtdPrevQtrTotal) : 0,
         },
         ytd: {
-          ytdCur,
-          ytdLy,
-          ytdGrowth: ytdLy > 0 ? ((ytdCur - ytdLy) / ytdLy) : 0,
+          current: ytdCur,
+          lySamePeriod: ytdLy,
+          growthPercent: ytdGrowth,
+          diffAmount: ytdCur - ytdLy,
+          curQty: ytdCurQty,
+          lyQty: ytdLyQty,
+          qtyGrowthPercent: ytdQtyGrowth,
+          curInvoices: ytdCurInv,
+          lyInvoices: ytdLyInv,
+          curLines: ytdCurLines,
+          lyLines: ytdLyLines,
           fy0Total,
           fy1Total,
           fy2Total,
           fy3Total,
-          fy24Growth: fy0Total > 0 ? ((fy1Total - fy0Total) / fy0Total) : 0,
-          fy25Growth: fy1Total > 0 ? ((fy2Total - fy1Total) / fy1Total) : 0,
-          fy26Growth: fy2Total > 0 ? ((fy3Total - fy2Total) / fy2Total) : 0,
+          fy24Growth: fy0Total > 0 ? (fy1Total - fy0Total) / fy0Total : 0,
+          fy25Growth: fy1Total > 0 ? (fy2Total - fy1Total) / fy1Total : 0,
+          fy26Growth: fy2Total > 0 ? (fy3Total - fy2Total) / fy2Total : 0,
         },
       };
     };
@@ -2246,6 +2321,30 @@ export class ReportsService {
     }, {});
     const allCategoryMultiPeriod = buildCategoryMatrixObject(allRawAgg, 'ALL');
     categoryMultiPeriodMap['ALL'] = allCategoryMultiPeriod;
+
+    // 4. Enhanced Category Breakdown Array with Same Period Comparisons
+    const categories = rawCatMatrix.map((r) => {
+      const m = categoryMultiPeriodMap[r.cat] || buildCategoryMatrixObject(r, r.cat);
+      const catLifetime = Number(r.lifetime_sales) || 0;
+      return {
+        cat: r.cat,
+        name: `Category ${r.cat}`,
+        uniquePartlines: Number(r.total_partlines) || 0,
+        totalInvoices: Number(r.total_invoices) || 0,
+        curMonthSales: m.mtd.current,
+        curMonthQty: m.mtd.curQty,
+        ytdSales: m.ytd.current,
+        ytdQty: m.ytd.curQty,
+        lifetimeSales: catLifetime,
+        lifetimeQty: Number(r.lifetime_qty) || 0,
+        sharePercent: lifetimeSales > 0 ? Number(((catLifetime / lifetimeSales) * 100).toFixed(1)) : 0,
+        ytdSharePercent: allCategoryMultiPeriod.ytd.current > 0 ? Number(((m.ytd.current / allCategoryMultiPeriod.ytd.current) * 100).toFixed(1)) : 0,
+        growthPercent: m.ytd.growthPercent,
+        mtd: m.mtd,
+        qtd: m.qtd,
+        ytd: m.ytd,
+      };
+    }).sort((a, b) => b.ytdSales - a.ytdSales);
 
     // 5. Complete Part Purchase Frequency & Top Parts
     const partFrequencyRaw: any[] = await this.prisma.$queryRawUnsafe(`
@@ -2352,11 +2451,59 @@ export class ReportsService {
     const htdGrowthRate = lyHtdSales > 0 ? (curHtdSales - lyHtdSales) / lyHtdSales : 0;
 
     const periodComparison = {
-      mtd: { label: 'MTD', current: curMtdSales, lySamePeriod: lyMtdSales, growthPercent: mtdGrowthRate, diffAmount: curMtdSales - lyMtdSales },
-      mqtd: { label: 'MQTD', current: curMqtdSales, lySamePeriod: lyMqtdSales, growthPercent: mqtdGrowthRate, diffAmount: curMqtdSales - lyMqtdSales },
-      qtd: { label: 'QTD', current: curQtdSales, lySamePeriod: lyQtdSales, growthPercent: qtdGrowthRate, diffAmount: curQtdSales - lyQtdSales },
-      htd: { label: 'HTD', current: curHtdSales, lySamePeriod: lyHtdSales, growthPercent: htdGrowthRate, diffAmount: curHtdSales - lyHtdSales },
-      ytd: { label: 'YTD', current: curYtdSales, lySamePeriod: lyYtdSales, growthPercent: ytdGrowthRate, diffAmount: curYtdSales - lyYtdSales },
+      mtd: {
+        label: 'MTD',
+        current: allCategoryMultiPeriod.mtd.current,
+        lySamePeriod: allCategoryMultiPeriod.mtd.lySamePeriod,
+        growthPercent: allCategoryMultiPeriod.mtd.growthPercent,
+        diffAmount: allCategoryMultiPeriod.mtd.diffAmount,
+        curQty: allCategoryMultiPeriod.mtd.curQty,
+        lyQty: allCategoryMultiPeriod.mtd.lyQty,
+        qtyGrowthPercent: allCategoryMultiPeriod.mtd.qtyGrowthPercent,
+        curInvoices: allCategoryMultiPeriod.mtd.curInvoices,
+        lyInvoices: allCategoryMultiPeriod.mtd.lyInvoices,
+        curLines: allCategoryMultiPeriod.mtd.curLines,
+      },
+      mqtd: {
+        label: 'MQTD',
+        current: curMqtdSales,
+        lySamePeriod: lyMqtdSales,
+        growthPercent: mqtdGrowthRate,
+        diffAmount: curMqtdSales - lyMqtdSales,
+      },
+      qtd: {
+        label: 'QTD',
+        current: allCategoryMultiPeriod.qtd.current,
+        lySamePeriod: allCategoryMultiPeriod.qtd.lySamePeriod,
+        growthPercent: allCategoryMultiPeriod.qtd.growthPercent,
+        diffAmount: allCategoryMultiPeriod.qtd.diffAmount,
+        curQty: allCategoryMultiPeriod.qtd.curQty,
+        lyQty: allCategoryMultiPeriod.qtd.lyQty,
+        qtyGrowthPercent: allCategoryMultiPeriod.qtd.qtyGrowthPercent,
+        curInvoices: allCategoryMultiPeriod.qtd.curInvoices,
+        lyInvoices: allCategoryMultiPeriod.qtd.lyInvoices,
+      },
+      htd: {
+        label: 'HTD',
+        current: curHtdSales,
+        lySamePeriod: lyHtdSales,
+        growthPercent: htdGrowthRate,
+        diffAmount: curHtdSales - lyHtdSales,
+      },
+      ytd: {
+        label: 'YTD',
+        current: allCategoryMultiPeriod.ytd.current,
+        lySamePeriod: allCategoryMultiPeriod.ytd.lySamePeriod,
+        growthPercent: allCategoryMultiPeriod.ytd.growthPercent,
+        diffAmount: allCategoryMultiPeriod.ytd.diffAmount,
+        curQty: allCategoryMultiPeriod.ytd.curQty,
+        lyQty: allCategoryMultiPeriod.ytd.lyQty,
+        qtyGrowthPercent: allCategoryMultiPeriod.ytd.qtyGrowthPercent,
+        curInvoices: allCategoryMultiPeriod.ytd.curInvoices,
+        lyInvoices: allCategoryMultiPeriod.ytd.lyInvoices,
+        curLines: allCategoryMultiPeriod.ytd.curLines,
+        lyLines: allCategoryMultiPeriod.ytd.lyLines,
+      },
     };
 
     // 4-Year Sales Trend & 4Y CAGR
