@@ -351,44 +351,27 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
         }
       `}</style>
 
-      {/* ─── TOP CONTROL BAR ─── */}
-      <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-xs print-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          {/* Brand & Title */}
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-sm flex-shrink-0">
-              <Compass className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                  TheSSBuddy
-                </span>
-                <span className="text-xs text-slate-400 font-medium">Powered by Thesssystems</span>
-              </div>
-              <h1 className="text-base font-bold text-slate-900 truncate">
-                CUSTOMER 360 — PARTY ONE-PAGER
-              </h1>
-            </div>
-          </div>
-
+      {/* ─── TOP CONTROL BAR (CLEAN & INTEGRATED) ─── */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs print-hidden transition-all">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4">
+          
           {/* Quick Party Search Autocomplete */}
           <div className="relative flex-1 max-w-md" ref={searchRef}>
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={searchOpen ? partySearch : (currentPartyName ? `${currentPartyName} (${partyCode})` : partyCode)}
                 onFocus={() => { setSearchOpen(true); setPartySearch(''); }}
                 onChange={(e) => { setPartySearch(e.target.value); setSearchOpen(true); }}
-                placeholder="Search party code, name, original code, city..."
-                className="w-full pl-9 pr-14 py-1.5 text-xs font-semibold bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all text-slate-900"
+                placeholder="Search party by name, code, city or branch..."
+                className="w-full pl-9 pr-16 py-2 text-xs font-semibold bg-slate-100/70 hover:bg-slate-100 focus:bg-white border border-slate-200 focus:border-blue-500 rounded-xl focus:outline-hidden focus:ring-3 focus:ring-blue-500/15 transition-all text-slate-900 placeholder:text-slate-400 shadow-2xs"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {searchOpen && partySearch && (
                   <button
                     onClick={() => setPartySearch('')}
-                    className="text-slate-400 hover:text-slate-600 p-0.5"
+                    className="text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors"
                     title="Clear search"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -396,22 +379,22 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                 )}
                 <button
                   onClick={() => { setSearchOpen(!searchOpen); setPartySearch(''); }}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 px-1 py-0.5"
+                  className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50/80 px-2 py-1 rounded-md transition-colors"
                 >
-                  {searchOpen ? 'Close' : 'Change'}
+                  {searchOpen ? 'Done' : 'Change'}
                 </button>
               </div>
             </div>
 
             {/* Autocomplete dropdown */}
             {searchOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto divide-y divide-slate-100">
-                <div className="p-2 bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 flex items-center justify-between">
-                  <span>Showing {filteredParties.length} matching parties</span>
-                  <span>Select to load 360</span>
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 max-h-96 overflow-y-auto divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
+                <div className="p-2.5 bg-slate-50/80 border-b border-slate-100 text-[11px] font-semibold text-slate-500 flex items-center justify-between">
+                  <span>{filteredParties.length} parties found</span>
+                  <span className="text-[10px] text-slate-400">Click to load</span>
                 </div>
                 {filteredParties.length === 0 ? (
-                  <div className="p-4 text-xs text-slate-500 text-center">
+                  <div className="p-6 text-xs text-slate-500 text-center">
                     No matching parties found for "{partySearch}"
                   </div>
                 ) : (
@@ -427,7 +410,7 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                       <button
                         key={`${pCode}-${idx}`}
                         onClick={() => handleSelectParty(p)}
-                        className={`w-full text-left px-3.5 py-2.5 hover:bg-blue-50 transition-colors flex items-center justify-between group cursor-pointer ${
+                        className={`w-full text-left px-3.5 py-2.5 hover:bg-blue-50/60 transition-colors flex items-center justify-between group cursor-pointer ${
                           isSelected ? 'bg-blue-50/80 font-semibold' : ''
                         }`}
                       >
@@ -436,12 +419,12 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                             <span className="text-xs font-bold text-slate-900 group-hover:text-blue-700">
                               {pName}
                             </span>
-                            <span className="text-[10px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
+                            <span className="text-[10px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md border border-slate-200/80">
                               {pType}
                             </span>
                           </div>
                           <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-1 flex-wrap">
-                            <span className="font-mono font-bold bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded border border-blue-200 text-[10px]">
+                            <span className="font-mono font-bold bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded text-[10px]">
                               Code: {pCode}
                             </span>
                             {pOrig && (
@@ -469,9 +452,9 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           </div>
 
           {/* Controls & Export Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             {/* Fiscal Year */}
-            <div className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
+            <div className="flex items-center gap-1.5 bg-slate-100/80 hover:bg-slate-100 px-2.5 py-1.5 rounded-xl border border-slate-200/80 transition-colors">
               <Calendar className="w-3.5 h-3.5 text-slate-500" />
               <select
                 value={fiscalYear}
@@ -485,7 +468,7 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
             </div>
 
             {/* As-Of Month */}
-            <div className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
+            <div className="flex items-center gap-1.5 bg-slate-100/80 hover:bg-slate-100 px-2.5 py-1.5 rounded-xl border border-slate-200/80 transition-colors">
               <span className="text-[11px] font-medium text-slate-500">Month:</span>
               <select
                 value={month}
@@ -499,7 +482,7 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
             </div>
 
             {/* Dynamic Target Growth % Input */}
-            <div className="flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-1.5 bg-blue-50/80 hover:bg-blue-50 px-2.5 py-1.5 rounded-xl border border-blue-200/80 transition-colors">
               <Target className="w-3.5 h-3.5 text-blue-600" />
               <span className="text-[11px] font-bold text-blue-900">Target:</span>
               <input
@@ -508,16 +491,18 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                 max="100"
                 value={targetGrowthPercent}
                 onChange={(e) => setTargetGrowthPercent(Math.max(0, Number(e.target.value)))}
-                className="w-10 bg-white text-center text-xs font-bold text-blue-700 border border-blue-300 rounded py-0.5 focus:outline-hidden"
+                className="w-10 bg-white text-center text-xs font-bold text-blue-700 border border-blue-300/80 rounded-lg py-0.5 focus:outline-hidden focus:ring-1 focus:ring-blue-500 shadow-2xs"
               />
               <span className="text-xs font-bold text-blue-700">%</span>
             </div>
+
+            <div className="h-5 w-[1px] bg-slate-200 mx-1 hidden sm:block" />
 
             {/* Export Excel */}
             <button
               onClick={handleExportExcel}
               disabled={isExportingExcel || !partyCode}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors shadow-xs disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all shadow-xs hover:shadow-sm disabled:opacity-50 active:scale-95"
               title="Download comprehensive Excel dossier with all sheets"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -528,11 +513,11 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
             <button
               onClick={handleDownloadPDF}
               disabled={isExportingPDF || !partyCode}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors shadow-xs disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-xl transition-all shadow-xs hover:shadow-sm disabled:opacity-50 active:scale-95"
               title="Download complete formatted multi-page PDF Dossier with all 23 sections"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>{isExportingPDF ? 'Preparing PDF...' : 'PDF'}</span>
+              <span>{isExportingPDF ? 'Preparing...' : 'PDF'}</span>
             </button>
           </div>
         </div>
@@ -543,132 +528,144 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
         
         {/* Loading State */}
         {isLoading && !party360 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-12 text-center shadow-xs">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center shadow-xs">
             <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
             <div className="text-sm font-semibold text-slate-800">Loading Customer Intelligence 360...</div>
-            <div className="text-xs text-slate-500 mt-1">Aggregating 4-year transactions, catalog depth, and gap metrics...</div>
+            <div className="text-xs text-slate-500 mt-1">Aggregating multi-period transactions, catalog depth, and gap metrics...</div>
           </div>
         )}
 
-        {/* ─── SECTION 1: CUSTOMER PROFILE & STATUS BANNER ─── */}
-        <section className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs print-card print-break-inside-avoid">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+        {/* ─── SECTION 1: CUSTOMER PROFILE & STATUS BANNER (POLISHED) ─── */}
+        <section className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs print-card print-break-inside-avoid">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-5 border-b border-slate-100">
             
             {/* Left: Identity */}
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-900 to-slate-800 text-white flex items-center justify-center font-bold text-lg shadow-sm flex-shrink-0">
+            <div className="flex items-start gap-4">
+              <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-blue-700 via-indigo-800 to-slate-900 text-white flex items-center justify-center font-black text-xl shadow-md ring-4 ring-blue-50 flex-shrink-0">
                 {(profile.partyName || partyCode || 'P').charAt(0).toUpperCase()}
               </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-lg font-bold text-slate-900">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">
                     {profile.partyName || partyCode}
                   </h2>
-                  <span className="font-mono text-xs font-bold bg-blue-50 text-blue-800 px-2 py-0.5 rounded border border-blue-200">
+                  <span className="font-mono text-xs font-bold bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-lg border border-blue-200/70">
                     Code: {profile.partyCode || partyCode}
                   </span>
                   {profile.originalCode && profile.originalCode !== (profile.partyCode || partyCode) && (
-                    <span className="font-mono text-xs font-medium bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                    <span className="font-mono text-xs font-medium bg-slate-100 text-slate-700 px-2 py-0.5 rounded-lg border border-slate-200/70">
                       Orig: {profile.originalCode}
                     </span>
                   )}
-                  <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
-                    {profile.partyType || 'TRADER/RETAILER'}
+                  <span className="text-xs font-bold tracking-wide uppercase bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-lg border border-slate-200/70">
+                    {profile.partyType || 'DEALER'}
                   </span>
                 </div>
-                <div className="text-xs text-slate-500 flex items-center gap-3 mt-1 flex-wrap">
-                  <span>📍 Branch: <strong className="text-slate-700">{profile.branchName || profile.branchCode || 'Head Office'}</strong></span>
-                  <span>📅 Since: <strong className="text-slate-700">{basketStats.firstPurchase || 'N/A'}</strong></span>
-                  <span>🕒 Last Order: <strong className="text-slate-700">{basketStats.lastPurchase || 'N/A'}</strong></span>
-                  <span>📦 Unique Parts: <strong className="text-slate-700">{basketStats.totalUniqueParts || 0}</strong></span>
-                  <span>🧾 Total Invoices: <strong className="text-slate-700">{basketStats.totalInvoices || 0}</strong></span>
+                <div className="text-xs text-slate-500 flex items-center gap-4 flex-wrap pt-0.5">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-rose-500">📍</span> Branch: <strong className="text-slate-800">{profile.branchName || profile.branchCode || 'Head Office'}</strong>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" /> Since: <strong className="text-slate-800">{basketStats.firstPurchase || 'N/A'}</strong>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" /> Last Order: <strong className="text-slate-800">{basketStats.lastPurchase || 'N/A'}</strong>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5 text-slate-400" /> Unique Parts: <strong className="text-slate-800">{basketStats.totalUniqueParts || 0}</strong>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-slate-400" /> Invoices: <strong className="text-slate-800">{basketStats.totalInvoices || 0}</strong>
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* Right: Health Score Gauge & Status */}
-            <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-3.5 flex-wrap sm:flex-nowrap">
               {/* Branch Contribution */}
-              <div className="bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 text-right">
-                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Branch Rank & Share</div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-sm font-extrabold text-slate-900">
+              <div className="bg-slate-50/80 px-3.5 py-2.5 rounded-xl border border-slate-200/70 text-right min-w-[140px]">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Branch Rank & Share</div>
+                <div className="flex items-center justify-end gap-2 mt-1">
+                  <span className="text-sm font-black text-slate-900">
                     Rank #{branchContribution.branchRank || 1}
                   </span>
-                  <span className="text-xs font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">
-                    {branchContribution.branchSharePercent || 0}% of Branch
+                  <span className="text-xs font-bold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-md">
+                    {branchContribution.branchSharePercent || 0}%
                   </span>
                 </div>
               </div>
 
               {/* Status Badge */}
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Account Status</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-extrabold tracking-wide uppercase border ${
+              <div className="bg-slate-50/80 px-3.5 py-2.5 rounded-xl border border-slate-200/70 text-center min-w-[120px]">
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Status</div>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold tracking-wide uppercase border ${
                   health.status === 'GROWING' ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
                   health.status === 'STABLE' ? 'bg-blue-50 text-blue-700 border-blue-300' :
                   health.status === 'DECLINING' ? 'bg-amber-50 text-amber-700 border-amber-300' :
                   'bg-rose-50 text-rose-700 border-rose-300'
                 }`}>
-                  ● {health.status}
+                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                  {health.status}
                 </span>
               </div>
 
               {/* Health Score */}
-              <div className="flex items-center gap-3 bg-gradient-to-br from-slate-900 to-slate-800 text-white px-4 py-2.5 rounded-xl shadow-xs">
+              <div className="flex items-center gap-3 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white px-4 py-2.5 rounded-xl shadow-xs">
                 <div>
-                  <div className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Health Index</div>
+                  <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">Health Index</div>
                   <div className="text-xl font-black tracking-tight">{health.score}<span className="text-xs font-medium text-slate-400">/100</span></div>
                 </div>
-                <div className="w-8 h-8 rounded-full border-2 border-emerald-400 flex items-center justify-center text-xs font-bold text-emerald-300">
-                  <Activity className="w-4 h-4 text-emerald-400" />
+                <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center text-xs font-bold text-emerald-400">
+                  <Activity className="w-4 h-4" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 mt-3 pt-1">
-            <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-              <div className="text-[10px] font-medium text-slate-500">Lifetime Sales</div>
-              <div className="text-xs font-bold text-slate-900 mt-0.5">{formatLakhs(lifetimeSales)}</div>
+          {/* Quick Metrics Bar (Clean Modern Pills) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mt-4">
+            <div className="bg-slate-50/70 hover:bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 transition-colors">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Lifetime Sales</div>
+              <div className="text-sm font-bold text-slate-900 mt-0.5">{formatLakhs(lifetimeSales)}</div>
             </div>
-            <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-              <div className="text-[10px] font-medium text-slate-500">Avg Monthly Buying</div>
-              <div className="text-xs font-bold text-slate-900 mt-0.5">{formatLakhs(avgMonthlyBuying)}</div>
+            <div className="bg-slate-50/70 hover:bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 transition-colors">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Avg Monthly Buying</div>
+              <div className="text-sm font-bold text-slate-900 mt-0.5">{formatLakhs(avgMonthlyBuying)}</div>
             </div>
-            <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-              <div className="text-[10px] font-medium text-slate-500">Avg Order Value</div>
-              <div className="text-xs font-bold text-slate-900 mt-0.5">{formatCurrency(avgOrderValue)}</div>
+            <div className="bg-slate-50/70 hover:bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 transition-colors">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Avg Order Value</div>
+              <div className="text-sm font-bold text-slate-900 mt-0.5">{formatCurrency(avgOrderValue)}</div>
             </div>
-            <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-              <div className="text-[10px] font-medium text-slate-500">Active Months</div>
-              <div className="text-xs font-bold text-slate-900 mt-0.5">{activeMonths} Months</div>
+            <div className="bg-slate-50/70 hover:bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 transition-colors">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Active History</div>
+              <div className="text-sm font-bold text-slate-900 mt-0.5">{activeMonths} Months</div>
             </div>
-            <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-              <div className="text-[10px] font-medium text-slate-500">Avg Qty / Invoice</div>
-              <div className="text-xs font-bold text-slate-900 mt-0.5">{basketStats.avgQtyPerInvoice || 0} Units</div>
+            <div className="bg-slate-50/70 hover:bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 transition-colors">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Avg Qty / Invoice</div>
+              <div className="text-sm font-bold text-slate-900 mt-0.5">{basketStats.avgQtyPerInvoice || 0} Units</div>
             </div>
-            <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-              <div className="text-[10px] font-medium text-slate-500">Lines / Invoice</div>
-              <div className="text-xs font-bold text-slate-900 mt-0.5">{basketStats.avgLinesPerInvoice || 0} Items</div>
+            <div className="bg-slate-50/70 hover:bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 transition-colors">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Lines / Invoice</div>
+              <div className="text-sm font-bold text-slate-900 mt-0.5">{basketStats.avgLinesPerInvoice || 0} Items</div>
             </div>
           </div>
         </section>
 
+
         {/* ─── CATEGORY SELECTOR & FILTER TOOLBAR ─── */}
-        <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3 print:hidden">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 mr-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mr-1">
               <Layers className="w-3.5 h-3.5 text-blue-600" />
               Category Focus:
             </span>
             <button
               onClick={() => setSelectedCategory('ALL')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                 selectedCategory === 'ALL'
                   ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  : 'bg-slate-100/80 hover:bg-slate-200/70 text-slate-700'
               }`}
             >
               All Categories Combined
@@ -677,14 +674,14 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
               <button
                 key={c.cat}
                 onClick={() => setSelectedCategory(c.cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                   selectedCategory === c.cat
-                    ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-400/30'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-500/20'
+                    : 'bg-slate-100/80 hover:bg-slate-200/70 text-slate-700'
                 }`}
               >
-                <span className={`w-4 h-4 rounded text-[10px] font-mono flex items-center justify-center font-black ${
-                  selectedCategory === c.cat ? 'bg-white text-blue-700' : 'bg-blue-100 text-blue-800'
+                <span className={`w-4 h-4 rounded-md text-[10px] font-mono flex items-center justify-center font-black ${
+                  selectedCategory === c.cat ? 'bg-white text-blue-700' : 'bg-blue-100/80 text-blue-800'
                 }`}>
                   {c.cat}
                 </span>
@@ -696,55 +693,55 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           {selectedCategory !== 'ALL' && (
             <button
               onClick={() => setSelectedCategory('ALL')}
-              className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
+              className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200/60"
             >
               <X className="w-3.5 h-3.5" />
-              Reset to All
+              Reset Filter
             </button>
           )}
         </div>
 
-        {/* ─── SECTION 2: PRIMARY 7 KPI METRIC TILES ─── */}
+        {/* ─── SECTION 2: PRIMARY 7 KPI METRIC TILES (SLEEK EXECUTIVE FINISH) ─── */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
           
           {/* Tile 1: YTD Sales */}
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col justify-between print-card hover:border-blue-300 transition-colors">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-xs flex flex-col justify-between print-card hover:border-blue-400/80 transition-all hover:shadow-sm">
             <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  YTD Sales {selectedCategory !== 'ALL' ? `(Cat ${selectedCategory})` : '(Apr-Sep)'}
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  YTD Sales {selectedCategory !== 'ALL' ? `(${selectedCategory})` : '(Apr-Sep)'}
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-100 font-mono">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100 font-mono">
                   FY{fiscalYear}
                 </span>
               </div>
-              <div className="text-xl font-black text-slate-900 mt-1">
+              <div className="text-xl font-black text-slate-900 mt-1 tracking-tight">
                 {formatLakhs(curYtd)}
               </div>
-              <div className="text-xs font-mono font-semibold text-slate-500 mt-0.5">
+              <div className="text-xs font-mono font-semibold text-slate-400 mt-0.5">
                 {formatCurrency(curYtd)}
               </div>
             </div>
 
             {/* In Same Card: LY YTD & Growth */}
-            <div className="mt-2.5 pt-2 border-t border-slate-100 bg-slate-50/70 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+            <div className="mt-3 pt-2.5 border-t border-slate-100 bg-slate-50/70 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-500 font-medium">LY Same Period:</span>
+                <span className="text-slate-400 font-medium">LY Same Period:</span>
                 <span className="font-mono font-bold text-slate-700">{formatLakhs(lyYtd)}</span>
               </div>
               <div className="flex items-center justify-between text-[11px] mt-1">
-                <span className="text-slate-500 font-medium">YoY Growth:</span>
-                <span className={`font-bold inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono ${
-                  ytdGrowth >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                <span className="text-slate-400 font-medium">YoY Growth:</span>
+                <span className={`font-bold inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-mono ${
+                  ytdGrowth >= 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-rose-50 text-rose-700 border border-rose-200/80'
                 }`}>
                   {ytdGrowth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                   {formatGrowth(ytdGrowth)}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 pt-1 border-t border-slate-200/40">
                 <span>Qty Units:</span>
                 <span className="font-mono font-semibold text-slate-700">
-                  {(activeCategoryMetrics.ytd.curQty || 0).toLocaleString('en-IN')} vs {(activeCategoryMetrics.ytd.lyQty || 0).toLocaleString('en-IN')}
+                  {(activeCategoryMetrics.ytd.curQty || 0).toLocaleString('en-IN')} <span className="text-slate-400">vs</span> {(activeCategoryMetrics.ytd.lyQty || 0).toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5">
@@ -755,43 +752,43 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           </div>
 
           {/* Tile 2: QTD Sales */}
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col justify-between print-card hover:border-blue-300 transition-colors">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-xs flex flex-col justify-between print-card hover:border-indigo-400/80 transition-all hover:shadow-sm">
             <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  QTD Sales {selectedCategory !== 'ALL' ? `(Cat ${selectedCategory})` : '(Jul-Sep)'}
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  QTD Sales {selectedCategory !== 'ALL' ? `(${selectedCategory})` : '(Jul-Sep)'}
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono">
                   Q2
                 </span>
               </div>
-              <div className="text-xl font-black text-slate-900 mt-1">
+              <div className="text-xl font-black text-slate-900 mt-1 tracking-tight">
                 {formatLakhs(curQtd)}
               </div>
-              <div className="text-xs font-mono font-semibold text-slate-500 mt-0.5">
+              <div className="text-xs font-mono font-semibold text-slate-400 mt-0.5">
                 {formatCurrency(curQtd)}
               </div>
             </div>
 
             {/* In Same Card: LY QTD & Growth */}
-            <div className="mt-2.5 pt-2 border-t border-slate-100 bg-slate-50/70 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+            <div className="mt-3 pt-2.5 border-t border-slate-100 bg-slate-50/70 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-500 font-medium">LY Same Period:</span>
+                <span className="text-slate-400 font-medium">LY Same Period:</span>
                 <span className="font-mono font-bold text-slate-700">{formatLakhs(activeCategoryMetrics.qtd.lySamePeriod)}</span>
               </div>
               <div className="flex items-center justify-between text-[11px] mt-1">
-                <span className="text-slate-500 font-medium">YoY Growth:</span>
-                <span className={`font-bold inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono ${
-                  (activeCategoryMetrics.qtd.growthPercent || 0) >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                <span className="text-slate-400 font-medium">YoY Growth:</span>
+                <span className={`font-bold inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-mono ${
+                  (activeCategoryMetrics.qtd.growthPercent || 0) >= 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-rose-50 text-rose-700 border border-rose-200/80'
                 }`}>
                   {(activeCategoryMetrics.qtd.growthPercent || 0) >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                   {formatGrowth(activeCategoryMetrics.qtd.growthPercent)}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 pt-1 border-t border-slate-200/40">
                 <span>Qty Units:</span>
                 <span className="font-mono font-semibold text-slate-700">
-                  {(activeCategoryMetrics.qtd.curQty || 0).toLocaleString('en-IN')} vs {(activeCategoryMetrics.qtd.lyQty || 0).toLocaleString('en-IN')}
+                  {(activeCategoryMetrics.qtd.curQty || 0).toLocaleString('en-IN')} <span className="text-slate-400">vs</span> {(activeCategoryMetrics.qtd.lyQty || 0).toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5">
@@ -802,43 +799,43 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           </div>
 
           {/* Tile 3: MTD Sales */}
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col justify-between print-card hover:border-blue-300 transition-colors">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-xs flex flex-col justify-between print-card hover:border-emerald-400/80 transition-all hover:shadow-sm">
             <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  MTD Sales {selectedCategory !== 'ALL' ? `(Cat ${selectedCategory})` : `(${month})`}
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  MTD Sales {selectedCategory !== 'ALL' ? `(${selectedCategory})` : `(${month})`}
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-100 font-mono">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100 font-mono">
                   {month}
                 </span>
               </div>
-              <div className="text-xl font-black text-slate-900 mt-1">
+              <div className="text-xl font-black text-slate-900 mt-1 tracking-tight">
                 {formatLakhs(curMtd)}
               </div>
-              <div className="text-xs font-mono font-semibold text-slate-500 mt-0.5">
+              <div className="text-xs font-mono font-semibold text-slate-400 mt-0.5">
                 {formatCurrency(curMtd)}
               </div>
             </div>
 
             {/* In Same Card: LY MTD & Growth */}
-            <div className="mt-2.5 pt-2 border-t border-slate-100 bg-slate-50/70 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+            <div className="mt-3 pt-2.5 border-t border-slate-100 bg-slate-50/70 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-500 font-medium">LY Same Period:</span>
+                <span className="text-slate-400 font-medium">LY Same Period:</span>
                 <span className="font-mono font-bold text-slate-700">{formatLakhs(activeCategoryMetrics.mtd.lySamePeriod)}</span>
               </div>
               <div className="flex items-center justify-between text-[11px] mt-1">
-                <span className="text-slate-500 font-medium">YoY Growth:</span>
-                <span className={`font-bold inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono ${
-                  (activeCategoryMetrics.mtd.growthPercent || 0) >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                <span className="text-slate-400 font-medium">YoY Growth:</span>
+                <span className={`font-bold inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[10px] font-mono ${
+                  (activeCategoryMetrics.mtd.growthPercent || 0) >= 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-rose-50 text-rose-700 border border-rose-200/80'
                 }`}>
                   {(activeCategoryMetrics.mtd.growthPercent || 0) >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                   {formatGrowth(activeCategoryMetrics.mtd.growthPercent)}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 pt-1 border-t border-slate-200/40">
                 <span>Qty Units:</span>
                 <span className="font-mono font-semibold text-slate-700">
-                  {(activeCategoryMetrics.mtd.curQty || 0).toLocaleString('en-IN')} vs {(activeCategoryMetrics.mtd.lyQty || 0).toLocaleString('en-IN')}
+                  {(activeCategoryMetrics.mtd.curQty || 0).toLocaleString('en-IN')} <span className="text-slate-400">vs</span> {(activeCategoryMetrics.mtd.lyQty || 0).toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="flex items-center justify-between text-[10px] text-slate-400 mt-0.5">
@@ -849,24 +846,26 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           </div>
 
           {/* Tile 4: MQTD Sales */}
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col justify-between print-card">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-xs flex flex-col justify-between print-card hover:border-slate-300 transition-all hover:shadow-sm">
             <div>
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">MQTD Sales</div>
-              <div className="text-lg font-black text-slate-900 mt-1">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MQTD Sales</div>
+              <div className="text-lg font-black text-slate-900 mt-1 tracking-tight">
                 {formatLakhs(curMqtd)}
               </div>
-              <div className="text-xs font-mono text-slate-500 mt-0.5">
+              <div className="text-xs font-mono text-slate-400 mt-0.5">
                 {formatCurrency(curMqtd)}
               </div>
             </div>
-            <div className="mt-2.5 pt-2 border-t border-slate-100 bg-slate-50/70 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+            <div className="mt-3 pt-2.5 border-t border-slate-100 bg-slate-50/70 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-500 font-medium">LY MQTD:</span>
+                <span className="text-slate-400 font-medium">LY MQTD:</span>
                 <span className="font-mono font-bold text-slate-700">{formatLakhs(activeCategoryMetrics.mqtd.lySamePeriod)}</span>
               </div>
               <div className="flex items-center justify-between text-[11px] mt-1">
-                <span className="text-slate-500 font-medium">YoY %:</span>
-                <span className={`font-bold font-mono text-[10px] ${(activeCategoryMetrics.mqtd.growthPercent || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                <span className="text-slate-400 font-medium">YoY %:</span>
+                <span className={`font-bold font-mono text-[10px] px-1.5 py-0.5 rounded-md ${
+                  (activeCategoryMetrics.mqtd.growthPercent || 0) >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                }`}>
                   {formatGrowth(activeCategoryMetrics.mqtd.growthPercent)}
                 </span>
               </div>
@@ -874,24 +873,26 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           </div>
 
           {/* Tile 5: HTD Sales */}
-          <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs flex flex-col justify-between print-card">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-xs flex flex-col justify-between print-card hover:border-slate-300 transition-all hover:shadow-sm">
             <div>
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">HTD Sales (H1)</div>
-              <div className="text-lg font-black text-slate-900 mt-1">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">HTD Sales (H1)</div>
+              <div className="text-lg font-black text-slate-900 mt-1 tracking-tight">
                 {formatLakhs(curHtd)}
               </div>
-              <div className="text-xs font-mono text-slate-500 mt-0.5">
+              <div className="text-xs font-mono text-slate-400 mt-0.5">
                 {formatCurrency(curHtd)}
               </div>
             </div>
-            <div className="mt-2.5 pt-2 border-t border-slate-100 bg-slate-50/70 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+            <div className="mt-3 pt-2.5 border-t border-slate-100 bg-slate-50/70 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-500 font-medium">LY HTD:</span>
+                <span className="text-slate-400 font-medium">LY HTD:</span>
                 <span className="font-mono font-bold text-slate-700">{formatLakhs(activeCategoryMetrics.htd.lySamePeriod)}</span>
               </div>
               <div className="flex items-center justify-between text-[11px] mt-1">
-                <span className="text-slate-500 font-medium">YoY %:</span>
-                <span className={`font-bold font-mono text-[10px] ${(activeCategoryMetrics.htd.growthPercent || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                <span className="text-slate-400 font-medium">YoY %:</span>
+                <span className={`font-bold font-mono text-[10px] px-1.5 py-0.5 rounded-md ${
+                  (activeCategoryMetrics.htd.growthPercent || 0) >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                }`}>
                   {formatGrowth(activeCategoryMetrics.htd.growthPercent)}
                 </span>
               </div>
@@ -899,85 +900,93 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           </div>
 
           {/* Tile 6: Target Achievement % */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-xl border border-blue-200 p-3 shadow-xs flex flex-col justify-between print-card">
+          <div className="bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white rounded-2xl border border-blue-200/80 p-3.5 shadow-xs flex flex-col justify-between print-card">
             <div>
-              <div className="text-[10px] font-bold text-blue-900 uppercase tracking-wider">Target Achieved</div>
-              <div className="text-2xl font-black text-blue-700 mt-1 font-mono">
+              <div className="text-[10px] font-bold text-blue-900/80 uppercase tracking-wider">Target Achieved</div>
+              <div className="text-2xl font-black text-blue-700 mt-1 font-mono tracking-tight">
                 {dynamicCalculations.dynamicAchievementPercent.toFixed(1)}%
               </div>
             </div>
-            <div className="mt-2.5 pt-2 border-t border-blue-200/60 bg-blue-100/40 -mx-3 -mb-3 p-2.5 rounded-b-xl">
+            <div className="mt-3 pt-2.5 border-t border-blue-100/80 bg-blue-50/50 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-blue-800 font-medium">Target:</span>
+                <span className="text-blue-800/80 font-medium">Target:</span>
                 <span className="font-mono font-bold text-blue-950">{formatLakhs(dynamicCalculations.dynamicTarget)}</span>
               </div>
-              <div className="text-[10px] font-mono text-blue-700 text-right mt-0.5">
+              <div className="text-[10px] font-mono text-blue-600 text-right mt-0.5">
                 {formatCurrency(dynamicCalculations.dynamicTarget)}
               </div>
             </div>
           </div>
 
           {/* Tile 7: Target Gap / Surplus */}
-          <div className={`rounded-xl border p-3 shadow-xs flex flex-col justify-between print-card ${
+          <div className={`rounded-2xl border p-3.5 shadow-xs flex flex-col justify-between print-card ${
             dynamicCalculations.dynamicGap > 0
-              ? 'bg-gradient-to-br from-amber-50 to-orange-50/50 border-amber-200'
-              : 'bg-gradient-to-br from-emerald-50 to-teal-50/50 border-emerald-200'
+              ? 'bg-gradient-to-br from-amber-50/80 via-orange-50/40 to-white border-amber-200/80'
+              : 'bg-gradient-to-br from-emerald-50/80 via-teal-50/40 to-white border-emerald-200/80'
           }`}>
             <div>
-              <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                 {dynamicCalculations.dynamicGap > 0 ? 'Target Gap' : 'Target Surplus'}
               </div>
-              <div className={`text-2xl font-black mt-1 font-mono ${
+              <div className={`text-2xl font-black mt-1 font-mono tracking-tight ${
                 dynamicCalculations.dynamicGap > 0 ? 'text-amber-700' : 'text-emerald-700'
               }`}>
                 {formatLakhs(Math.abs(dynamicCalculations.dynamicGap))}
               </div>
-              <div className="text-xs font-mono text-slate-500 mt-0.5">
+              <div className="text-xs font-mono text-slate-400 mt-0.5">
                 {formatCurrency(Math.abs(dynamicCalculations.dynamicGap))}
               </div>
             </div>
-            <div className="mt-2.5 pt-2 border-t border-slate-200/60 bg-white/60 -mx-3 -mb-3 p-2.5 rounded-b-xl">
-              <div className="flex items-center justify-between text-[10px] text-slate-600">
-                <span>Aim:</span>
-                <span className="font-bold">+{targetGrowthPercent}% growth</span>
+            <div className="mt-3 pt-2.5 border-t border-slate-200/50 bg-white/60 -mx-3.5 -mb-3.5 p-3 rounded-b-2xl">
+              <div className="flex items-center justify-between text-[10px] text-slate-500">
+                <span>Objective:</span>
+                <span className="font-bold text-slate-800">+{targetGrowthPercent}% YoY</span>
               </div>
             </div>
           </div>
 
         </section>
 
+
         {/* ─── SECTION 3: PERFORMANCE VS LAST YEAR TABLE (SAME PERIOD COMPARISON) ─── */}
-        <section className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden print-card print-break-inside-avoid">
-          <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <BarChart2 className="w-4 h-4 text-blue-600" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                Period Performance vs Last Year (Exact Same-Period Comparison)
-              </h3>
+        <section className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden print-card print-break-inside-avoid">
+          <div className="px-5 py-3.5 bg-slate-50/70 border-b border-slate-200/80 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                <BarChart2 className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  Period Performance vs Last Year (Exact Same-Period Comparison)
+                </h3>
+                <div className="text-[11px] text-slate-400">
+                  Like-for-like timeframe comparison across Sales turnover, Unit quantities, and Targets
+                </div>
+              </div>
               {selectedCategory !== 'ALL' && (
-                <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold">
-                  Showing Category {selectedCategory}
+                <span className="px-2.5 py-0.5 rounded-md bg-blue-100/80 text-blue-800 text-[10px] font-bold">
+                  Category {selectedCategory}
                 </span>
               )}
             </div>
-            <span className="text-[11px] font-medium text-slate-500">
-              *Full same-period comparison (Sales ₹, Qty units, Invoices)
+            <span className="text-[11px] font-medium text-slate-400 hidden sm:inline">
+              *Real-time computed data
             </span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/50 text-[11px] font-bold text-slate-600 uppercase">
-                  <th className="py-2.5 px-4">Period</th>
-                  <th className="py-2.5 px-3 text-right">FY{fiscalYear} (Current ₹)</th>
-                  <th className="py-2.5 px-3 text-right">FY{fiscalYear - 1} (LY Same Period ₹)</th>
-                  <th className="py-2.5 px-3 text-right">YoY Sales %</th>
-                  <th className="py-2.5 px-3 text-right">Net Variance (₹)</th>
-                  <th className="py-2.5 px-3 text-right">Current Qty</th>
-                  <th className="py-2.5 px-3 text-right">LY Qty</th>
-                  <th className="py-2.5 px-3 text-right">Qty %</th>
-                  <th className="py-2.5 px-3 text-right">Target (@+{targetGrowthPercent}%)</th>
-                  <th className="py-2.5 px-3 text-right">Target Ach %</th>
+                <tr className="border-b border-slate-200/80 bg-slate-50/40 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                  <th className="py-3 px-4">Period</th>
+                  <th className="py-3 px-3 text-right">FY{fiscalYear} (Current ₹)</th>
+                  <th className="py-3 px-3 text-right">FY{fiscalYear - 1} (LY Same Period ₹)</th>
+                  <th className="py-3 px-3 text-right">YoY Sales %</th>
+                  <th className="py-3 px-3 text-right">Net Variance (₹)</th>
+                  <th className="py-3 px-3 text-right">Current Qty</th>
+                  <th className="py-3 px-3 text-right">LY Qty</th>
+                  <th className="py-3 px-3 text-right">Qty %</th>
+                  <th className="py-3 px-3 text-right">Target (+{targetGrowthPercent}%)</th>
+                  <th className="py-3 px-4 text-right">Target Ach %</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-800">
@@ -1003,43 +1012,45 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                   return (
                     <tr
                       key={row.key}
-                      className={`hover:bg-slate-50/80 transition-colors ${row.isPrimary ? 'bg-blue-50/30 font-bold' : ''}`}
+                      className={`hover:bg-slate-50/90 transition-colors ${row.isPrimary ? 'bg-blue-50/40 font-bold' : ''}`}
                     >
-                      <td className="py-2.5 px-4 font-semibold text-slate-900 flex items-center gap-1.5">
-                        {row.isPrimary && <Sparkles className="w-3.5 h-3.5 text-blue-600" />}
-                        {row.label}
+                      <td className="py-3 px-4 font-semibold text-slate-900 flex items-center gap-2">
+                        {row.isPrimary && <Sparkles className="w-3.5 h-3.5 text-blue-600 animate-pulse" />}
+                        <span className={row.isPrimary ? 'text-blue-900 font-bold' : ''}>{row.label}</span>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-900">
-                        <div>{formatCurrency(cur)}</div>
+                      <td className="py-3 px-3 text-right font-mono text-slate-900">
+                        <div className="font-bold">{formatCurrency(cur)}</div>
                         <div className="text-[10px] text-slate-400 font-normal">{formatLakhs(cur)}</div>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-500">
+                      <td className="py-3 px-3 text-right font-mono text-slate-500">
                         <div>{formatCurrency(ly)}</div>
                         <div className="text-[10px] text-slate-400 font-normal">{formatLakhs(ly)}</div>
                       </td>
-                      <td className={`py-2.5 px-3 text-right font-mono font-bold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {formatGrowth(growth)}
+                      <td className={`py-3 px-3 text-right font-mono font-bold ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-[11px] ${isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                          {formatGrowth(growth)}
+                        </span>
                       </td>
-                      <td className={`py-2.5 px-3 text-right font-mono ${diff >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      <td className={`py-3 px-3 text-right font-mono font-semibold ${diff >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                         {diff >= 0 ? '+' : ''}{formatCurrency(diff)}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-900">
+                      <td className="py-3 px-3 text-right font-mono text-slate-900">
                         {curQ.toLocaleString('en-IN')}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-500">
+                      <td className="py-3 px-3 text-right font-mono text-slate-400">
                         {lyQ.toLocaleString('en-IN')}
                       </td>
-                      <td className={`py-2.5 px-3 text-right font-mono font-bold ${qGrowth >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      <td className={`py-3 px-3 text-right font-mono font-bold ${qGrowth >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {formatGrowth(qGrowth)}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-700">
+                      <td className="py-3 px-3 text-right font-mono text-slate-700">
                         {formatCurrency(tgt)}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold">
-                        <span className={`px-1.5 py-0.5 rounded text-[11px] ${
-                          ach >= 100 ? 'bg-emerald-100 text-emerald-800' :
-                          ach >= 80 ? 'bg-blue-100 text-blue-800' :
-                          'bg-amber-100 text-amber-800'
+                      <td className="py-3 px-4 text-right font-mono font-bold">
+                        <span className={`px-2 py-0.5 rounded-md text-[11px] inline-block ${
+                          ach >= 100 ? 'bg-emerald-100/80 text-emerald-800' :
+                          ach >= 80 ? 'bg-blue-100/80 text-blue-800' :
+                          'bg-amber-100/80 text-amber-800'
                         }`}>
                           {ach.toFixed(1)}%
                         </span>
@@ -1052,19 +1063,22 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           </div>
         </section>
 
+
         {/* ─── SECTION 4: 4-YEAR TREND & MONTHLY SEASONALITY ─── */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 print-break-inside-avoid">
           
           {/* 4-Year Sales Trend Card */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs print-card">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-blue-600" />
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs print-card">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                  <BarChart3 className="w-4 h-4" />
+                </div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                   4-Year Sales History & CAGR
                 </h3>
               </div>
-              <div className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+              <div className="text-xs font-bold text-blue-700 bg-blue-50/80 px-2.5 py-1 rounded-lg border border-blue-200/70">
                 4Y CAGR: {cagrValue}%
               </div>
             </div>
@@ -1074,14 +1088,14 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
               {trendYears.map((yr: any, idx: number) => (
                 <div
                   key={yr.year || idx}
-                  className={`p-2.5 rounded-lg border text-center ${
+                  className={`p-2.5 rounded-xl border text-center transition-colors ${
                     idx === trendYears.length - 1
-                      ? 'bg-blue-50/60 border-blue-300'
-                      : 'bg-slate-50 border-slate-200'
+                      ? 'bg-blue-50/70 border-blue-200 text-blue-950'
+                      : 'bg-slate-50/70 border-slate-200/70'
                   }`}
                 >
-                  <div className="text-[10px] font-bold text-slate-500">{yr.year}</div>
-                  <div className="text-xs font-extrabold text-slate-900 mt-1">
+                  <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{yr.year}</div>
+                  <div className="text-xs font-black text-slate-900 mt-1 font-mono">
                     {formatLakhs(yr.sales)}
                   </div>
                   {yr.yoyGrowth !== undefined && yr.yoyGrowth !== null ? (
@@ -1105,29 +1119,31 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                   }))}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                   <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#64748B' }} />
                   <YAxis tick={{ fontSize: 11, fill: '#64748B' }} unit="L" />
                   <Tooltip
                     formatter={(val: any) => [`₹${val} Lakhs`, 'Turnover']}
-                    contentStyle={{ borderRadius: '8px', fontSize: '12px' }}
+                    contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
                   />
-                  <Bar dataKey="sales" fill="#2563EB" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="sales" fill="#2563EB" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Monthly Seasonality Progression */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs print-card">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-emerald-600" />
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs print-card">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                  <Activity className="w-4 h-4" />
+                </div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                   Monthly Run-Rate (FY{fiscalYear} vs FY{fiscalYear - 1})
                 </h3>
               </div>
-              <span className="text-[11px] text-slate-500 font-medium">Apr - Mar Pace</span>
+              <span className="text-[11px] text-slate-400 font-medium">Apr - Mar Invoicing</span>
             </div>
 
             <div className="h-60 w-full">
@@ -1142,29 +1158,29 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                 >
                   <defs>
                     <linearGradient id="colorCurSales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563EB" stopOpacity={0.4} />
+                      <stop offset="5%" stopColor="#2563EB" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="#2563EB" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                   <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#64748B' }} />
                   <YAxis tick={{ fontSize: 10, fill: '#64748B' }} unit="k" />
                   <Tooltip
                     formatter={(val: any) => [`₹${(Number(val) * 1000).toLocaleString('en-IN')}`, 'Sales']}
-                    contentStyle={{ borderRadius: '8px', fontSize: '12px' }}
+                    contentStyle={{ borderRadius: '12px', fontSize: '12px', border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="cur"
                     stroke="#2563EB"
-                    strokeWidth={2}
+                    strokeWidth={2.5}
                     fillOpacity={1}
                     fill="url(#colorCurSales)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
-            <div className="text-[11px] text-slate-500 text-center mt-1">
+            <div className="text-[11px] text-slate-400 text-center mt-2">
               Monthly invoicing volume (in thousands ₹)
             </div>
           </div>
@@ -1174,39 +1190,42 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
         <section className="space-y-4 print-break-inside-avoid">
           
           {/* Header Bar with Toggle */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-blue-600" />
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                <Layers className="w-4 h-4" />
+              </div>
               <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                   Category-Wise Performance & Same-Period Comparative Matrix
                 </h3>
-                <p className="text-xs text-slate-500">
-                  Detailed MTD, QTD, and YTD analysis vs Last Year Same Period with Sales (₹ / Lakhs), Qty units, and growth %
+                <p className="text-[11px] text-slate-400">
+                  MTD, QTD, and YTD analysis vs Last Year Same Period with Sales, Qty, and growth %
                 </p>
               </div>
             </div>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-lg self-start sm:self-auto">
+            <div className="flex items-center bg-slate-100/80 p-1 rounded-xl self-start sm:self-auto border border-slate-200/60">
               <button
                 onClick={() => setCategoryViewMode('cards')}
-                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                  categoryViewMode === 'cards' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  categoryViewMode === 'cards' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 Comparative Cards
               </button>
               <button
                 onClick={() => setCategoryViewMode('table')}
-                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                  categoryViewMode === 'table' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  categoryViewMode === 'table' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 Detailed Matrix Table
               </button>
             </div>
           </div>
+
 
           {/* Mode 1: Comparative Category Cards Grid */}
           {categoryViewMode === 'cards' && (
@@ -1384,53 +1403,55 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           )}
 
           {/* Top 5 Parts YTD */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden print-card">
-            <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-emerald-600" />
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden print-card">
+            <div className="px-5 py-3.5 bg-slate-50/70 border-b border-slate-200/80 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                  <Package className="w-4 h-4" />
+                </div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                   Top 5 Partline Revenue Contributors (YTD)
                 </h3>
               </div>
-              <span className="text-[11px] font-medium text-slate-500">Sorted by Sales Volume</span>
+              <span className="text-[11px] font-medium text-slate-400">Ranked by Value</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/50 text-[11px] font-bold text-slate-600 uppercase">
-                    <th className="py-2 px-3">Part #</th>
-                    <th className="py-2 px-2">Cat</th>
-                    <th className="py-2 px-2 text-right">Qty</th>
-                    <th className="py-2 px-3 text-right">YTD Sales</th>
-                    <th className="py-2 px-3 text-right">Share %</th>
+                  <tr className="border-b border-slate-200/80 bg-slate-50/40 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                    <th className="py-2.5 px-4">Part #</th>
+                    <th className="py-2.5 px-3">Cat</th>
+                    <th className="py-2.5 px-3 text-right">Qty</th>
+                    <th className="py-2.5 px-4 text-right">YTD Sales</th>
+                    <th className="py-2.5 px-4 text-right">Share %</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-800">
                   {cleanTopParts.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-4 text-center text-slate-400 text-xs">No part items recorded</td>
+                      <td colSpan={5} className="py-5 text-center text-slate-400 text-xs">No part items recorded</td>
                     </tr>
                   ) : (
                     cleanTopParts.slice(0, 5).map((p: any) => (
                       <tr key={p.partNum} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-2 px-3">
+                        <td className="py-2.5 px-4">
                           <div className="font-mono font-bold text-slate-900">{p.partNum}</div>
                           {p.rootPartNum && (
-                            <div className="text-[10px] text-slate-500">Root: {p.rootPartNum}</div>
+                            <div className="text-[10px] text-slate-400">Root: {p.rootPartNum}</div>
                           )}
                         </td>
-                        <td className="py-2 px-2">
-                          <span className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[10px] font-bold text-slate-700">
+                        <td className="py-2.5 px-3">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 font-mono text-[10px] font-bold text-slate-700">
                             {p.cat || 'M'}
                           </span>
                         </td>
-                        <td className="py-2 px-2 text-right font-mono text-slate-700">
+                        <td className="py-2.5 px-3 text-right font-mono text-slate-700">
                           {Number(p.qty).toLocaleString('en-IN')}
                         </td>
-                        <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
+                        <td className="py-2.5 px-4 text-right font-mono font-bold text-slate-900">
                           {formatCurrency(p.sales)}
                         </td>
-                        <td className="py-2 px-3 text-right font-mono text-blue-700 font-bold">
+                        <td className="py-2.5 px-4 text-right font-mono text-blue-700 font-bold">
                           {p.sharePercent || 0}%
                         </td>
                       </tr>
@@ -1443,37 +1464,39 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
         </section>
 
         {/* ─── SECTION 6: PRODUCT DECLINE / GAP ANALYSIS (LOST VOLUME) ─── */}
-        <section className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden print-card print-break-inside-avoid">
-          <div className="px-4 py-3 bg-amber-50/60 border-b border-amber-200 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600" />
+        <section className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden print-card print-break-inside-avoid">
+          <div className="px-5 py-3.5 bg-amber-50/50 border-b border-amber-200/70 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-amber-100/80 flex items-center justify-center text-amber-700">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-900">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-950">
                   Product Decline & Lost Volume Analysis (Immediate Pitch Targets)
                 </h3>
-                <div className="text-[11px] text-amber-700">
+                <div className="text-[11px] text-amber-800/80">
                   Parts where purchasing has slowed down or dropped significantly compared to last year's pace
                 </div>
               </div>
             </div>
-            <div className="text-xs font-extrabold text-amber-900 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
+            <div className="text-xs font-extrabold text-amber-900 bg-amber-100/90 px-2.5 py-1 rounded-lg border border-amber-300/80">
               {decliningParts.length} Parts with Gaps
             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/50 text-[11px] font-bold text-slate-600 uppercase">
-                  <th className="py-2.5 px-3">Part Num</th>
-                  <th className="py-2.5 px-2">Cat</th>
-                  <th className="py-2.5 px-2 text-right">LY Qty</th>
-                  <th className="py-2.5 px-2 text-right">Cur Qty</th>
-                  <th className="py-2.5 px-2 text-right">Qty Gap</th>
-                  <th className="py-2.5 px-3 text-right">LY Sales</th>
-                  <th className="py-2.5 px-3 text-right">Cur Sales</th>
-                  <th className="py-2.5 px-2 text-right">4Y Max Qty</th>
-                  <th className="py-2.5 px-3 text-right">Opportunity (₹)</th>
-                  <th className="py-2.5 px-3">Pitch Action</th>
+                <tr className="border-b border-slate-200/80 bg-slate-50/40 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                  <th className="py-3 px-4">Part Num</th>
+                  <th className="py-3 px-2">Cat</th>
+                  <th className="py-3 px-2 text-right">LY Qty</th>
+                  <th className="py-3 px-2 text-right">Cur Qty</th>
+                  <th className="py-3 px-2 text-right">Qty Gap</th>
+                  <th className="py-3 px-3 text-right">LY Sales</th>
+                  <th className="py-3 px-3 text-right">Cur Sales</th>
+                  <th className="py-3 px-2 text-right">4Y Max</th>
+                  <th className="py-3 px-3 text-right">Opportunity</th>
+                  <th className="py-3 px-4">Pitch Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-800">
@@ -1485,39 +1508,39 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                   </tr>
                 ) : (
                   decliningParts.slice(0, 8).map((p: any) => (
-                    <tr key={p.partNum} className="hover:bg-amber-50/30 transition-colors">
-                      <td className="py-2.5 px-3">
+                    <tr key={p.partNum} className="hover:bg-amber-50/20 transition-colors">
+                      <td className="py-3 px-4">
                         <div className="font-mono font-bold text-slate-900">{p.partNum}</div>
-                        <div className="text-[10px] text-slate-500 font-mono">Root: {p.rootPartNum || 'N/A'}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">Root: {p.rootPartNum || 'N/A'}</div>
                       </td>
-                      <td className="py-2.5 px-2">
-                        <span className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[10px] font-bold text-slate-700">
+                      <td className="py-3 px-2">
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 font-mono text-[10px] font-bold text-slate-700">
                           {p.cat || 'M'}
                         </span>
                       </td>
-                      <td className="py-2.5 px-2 text-right font-mono text-slate-600">
+                      <td className="py-3 px-2 text-right font-mono text-slate-500">
                         {p.lyQty}
                       </td>
-                      <td className="py-2.5 px-2 text-right font-mono font-bold text-slate-900">
+                      <td className="py-3 px-2 text-right font-mono font-bold text-slate-900">
                         {p.curQty}
                       </td>
-                      <td className="py-2.5 px-2 text-right font-mono font-extrabold text-rose-600">
+                      <td className="py-3 px-2 text-right font-mono font-extrabold text-rose-600">
                         {p.qtyGap}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-500">
+                      <td className="py-3 px-3 text-right font-mono text-slate-400">
                         {formatCurrency(p.lySales)}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-900 font-semibold">
+                      <td className="py-3 px-3 text-right font-mono text-slate-900 font-semibold">
                         {formatCurrency(p.curSales)}
                       </td>
-                      <td className="py-2.5 px-2 text-right font-mono text-slate-500">
+                      <td className="py-3 px-2 text-right font-mono text-slate-400">
                         {p.maxHistoricalQty || p.avg4yQty || '-'}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-extrabold text-amber-700">
+                      <td className="py-3 px-3 text-right font-mono font-extrabold text-amber-700">
                         {formatCurrency(p.opportunityValue)}
                       </td>
-                      <td className="py-2.5 px-3">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50/90 px-2 py-0.5 rounded-md border border-blue-200/70">
                           Reorder {Math.abs(p.qtyGap)} pcs
                         </span>
                       </td>
@@ -1530,159 +1553,164 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
         </section>
 
         {/* ─── SECTION 7: TARGET ACHIEVEMENT ENGINE & 5-PILLAR GAP DECOMPOSITION ─── */}
-        <section className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs print-card print-break-inside-avoid">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-blue-600" />
+        <section className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs print-card print-break-inside-avoid">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                <Zap className="w-4 h-4" />
+              </div>
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                   Target Achievement Engine — 5-Pillar Gap Decomposition (100% Coverage)
                 </h3>
-                <div className="text-[11px] text-slate-500">
+                <div className="text-[11px] text-slate-400">
                   Actionable bridge showing exactly where to extract the {formatLakhs(dynamicCalculations.dynamicGap)} required to hit the +{targetGrowthPercent}% growth target
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2 font-mono text-xs font-bold">
-              <span className="text-slate-500">Target Gap:</span>
-              <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+              <span className="text-slate-400">Target Gap:</span>
+              <span className="text-amber-700 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/70">
                 {formatLakhs(dynamicCalculations.dynamicGap)}
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 mt-4">
             {/* Pillar 1: Lost Volume Recovery */}
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col justify-between">
+            <div className="bg-slate-50/70 hover:bg-slate-50 p-3.5 rounded-xl border border-slate-200/70 flex flex-col justify-between transition-colors">
               <div>
                 <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1">
                   <span>1. Lost Part Volume</span>
-                  <span className="text-blue-600">30%</span>
+                  <span className="text-blue-600 font-mono">30%</span>
                 </div>
-                <div className="text-sm font-extrabold text-slate-900">
+                <div className="text-base font-extrabold text-slate-900 font-mono">
                   {formatLakhs(dynamicCalculations.pillars.lostPartVol)}
                 </div>
                 <div className="text-[11px] text-slate-500 mt-1 leading-snug">
                   Recover {decliningParts.length} dropped parts back to previous year buying rates.
                 </div>
               </div>
-              <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] font-semibold text-blue-700">
+              <div className="mt-3 pt-2 border-t border-slate-200/60 text-[10px] font-bold text-blue-700 uppercase tracking-wider">
                 Action: Reorder Campaign
               </div>
             </div>
 
             {/* Pillar 2: Category Expansion */}
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col justify-between">
+            <div className="bg-slate-50/70 hover:bg-slate-50 p-3.5 rounded-xl border border-slate-200/70 flex flex-col justify-between transition-colors">
               <div>
                 <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1">
                   <span>2. Category Expansion</span>
-                  <span className="text-blue-600">25%</span>
+                  <span className="text-blue-600 font-mono">25%</span>
                 </div>
-                <div className="text-sm font-extrabold text-slate-900">
+                <div className="text-base font-extrabold text-slate-900 font-mono">
                   {formatLakhs(dynamicCalculations.pillars.catExpansion)}
                 </div>
                 <div className="text-[11px] text-slate-500 mt-1 leading-snug">
                   Introduce low-share categories currently &lt;15% of customer's basket.
                 </div>
               </div>
-              <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] font-semibold text-blue-700">
+              <div className="mt-3 pt-2 border-t border-slate-200/60 text-[10px] font-bold text-blue-700 uppercase tracking-wider">
                 Action: Basket Diversification
               </div>
             </div>
 
             {/* Pillar 3: Fast Moving Branch Movers */}
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col justify-between">
+            <div className="bg-slate-50/70 hover:bg-slate-50 p-3.5 rounded-xl border border-slate-200/70 flex flex-col justify-between transition-colors">
               <div>
                 <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1">
                   <span>3. Branch Fast Movers</span>
-                  <span className="text-blue-600">20%</span>
+                  <span className="text-blue-600 font-mono">20%</span>
                 </div>
-                <div className="text-sm font-extrabold text-slate-900">
+                <div className="text-base font-extrabold text-slate-900 font-mono">
                   {formatLakhs(dynamicCalculations.pillars.fastMovers)}
                 </div>
                 <div className="text-[11px] text-slate-500 mt-1 leading-snug">
                   Sell top branch fast-sellers that this customer has never ordered.
                 </div>
               </div>
-              <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] font-semibold text-blue-700">
-                Action: Cross-Dealer Benchmarking
+              <div className="mt-3 pt-2 border-t border-slate-200/60 text-[10px] font-bold text-blue-700 uppercase tracking-wider">
+                Action: Cross-Benchmarking
               </div>
             </div>
 
             {/* Pillar 4: Cross Sell Root Parts */}
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col justify-between">
+            <div className="bg-slate-50/70 hover:bg-slate-50 p-3.5 rounded-xl border border-slate-200/70 flex flex-col justify-between transition-colors">
               <div>
                 <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1">
                   <span>4. Cross-Sell Root Parts</span>
-                  <span className="text-blue-600">15%</span>
+                  <span className="text-blue-600 font-mono">15%</span>
                 </div>
-                <div className="text-sm font-extrabold text-slate-900">
+                <div className="text-base font-extrabold text-slate-900 font-mono">
                   {formatLakhs(dynamicCalculations.pillars.crossSell)}
                 </div>
                 <div className="text-[11px] text-slate-500 mt-1 leading-snug">
                   Pitch complementary parts tied to active root part families.
                 </div>
               </div>
-              <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] font-semibold text-blue-700">
+              <div className="mt-3 pt-2 border-t border-slate-200/60 text-[10px] font-bold text-blue-700 uppercase tracking-wider">
                 Action: Family Bundles
               </div>
             </div>
 
             {/* Pillar 5: Dormant Reactivation */}
-            <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col justify-between">
+            <div className="bg-slate-50/70 hover:bg-slate-50 p-3.5 rounded-xl border border-slate-200/70 flex flex-col justify-between transition-colors">
               <div>
                 <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 mb-1">
                   <span>5. Dormant Recovery</span>
-                  <span className="text-blue-600">10%</span>
+                  <span className="text-blue-600 font-mono">10%</span>
                 </div>
-                <div className="text-sm font-extrabold text-slate-900">
+                <div className="text-base font-extrabold text-slate-900 font-mono">
                   {formatLakhs(dynamicCalculations.pillars.dormantRecovery)}
                 </div>
                 <div className="text-[11px] text-slate-500 mt-1 leading-snug">
                   Reactivate core catalog items ordered in FY23-FY24 but silent this year.
                 </div>
               </div>
-              <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] font-semibold text-blue-700">
+              <div className="mt-3 pt-2 border-t border-slate-200/60 text-[10px] font-bold text-blue-700 uppercase tracking-wider">
                 Action: Historical Winback
               </div>
             </div>
           </div>
         </section>
 
+
         {/* ─── SECTION 8: TOP 5 RECOMMENDED NEXT BEST ACTIONS (DATA-DRIVEN PLAYBOOK) ─── */}
-        <section className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs print-card print-break-inside-avoid">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 text-emerald-600" />
+        <section className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs print-card print-break-inside-avoid">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <Award className="w-4 h-4" />
+              </div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                 Top 5 Recommended Next Best Actions (Field Rep Sales Playbook)
               </h3>
             </div>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50/80 px-2.5 py-1 rounded-lg border border-emerald-200/70">
               Targeted Revenue Boost
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mt-3">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5 mt-4">
             {recommendedActions.length === 0 ? (
-              <div className="col-span-5 p-4 text-center text-xs text-slate-500">
-                No immediate action playbooks generated. Account is healthy.
+              <div className="col-span-5 p-6 text-center text-xs text-slate-400">
+                No immediate action playbooks required. Account purchasing is on-track.
               </div>
             ) : (
               recommendedActions.map((act: any, idx: number) => (
                 <div
                   key={idx}
-                  className="p-3 rounded-lg border border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-blue-300 transition-all flex flex-col justify-between"
+                  className="p-3.5 rounded-xl border border-slate-200/70 bg-slate-50/50 hover:bg-slate-50 hover:border-blue-300 transition-all flex flex-col justify-between"
                 >
                   <div>
-                    <div className="flex items-center justify-between gap-1 mb-1.5">
-                      <span className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">
+                    <div className="flex items-center justify-between gap-1 mb-2">
+                      <span className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-black">
                         #{act.rank || idx + 1}
                       </span>
-                      <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded uppercase ${
-                        act.priority === 'HIGH' ? 'bg-rose-100 text-rose-800' :
-                        act.priority === 'MEDIUM' ? 'bg-amber-100 text-amber-800' :
-                        'bg-blue-100 text-blue-800'
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                        act.priority === 'HIGH' ? 'bg-rose-50 text-rose-700 border border-rose-200/80' :
+                        act.priority === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border border-amber-200/80' :
+                        'bg-blue-50 text-blue-700 border border-blue-200/80'
                       }`}>
                         {act.priority}
                       </span>
@@ -1692,14 +1720,14 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                       {act.title}
                     </div>
 
-                    <div className="text-[11px] text-slate-600 mt-1 leading-snug">
+                    <div className="text-[11px] text-slate-500 mt-1 leading-snug">
                       {act.reason}
                     </div>
                   </div>
 
-                  <div className="mt-3 pt-2 border-t border-slate-200 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-500">Value:</span>
-                    <span className="text-xs font-extrabold text-emerald-700 font-mono">
+                  <div className="mt-3.5 pt-2.5 border-t border-slate-200/60 flex items-center justify-between">
+                    <span className="text-[10px] font-semibold text-slate-400">Value:</span>
+                    <span className="text-xs font-black text-emerald-700 font-mono">
                       {formatCurrency(act.potentialValue)}
                     </span>
                   </div>
@@ -1713,56 +1741,60 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 print-break-inside-avoid">
           
           {/* Growth Explanation */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs print-card">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-blue-600" />
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs print-card">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                   YTD Growth Drivers & Attribution
                 </h3>
               </div>
-              <span className={`text-xs font-bold ${growthExplanation.totalGrowth >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+              <span className={`text-xs font-black font-mono ${growthExplanation.totalGrowth >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                 {growthExplanation.totalGrowth >= 0 ? '+' : ''}{formatLakhs(growthExplanation.totalGrowth)}
               </span>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {growthExplanation.components.map((comp: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between text-xs">
-                  <span className="text-slate-600 font-medium">{comp.label}</span>
+                <div key={idx} className="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50/60 border border-slate-100">
+                  <span className="text-slate-700 font-medium">{comp.label}</span>
                   <span className="font-mono font-bold text-slate-900">
                     {formatCurrency(comp.value)}
                   </span>
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
+            <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400">
               *Growth drivers isolate category volume expansion, root part depth, and price mix adjustments.
             </div>
           </div>
 
           {/* Next Growth Roadmap */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs print-card">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-emerald-600" />
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs print-card">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                  <Target className="w-4 h-4" />
+                </div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
                   Where Can We Get the Next {targetGrowthPercent}%?
                 </h3>
               </div>
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50/80 px-2.5 py-1 rounded-lg border border-emerald-200/70">
                 Confidence-Rated
               </span>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {nextGrowthRoadmap.map((road: any, idx: number) => (
-                <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-200/60 text-xs">
                   <div className="min-w-0 pr-2">
-                    <div className="font-semibold text-slate-800 truncate">{road.opportunity}</div>
+                    <div className="font-bold text-slate-900 truncate">{road.opportunity}</div>
                     <div className="text-[10px] text-slate-400">{road.confidence}</div>
                   </div>
-                  <div className="font-mono font-bold text-emerald-700 flex-shrink-0">
+                  <div className="font-mono font-black text-emerald-700 flex-shrink-0">
                     {formatCurrency(road.potential)}
                   </div>
                 </div>
@@ -1775,20 +1807,22 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 print-break-inside-avoid">
           
           {/* Risk Alerts (Attention Required) */}
-          <div className="bg-rose-50/50 rounded-xl border border-rose-200 p-4 shadow-xs print-card">
-            <div className="flex items-center gap-2 mb-3">
-              <ShieldAlert className="w-4 h-4 text-rose-600" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-rose-900">
+          <div className="bg-rose-50/40 rounded-2xl border border-rose-200/70 p-5 shadow-xs print-card">
+            <div className="flex items-center gap-2.5 mb-3.5">
+              <div className="w-7 h-7 rounded-lg bg-rose-100/80 flex items-center justify-center text-rose-600">
+                <ShieldAlert className="w-4 h-4" />
+              </div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-rose-950">
                 Attention Required (Risk Factors & Volume Drops)
               </h3>
             </div>
             {riskAndSignals.attentionRequired.length === 0 ? (
               <div className="text-xs text-rose-700">No critical risk signals flagged for this account.</div>
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {riskAndSignals.attentionRequired.map((risk: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-2 text-xs text-rose-900">
-                    <span className="text-rose-500 font-bold">•</span>
+                  <li key={idx} className="flex items-start gap-2.5 text-xs text-rose-900">
+                    <span className="text-rose-500 font-bold mt-0.5">•</span>
                     <span>{risk}</span>
                   </li>
                 ))}
@@ -1797,20 +1831,22 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           </div>
 
           {/* Positive Signals (Growth Catalysts) */}
-          <div className="bg-emerald-50/50 rounded-xl border border-emerald-200 p-4 shadow-xs print-card">
-            <div className="flex items-center gap-2 mb-3">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-900">
+          <div className="bg-emerald-50/40 rounded-2xl border border-emerald-200/70 p-5 shadow-xs print-card">
+            <div className="flex items-center gap-2.5 mb-3.5">
+              <div className="w-7 h-7 rounded-lg bg-emerald-100/80 flex items-center justify-center text-emerald-600">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
                 Positive Signals (Growth Catalysts & Strengths)
               </h3>
             </div>
             {riskAndSignals.positiveSignals.length === 0 ? (
               <div className="text-xs text-emerald-700">Maintaining standard historical turnover baseline.</div>
             ) : (
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {riskAndSignals.positiveSignals.map((pos: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-2 text-xs text-emerald-900">
-                    <span className="text-emerald-500 font-bold">✓</span>
+                  <li key={idx} className="flex items-start gap-2.5 text-xs text-emerald-900">
+                    <span className="text-emerald-500 font-bold mt-0.5">✓</span>
                     <span>{pos}</span>
                   </li>
                 ))}
@@ -1818,6 +1854,7 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
             )}
           </div>
         </section>
+
 
       </main>
     </div>
