@@ -58,13 +58,13 @@ npm run start:prod
 
 ### Pre-requisites on cPanel Server
 
-1. Node.js 18+ enabled via **cPanel → Node.js Selector**
+1. Node.js 18+ enabled via **cPanel â†’ Node.js Selector**
 2. PostgreSQL database created
 3. **.env file** placed at root with production credentials (see .env.example)
 
 ### Deploy Steps
 
-1. **cPanel → Git Version Control → Create Repository**
+1. **cPanel â†’ Git Version Control â†’ Create Repository**
 2. Clone URL: https://github.com/coordinatorindiaautomotive/TheSSBuddy.git
 3. Set deployment path (e.g., /home/USERNAME/thessbuddy)
 4. **Pull** from main branch
@@ -118,7 +118,7 @@ git checkout -b feature/my-feature
 git add .
 git commit -m "feat: description"
 git push origin feature/my-feature
-# Create PR → merge to main → cPanel auto-deploys
+# Create PR â†’ merge to main â†’ cPanel auto-deploys
 ```
 
 ---
@@ -148,18 +148,18 @@ pm run prisma:studio       | Open Prisma Studio (database browser)   |
 
 ```
 thessbuddy/
-├── src/                   # NestJS backend source
-│   ├── auth/              # JWT authentication
-│   ├── reports/           # Excel + PDF export engine
-│   ├── dashboard/         # KPIs and analytics
-│   ├── outstanding/       # Outstanding management
-│   ├── target-achievement/# Target vs Achievement
-│   └── ...
-├── frontend/              # Next.js frontend
-│   └── src/app/           # Pages (App Router)
-├── prisma/                # Database schema + migrations
-│   └── schema.prisma
-├── .cpanel.yml            # cPanel auto-deploy tasks
-├── .env.example           # Environment template
-└── package.json
+â”œâ”€â”€ src/                   # NestJS backend source
+â”‚   â”œâ”€â”€ auth/              # JWT authentication
+â”‚   â”œâ”€â”€ reports/           # Excel + PDF export engine
+â”‚   â”œâ”€â”€ dashboard/         # KPIs and analytics
+â”‚   â”œâ”€â”€ outstanding/       # Outstanding management
+â”‚   â”œâ”€â”€ target-achievement/# Target vs Achievement
+â”‚   â””â”€â”€ ...
+â”œâ”€â”€ frontend/              # Next.js frontend
+â”‚   â””â”€â”€ src/app/           # Pages (App Router)
+â”œâ”€â”€ prisma/                # Database schema + migrations
+â”‚   â””â”€â”€ schema.prisma
+â”œâ”€â”€ .cpanel.yml            # cPanel auto-deploy tasks
+â”œâ”€â”€ .env.example           # Environment template
+â””â”€â”€ package.json
 ```
