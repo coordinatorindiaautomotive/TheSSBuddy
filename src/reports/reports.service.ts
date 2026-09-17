@@ -476,12 +476,17 @@ export class ReportsService {
     const ly2PrevMonth = prevMonth;
     const ly2PrevMonthFY = prevMonthFY - 2;
 
-    // Quarters
+    // Quarters setup
     let curQuarterMonths = ['Jul', 'Aug', 'Sep'];
     let curQuarterTillMonths = ['Jul', 'Aug', 'Sep'];
     let prevQuarterMonths = ['Apr', 'May', 'Jun'];
     let prevQuarterTillMonths = ['Apr', 'May', 'Jun'];
     let prevQuarterFY = targetFY;
+
+    let q1CurTillMonths = ['Apr', 'May', 'Jun'];
+    let q1LyTillMonths = ['Apr', 'May', 'Jun'];
+    let q2CurTillMonths = ['Jul', 'Aug', 'Sep'];
+    let q2LyTillMonths = ['Jul', 'Aug', 'Sep'];
 
     if (monthIdx <= 2) {
       curQuarterMonths = ['Apr', 'May', 'Jun'];
@@ -489,27 +494,48 @@ export class ReportsService {
       prevQuarterMonths = ['Jan', 'Feb', 'Mar'];
       prevQuarterTillMonths = ['Jan', 'Feb', 'Mar'];
       prevQuarterFY = targetFY - 1;
+
+      q1CurTillMonths = MONTH_ORDER.slice(0, monthIdx + 1);
+      q1LyTillMonths = MONTH_ORDER.slice(0, monthIdx + 1);
+      q2CurTillMonths = [];
+      q2LyTillMonths = [];
     } else if (monthIdx >= 3 && monthIdx <= 5) {
       curQuarterMonths = ['Jul', 'Aug', 'Sep'];
       curQuarterTillMonths = MONTH_ORDER.slice(3, monthIdx + 1);
       prevQuarterMonths = ['Apr', 'May', 'Jun'];
       prevQuarterTillMonths = ['Apr', 'May', 'Jun'];
       prevQuarterFY = targetFY;
+
+      q1CurTillMonths = ['Apr', 'May', 'Jun'];
+      q1LyTillMonths = ['Apr', 'May', 'Jun'];
+      q2CurTillMonths = MONTH_ORDER.slice(3, monthIdx + 1);
+      q2LyTillMonths = MONTH_ORDER.slice(3, monthIdx + 1);
     } else if (monthIdx >= 6 && monthIdx <= 8) {
       curQuarterMonths = ['Oct', 'Nov', 'Dec'];
       curQuarterTillMonths = MONTH_ORDER.slice(6, monthIdx + 1);
       prevQuarterMonths = ['Jul', 'Aug', 'Sep'];
       prevQuarterTillMonths = ['Jul', 'Aug', 'Sep'];
       prevQuarterFY = targetFY;
+
+      q1CurTillMonths = ['Apr', 'May', 'Jun'];
+      q1LyTillMonths = ['Apr', 'May', 'Jun'];
+      q2CurTillMonths = ['Jul', 'Aug', 'Sep'];
+      q2LyTillMonths = ['Jul', 'Aug', 'Sep'];
     } else {
       curQuarterMonths = ['Jan', 'Feb', 'Mar'];
       curQuarterTillMonths = MONTH_ORDER.slice(9, monthIdx + 1);
       prevQuarterMonths = ['Oct', 'Nov', 'Dec'];
       prevQuarterTillMonths = ['Oct', 'Nov', 'Dec'];
       prevQuarterFY = targetFY;
+
+      q1CurTillMonths = ['Apr', 'May', 'Jun'];
+      q1LyTillMonths = ['Apr', 'May', 'Jun'];
+      q2CurTillMonths = ['Jul', 'Aug', 'Sep'];
+      q2LyTillMonths = ['Jul', 'Aug', 'Sep'];
     }
 
     const ytdMonths = MONTH_ORDER.slice(0, monthIdx + 1);
+    const fy0 = targetFY - 3;
     const fy1 = targetFY - 2;
     const fy2 = targetFY - 1;
     const fy3 = targetFY;
@@ -522,6 +548,11 @@ export class ReportsService {
     if (catFilter && catFilter !== 'ALL') {
       catSqlClause = `AND part_category_code = '${catFilter.replace(/'/g, "''")}'`;
     }
+
+    const q1CurTillClause = q1CurTillMonths.length > 0 ? `month IN ('${q1CurTillMonths.join("','")}')` : `1=0`;
+    const q1LyTillClause = q1LyTillMonths.length > 0 ? `month IN ('${q1LyTillMonths.join("','")}')` : `1=0`;
+    const q2CurTillClause = q2CurTillMonths.length > 0 ? `month IN ('${q2CurTillMonths.join("','")}')` : `1=0`;
+    const q2LyTillClause = q2LyTillMonths.length > 0 ? `month IN ('${q2LyTillMonths.join("','")}')` : `1=0`;
 
     const rawRows: any[] = await this.prisma.$queryRawUnsafe(`
       WITH 
@@ -557,7 +588,7 @@ export class ReportsService {
           COALESCE(loc, 'HO') AS branch_code, 
           COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-') AS party_code, 
           COALESCE(part_category_code, 'M') AS cat,
-          MAX(COALESCE(cons_party_name, dealer_code)) AS party_name,
+          MAX(COALESCE(cons_party_name, dealer_code)) AS party_name, 
           COALESCE(party_type, 'TRADER/RETAILER') AS party_type,
           ROUND(SUM(net_retail_selling)::numeric, 2) AS ly_sm_sales
         FROM retail_sales_records
@@ -590,62 +621,74 @@ export class ReportsService {
           ${catSqlClause}
         GROUP BY loc, COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-'), COALESCE(part_category_code, 'M')
       ),
-      qtd_cur AS (
+      q1_cur_total AS (
         SELECT 
           COALESCE(loc, 'HO') AS branch_code, 
           COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-') AS party_code, 
           COALESCE(part_category_code, 'M') AS cat,
-          ROUND(SUM(net_retail_selling)::numeric, 2) AS qtd_cur_sales
+          ROUND(SUM(net_retail_selling)::numeric, 2) AS q1_cur_total_sales
         FROM retail_sales_records
-        WHERE fiscal_year = ${targetFY} AND month IN ('${curQuarterMonths.join("','")}')
+        WHERE fiscal_year = ${targetFY} AND month IN ('Apr', 'May', 'Jun')
           ${branchSqlClause}
           ${catSqlClause}
         GROUP BY loc, COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-'), COALESCE(part_category_code, 'M')
       ),
-      qtd_prev_qtr_total AS (
+      q1_cur_till AS (
         SELECT 
           COALESCE(loc, 'HO') AS branch_code, 
           COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-') AS party_code, 
           COALESCE(part_category_code, 'M') AS cat,
-          ROUND(SUM(net_retail_selling)::numeric, 2) AS qtd_prev_qtr_total_sales
+          ROUND(SUM(net_retail_selling)::numeric, 2) AS q1_cur_till_sales
         FROM retail_sales_records
-        WHERE fiscal_year = ${prevQuarterFY} AND month IN ('${prevQuarterMonths.join("','")}')
+        WHERE fiscal_year = ${targetFY} AND ${q1CurTillClause}
           ${branchSqlClause}
           ${catSqlClause}
         GROUP BY loc, COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-'), COALESCE(part_category_code, 'M')
       ),
-      qtd_prev_qtr_till AS (
+      q1_ly_total AS (
         SELECT 
           COALESCE(loc, 'HO') AS branch_code, 
           COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-') AS party_code, 
           COALESCE(part_category_code, 'M') AS cat,
-          ROUND(SUM(net_retail_selling)::numeric, 2) AS qtd_prev_qtr_till_sales
+          ROUND(SUM(net_retail_selling)::numeric, 2) AS q1_ly_total_sales
         FROM retail_sales_records
-        WHERE fiscal_year = ${prevQuarterFY} AND month IN ('${prevQuarterTillMonths.join("','")}')
+        WHERE fiscal_year = ${targetFY - 1} AND month IN ('Apr', 'May', 'Jun')
           ${branchSqlClause}
           ${catSqlClause}
         GROUP BY loc, COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-'), COALESCE(part_category_code, 'M')
       ),
-      qtd_ly_total AS (
+      q1_ly_till AS (
         SELECT 
           COALESCE(loc, 'HO') AS branch_code, 
           COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-') AS party_code, 
           COALESCE(part_category_code, 'M') AS cat,
-          ROUND(SUM(net_retail_selling)::numeric, 2) AS qtd_ly_total_sales
+          ROUND(SUM(net_retail_selling)::numeric, 2) AS q1_ly_till_sales
         FROM retail_sales_records
-        WHERE fiscal_year = ${targetFY - 1} AND month IN ('${curQuarterMonths.join("','")}')
+        WHERE fiscal_year = ${targetFY - 1} AND ${q1LyTillClause}
           ${branchSqlClause}
           ${catSqlClause}
         GROUP BY loc, COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-'), COALESCE(part_category_code, 'M')
       ),
-      qtd_ly_till AS (
+      q2_cur_till AS (
         SELECT 
           COALESCE(loc, 'HO') AS branch_code, 
           COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-') AS party_code, 
           COALESCE(part_category_code, 'M') AS cat,
-          ROUND(SUM(net_retail_selling)::numeric, 2) AS qtd_ly_till_sales
+          ROUND(SUM(net_retail_selling)::numeric, 2) AS q2_cur_till_sales
         FROM retail_sales_records
-        WHERE fiscal_year = ${targetFY - 1} AND month IN ('${curQuarterTillMonths.join("','")}')
+        WHERE fiscal_year = ${targetFY} AND ${q2CurTillClause}
+          ${branchSqlClause}
+          ${catSqlClause}
+        GROUP BY loc, COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-'), COALESCE(part_category_code, 'M')
+      ),
+      q2_ly_till AS (
+        SELECT 
+          COALESCE(loc, 'HO') AS branch_code, 
+          COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-') AS party_code, 
+          COALESCE(part_category_code, 'M') AS cat,
+          ROUND(SUM(net_retail_selling)::numeric, 2) AS q2_ly_till_sales
+        FROM retail_sales_records
+        WHERE fiscal_year = ${targetFY - 1} AND ${q2LyTillClause}
           ${branchSqlClause}
           ${catSqlClause}
         GROUP BY loc, COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-'), COALESCE(part_category_code, 'M')
@@ -679,11 +722,12 @@ export class ReportsService {
           COALESCE(loc, 'HO') AS branch_code, 
           COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-') AS party_code, 
           COALESCE(part_category_code, 'M') AS cat,
+          ROUND(SUM(CASE WHEN fiscal_year = ${fy0} THEN net_retail_selling ELSE 0 END)::numeric, 2) AS fy0_total,
           ROUND(SUM(CASE WHEN fiscal_year = ${fy1} THEN net_retail_selling ELSE 0 END)::numeric, 2) AS fy1_total,
           ROUND(SUM(CASE WHEN fiscal_year = ${fy2} THEN net_retail_selling ELSE 0 END)::numeric, 2) AS fy2_total,
           ROUND(SUM(CASE WHEN fiscal_year = ${fy3} THEN net_retail_selling ELSE 0 END)::numeric, 2) AS fy3_total
         FROM retail_sales_records
-        WHERE fiscal_year IN (${fy1}, ${fy2}, ${fy3})
+        WHERE fiscal_year IN (${fy0}, ${fy1}, ${fy2}, ${fy3})
           ${branchSqlClause}
           ${catSqlClause}
         GROUP BY loc, COALESCE(NULLIF(cons_party_code, ''), NULLIF(dealer_code, ''), '-'), COALESCE(part_category_code, 'M')
@@ -734,13 +778,15 @@ export class ReportsService {
         COALESCE(ly.ly_sm_sales, 0) AS "lySameMonthSales",
         COALESCE(lp.ly_pm_sales, 0) AS "lyPrevMonthSales",
         COALESCE(l2p.ly2_pm_sales, 0) AS "ly2PrevMonthSales",
-        COALESCE(qc.qtd_cur_sales, 0) AS "qtdCurSales",
-        COALESCE(qp.qtd_prev_qtr_total_sales, 0) AS "qtdPrevQtrTotalSales",
-        COALESCE(qpt.qtd_prev_qtr_till_sales, 0) AS "qtdPrevQtrTillSales",
-        COALESCE(qlt.qtd_ly_total_sales, 0) AS "qtdLyTotalSales",
-        COALESCE(ql.qtd_ly_till_sales, 0) AS "qtdLyTillSales",
+        COALESCE(q1c.q1_cur_total_sales, 0) AS "q1CurTotalSales",
+        COALESCE(q1ct.q1_cur_till_sales, 0) AS "q1CurTillSales",
+        COALESCE(q1l.q1_ly_total_sales, 0) AS "q1LyTotalSales",
+        COALESCE(q1lt.q1_ly_till_sales, 0) AS "q1LyTillSales",
+        COALESCE(q2c.q2_cur_till_sales, 0) AS "q2CurTillSales",
+        COALESCE(q2l.q2_ly_till_sales, 0) AS "q2LyTillSales",
         COALESCE(yc.ytd_cur_sales, 0) AS "ytdCurSales",
         COALESCE(yl.ytd_ly_sales, 0) AS "ytdLySales",
+        COALESCE(ft.fy0_total, 0) AS "fy0Total",
         COALESCE(ft.fy1_total, 0) AS "fy1Total",
         COALESCE(ft.fy2_total, 0) AS "fy2Total",
         COALESCE(ft.fy3_total, 0) AS "fy3Total",
@@ -754,11 +800,12 @@ export class ReportsService {
       LEFT JOIN snapshots sn ON ap.branch_code = sn.branch_code AND ap.party_code = sn.party_code AND ap.cat = sn.cat
       LEFT JOIN ly_prev_month lp ON ap.branch_code = lp.branch_code AND ap.party_code = lp.party_code AND ap.cat = lp.cat
       LEFT JOIN ly2_prev_month l2p ON ap.branch_code = l2p.branch_code AND ap.party_code = l2p.party_code AND ap.cat = l2p.cat
-      LEFT JOIN qtd_cur qc ON ap.branch_code = qc.branch_code AND ap.party_code = qc.party_code AND ap.cat = qc.cat
-      LEFT JOIN qtd_prev_qtr_total qp ON ap.branch_code = qp.branch_code AND ap.party_code = qp.party_code AND ap.cat = qp.cat
-      LEFT JOIN qtd_prev_qtr_till qpt ON ap.branch_code = qpt.branch_code AND ap.party_code = qpt.party_code AND ap.cat = qpt.cat
-      LEFT JOIN qtd_ly_total qlt ON ap.branch_code = qlt.branch_code AND ap.party_code = qlt.party_code AND ap.cat = qlt.cat
-      LEFT JOIN qtd_ly_till ql ON ap.branch_code = ql.branch_code AND ap.party_code = ql.party_code AND ap.cat = ql.cat
+      LEFT JOIN q1_cur_total q1c ON ap.branch_code = q1c.branch_code AND ap.party_code = q1c.party_code AND ap.cat = q1c.cat
+      LEFT JOIN q1_cur_till q1ct ON ap.branch_code = q1ct.branch_code AND ap.party_code = q1ct.party_code AND ap.cat = q1ct.cat
+      LEFT JOIN q1_ly_total q1l ON ap.branch_code = q1l.branch_code AND ap.party_code = q1l.party_code AND ap.cat = q1l.cat
+      LEFT JOIN q1_ly_till q1lt ON ap.branch_code = q1lt.branch_code AND ap.party_code = q1lt.party_code AND ap.cat = q1lt.cat
+      LEFT JOIN q2_cur_till q2c ON ap.branch_code = q2c.branch_code AND ap.party_code = q2c.party_code AND ap.cat = q2c.cat
+      LEFT JOIN q2_ly_till q2l ON ap.branch_code = q2l.branch_code AND ap.party_code = q2l.party_code AND ap.cat = q2l.cat
       LEFT JOIN ytd_cur yc ON ap.branch_code = yc.branch_code AND ap.party_code = yc.party_code AND ap.cat = yc.cat
       LEFT JOIN ytd_ly yl ON ap.branch_code = yl.branch_code AND ap.party_code = yl.party_code AND ap.cat = yl.cat
       LEFT JOIN fy_totals ft ON ap.branch_code = ft.branch_code AND ap.party_code = ft.party_code AND ap.cat = ft.cat
@@ -799,13 +846,15 @@ export class ReportsService {
             lySameMonthSales: 0,
             lyPrevMonthSales: 0,
             ly2PrevMonthSales: 0,
-            qtdCurSales: 0,
-            qtdPrevQtrTotalSales: 0,
-            qtdPrevQtrTillSales: 0,
-            qtdLyTotalSales: 0,
-            qtdLyTillSales: 0,
+            q1CurTotalSales: 0,
+            q1CurTillSales: 0,
+            q1LyTotalSales: 0,
+            q1LyTillSales: 0,
+            q2CurTillSales: 0,
+            q2LyTillSales: 0,
             ytdCurSales: 0,
             ytdLySales: 0,
+            fy0Total: 0,
             fy1Total: 0,
             fy2Total: 0,
             fy3Total: 0,
@@ -821,13 +870,15 @@ export class ReportsService {
         item.lySameMonthSales += Number(r.lySameMonthSales) || 0;
         item.lyPrevMonthSales += Number(r.lyPrevMonthSales) || 0;
         item.ly2PrevMonthSales += Number(r.ly2PrevMonthSales) || 0;
-        item.qtdCurSales += Number(r.qtdCurSales) || 0;
-        item.qtdPrevQtrTotalSales += Number(r.qtdPrevQtrTotalSales) || 0;
-        item.qtdPrevQtrTillSales += Number(r.qtdPrevQtrTillSales) || 0;
-        item.qtdLyTotalSales += Number(r.qtdLyTotalSales) || 0;
-        item.qtdLyTillSales += Number(r.qtdLyTillSales) || 0;
+        item.q1CurTotalSales += Number(r.q1CurTotalSales) || 0;
+        item.q1CurTillSales += Number(r.q1CurTillSales) || 0;
+        item.q1LyTotalSales += Number(r.q1LyTotalSales) || 0;
+        item.q1LyTillSales += Number(r.q1LyTillSales) || 0;
+        item.q2CurTillSales += Number(r.q2CurTillSales) || 0;
+        item.q2LyTillSales += Number(r.q2LyTillSales) || 0;
         item.ytdCurSales += Number(r.ytdCurSales) || 0;
         item.ytdLySales += Number(r.ytdLySales) || 0;
+        item.fy0Total += Number(r.fy0Total) || 0;
         item.fy1Total += Number(r.fy1Total) || 0;
         item.fy2Total += Number(r.fy2Total) || 0;
         item.fy3Total += Number(r.fy3Total) || 0;
@@ -914,15 +965,17 @@ export class ReportsService {
       const lyPrevMonthSales = Number(r.lyPrevMonthSales) || 0;
       const ly2PrevMonthSales = Number(r.ly2PrevMonthSales) || 0;
 
-      const qtdCurSales = Number(r.qtdCurSales) || 0;
-      const qtdPrevQtrTotalSales = Number(r.qtdPrevQtrTotalSales) || 0;
-      const qtdPrevQtrTillSales = Number(r.qtdPrevQtrTillSales) || 0;
-      const qtdLyTotalSales = Number(r.qtdLyTotalSales) || 0;
-      const qtdLyTillSales = Number(r.qtdLyTillSales) || 0;
+      const q1CurTotalSales = Number(r.q1CurTotalSales) || 0;
+      const q1CurTillSales = Number(r.q1CurTillSales) || 0;
+      const q1LyTotalSales = Number(r.q1LyTotalSales) || 0;
+      const q1LyTillSales = Number(r.q1LyTillSales) || 0;
+      const q2CurTillSales = Number(r.q2CurTillSales) || 0;
+      const q2LyTillSales = Number(r.q2LyTillSales) || 0;
 
       const ytdCurSales = Number(r.ytdCurSales) || 0;
       const ytdLySales = Number(r.ytdLySales) || 0;
 
+      const fy0Total = Number(r.fy0Total) || 0;
       const fy1Total = Number(r.fy1Total) || 0;
       const fy2Total = Number(r.fy2Total) || 0;
       const fy3Total = Number(r.fy3Total) || 0;
@@ -947,18 +1000,13 @@ export class ReportsService {
       const adminDefinedTarget = Number(r.adminDefinedTarget) > 0 ? Number(r.adminDefinedTarget) : snapAdminTarget;
       const finalTarget = adminDefinedTarget > 0 ? adminDefinedTarget : (snapFinalTarget > 0 ? snapFinalTarget : recommendedTarget);
 
-      const mtdLyGrowth = ly2PrevMonthSales > 0 ? ((lyPrevMonthSales - ly2PrevMonthSales) / ly2PrevMonthSales) : 0;
-      const mtdLmGrowth = lyPrevMonthSales > 0 ? ((lmSales - lyPrevMonthSales) / lyPrevMonthSales) : 0;
-      const mtdCurGrowth = lySameMonthSales > 0 ? ((curSales - lySameMonthSales) / lySameMonthSales) : 0;
+      // Growth Calculations
+      const mtdLyGrowth = lySameMonthSales > 0 ? ((curSales - lySameMonthSales) / lySameMonthSales) : 0;
+      const mtdLmGrowth = lmSales > 0 ? ((curSales - lmSales) / lmSales) : 0;
 
-      const qtdAug25Growth = qtdLyTotalSales > 0 ? ((qtdLyTillSales - qtdLyTotalSales) / qtdLyTotalSales) : 0;
-      const qtdAug26Growth = qtdLyTillSales > 0 ? ((qtdPrevQtrTillSales - qtdLyTillSales) / qtdLyTillSales) : 0;
-      const qtdCurGrowth = qtdLyTotalSales > 0 ? ((qtdCurSales - qtdLyTotalSales) / qtdLyTotalSales) : 0;
-
+      const q2Growth = q2LyTillSales > 0 ? ((q2CurTillSales - q2LyTillSales) / q2LyTillSales) : 0;
       const ytdGrowth = ytdLySales > 0 ? ((ytdCurSales - ytdLySales) / ytdLySales) : 0;
-
-      const fy24Growth = fy1Total > 0 ? ((fy2Total - fy1Total) / fy1Total) : 0;
-      const fy25Growth = fy2Total > 0 ? ((fy3Total - fy2Total) / fy2Total) : 0;
+      const fyYoYGrowth = fy2Total > 0 ? ((fy3Total - fy2Total) / fy2Total) : 0;
 
       const achievementPercent = finalTarget > 0 ? (curSales / finalTarget) : 0;
       const status = achievementPercent >= 1.0 ? 'ACHIEVED' : achievementPercent >= 0.70 ? 'ON TRACK' : 'UNDER TARGET';
@@ -974,37 +1022,36 @@ export class ReportsService {
         partCategoryCode: r.partCategoryCode,
         uniquePartlines,
 
-        // MTD
-        lmSales,
-        lySameMonthSales,
-        mtdAug25: lyPrevMonthSales,
-        mtdAug26: lmSales,
-        mtdSep26: curSales,
-        mtdAug25Growth: mtdLyGrowth,
-        mtdAug26Growth: mtdLmGrowth,
-        mtdSep26Growth: mtdCurGrowth,
-
-        // QTD
-        qtdQ2LyTotal: qtdLyTotalSales,
-        qtdQ2LyTill: qtdLyTillSales,
-        qtdQ1CurTotal: qtdPrevQtrTotalSales,
-        qtdQ1CurTill: qtdPrevQtrTillSales,
-        qtdQ2Cur: qtdCurSales,
-        qtdAug25Growth,
-        qtdAug26Growth,
-        qtdSep26Growth: qtdCurGrowth,
-
-        // YTD & 3-Year
-        ytdLy: ytdLySales,
-        ytdCur: ytdCurSales,
-        ytdGrowth,
+        // 4 Multi-Year Historical Totals
+        fy0Total,
         fy1Total,
         fy2Total,
         fy3Total,
-        fy24Growth,
-        fy25Growth,
+        fyYoYGrowth,
 
-        // Target & Fulfillment
+        // YTD
+        ytdLy: ytdLySales,
+        ytdCur: ytdCurSales,
+        ytdGrowth,
+
+        // Quarterly
+        q1CurTotal: q1CurTotalSales,
+        q1CurTill: q1CurTillSales,
+        q1LyTotal: q1LyTotalSales,
+        q1LyTill: q1LyTillSales,
+        q2CurTill: q2CurTillSales,
+        q2LyTill: q2LyTillSales,
+        q2Growth,
+
+        // Monthly
+        mtdCur: curSales,
+        lmTotal: lmSales,
+        lmTill: lmSales,
+        lySameMonthSales,
+        mtdLyGrowth,
+        mtdLmGrowth,
+
+        // Target & Status
         weightedBase,
         recommendedTarget,
         finalTarget,
@@ -1018,7 +1065,7 @@ export class ReportsService {
       };
     });
 
-    calculatedRows.sort((a, b) => b.mtdSep26 - a.mtdSep26 || b.lmSales - a.lmSales);
+    calculatedRows.sort((a, b) => b.mtdCur - a.mtdCur || b.lmTotal - a.lmTotal);
     calculatedRows.forEach((r, i) => { r.rank = i + 1; });
     return calculatedRows;
   }
@@ -1450,7 +1497,12 @@ export class ReportsService {
     workbook.created = new Date();
     workbook.modified = new Date();
 
-    const isTargetVsAchievement = reportName.toLowerCase().includes('target');
+    const isTargetVsAchievement =
+      !reportName ||
+      reportName.toLowerCase().includes('target') ||
+      reportName.toLowerCase().includes('performance') ||
+      reportName.toLowerCase().includes('partywise') ||
+      reportName.toLowerCase().includes('growth');
 
     if (isTargetVsAchievement) {
       const targetMonth = metadata?.month || 'Sep';
@@ -1470,44 +1522,21 @@ export class ReportsService {
       const monthIdx = MONTH_ORDER.indexOf(targetMonth) >= 0 ? MONTH_ORDER.indexOf(targetMonth) : 5;
       const prevMonth = monthIdx === 0 ? 'Mar' : MONTH_ORDER[monthIdx - 1];
       const prevMonthFY = monthIdx === 0 ? targetFY - 1 : targetFY;
+      const lyMonth = targetMonth;
 
-      let curQuarterName = 'Q2';
-      let prevQuarterName = 'Q1';
-      let prevQuarterFY = targetFY;
-
-      if (monthIdx <= 2) {
-        curQuarterName = 'Q1';
-        prevQuarterName = 'Q4';
-        prevQuarterFY = targetFY - 1;
-      } else if (monthIdx >= 3 && monthIdx <= 5) {
-        curQuarterName = 'Q2';
-        prevQuarterName = 'Q1';
-        prevQuarterFY = targetFY;
-      } else if (monthIdx >= 6 && monthIdx <= 8) {
-        curQuarterName = 'Q3';
-        prevQuarterName = 'Q2';
-        prevQuarterFY = targetFY;
-      } else {
-        curQuarterName = 'Q4';
-        prevQuarterName = 'Q3';
-        prevQuarterFY = targetFY;
-      }
-
-      const fy1 = targetFY - 2;
-      const fy2 = targetFY - 1;
-      const fy3 = targetFY;
-
-      const worksheet = workbook.addWorksheet('Target & Growth Matrix', {
+      const worksheet = workbook.addWorksheet('Partywise Performance', {
         views: [{ state: 'frozen', xSplit: 0, ySplit: 5 }],
         pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1 },
       });
 
       const NAVY_BANNER = 'FF002B55';
       const NAVY_HEADER = 'FF003366';
-      const BLUE_MTD = 'FF0284C7';
-      const INDIGO_QTD = 'FF4F46E5';
-      const PURPLE_YTD = 'FF7C3AED';
-      const EMERALD_TARGET = 'FF059669';
+      const PURPLE_HEADER = 'FF581C87';
+      const INDIGO_HEADER = 'FF3730A3';
+      const BLUE_HEADER = 'FF1D4ED8';
+      const TEAL_HEADER = 'FF0F766E';
+      const EMERALD_TARGET = 'FF047857';
+      const GREEN_STATUS = 'FF065F46';
 
       const GRAY_LIGHT = 'FFF8FAFC';
       const GRAY_BORDER = 'FFE2E8F0';
@@ -1518,7 +1547,7 @@ export class ReportsService {
       const RED_FILL = 'FFFEE2E2';
       const RED_TEXT = 'FF991B1B';
 
-      const TOTAL_COLS = 35;
+      const TOTAL_COLS = 33;
       const shortYear = String(targetFY).slice(-2);
       const prevShortYear = String(targetFY - 1).slice(-2);
       const twoPrevShortYear = String(targetFY - 2).slice(-2);
@@ -1552,7 +1581,7 @@ export class ReportsService {
       const kpiRow = worksheet.getRow(3);
       kpiRow.height = 22;
       const totalTarget = calculatedRows.reduce((s: number, x: any) => s + (Number(x.finalTarget) || 0), 0);
-      const totalSales = calculatedRows.reduce((s: number, x: any) => s + (Number(x.currentSales) || Number(x.mtdSep26) || 0), 0);
+      const totalSales = calculatedRows.reduce((s: number, x: any) => s + (Number(x.mtdCur) || Number(x.currentSales) || 0), 0);
       const overallAch = totalTarget > 0 ? (totalSales / totalTarget) * 100 : 0;
       const achievedCount = calculatedRows.filter((x) => (x.achievementPercent || 0) >= 1.0).length;
       const onTrackCount = calculatedRows.filter((x) => (x.achievementPercent || 0) >= 0.70 && (x.achievementPercent || 0) < 1.0).length;
@@ -1565,95 +1594,103 @@ export class ReportsService {
       kpiCell.alignment = { vertical: 'middle', horizontal: 'center' };
       kpiCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E7FF' } };
 
-      // ─── ROW 4: SECTION GROUP BANDS ────────────────────────────────────
-      // Group 1: Cols 1-9 (Dealer & Branch Identification)
-      worksheet.mergeCells(4, 1, 4, 9);
+      // ─── ROW 4: SECTION GROUP BANDS (Exact 6 Groups over 33 Cols) ──────
+      // Group 1: Cols 1-8 (Dealer & Branch Identification)
+      worksheet.mergeCells(4, 1, 4, 8);
       const g1 = worksheet.getCell(4, 1);
       g1.value = '1. DEALER & BRANCH IDENTIFICATION';
       g1.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
       g1.alignment = { vertical: 'middle', horizontal: 'center' };
       g1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_HEADER } };
 
-      // Group 2: Cols 10-16 (MTD Performance & Growth - Deduplicated)
-      worksheet.mergeCells(4, 10, 4, 16);
-      const g2 = worksheet.getCell(4, 10);
-      g2.value = `2. MTD PERFORMANCE & GROWTH (@ ${targetMonth}'${shortYear})`;
+      // Group 2: Cols 9-13 (Multi-Year Sales & YoY Growth)
+      worksheet.mergeCells(4, 9, 4, 13);
+      const g2 = worksheet.getCell(4, 9);
+      g2.value = `2. MULTI-YEAR SALES & GROWTH (FY${targetFY - 3} - FY${targetFY})`;
       g2.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
       g2.alignment = { vertical: 'middle', horizontal: 'center' };
-      g2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE_MTD } };
+      g2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PURPLE_HEADER } };
 
-      // Group 3: Cols 17-22 (QTD Performance & Quarterly Growth - Deduplicated)
-      worksheet.mergeCells(4, 17, 4, 22);
-      const g3 = worksheet.getCell(4, 17);
-      g3.value = `3. QTD PERFORMANCE & QUARTERLY GROWTH (${curQuarterName} FY${prevShortYear}-${shortYear})`;
+      // Group 3: Cols 14-17 (YTD Performance & Growth)
+      worksheet.mergeCells(4, 14, 4, 17);
+      const g3 = worksheet.getCell(4, 14);
+      g3.value = `3. YTD PERFORMANCE & GROWTH (FY${prevShortYear}-${shortYear})`;
       g3.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
       g3.alignment = { vertical: 'middle', horizontal: 'center' };
-      g3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INDIGO_QTD } };
+      g3.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: INDIGO_HEADER } };
 
-      // Group 4: Cols 23-30 (YTD & 3-Year Historical Growth)
-      worksheet.mergeCells(4, 23, 4, 30);
-      const g4 = worksheet.getCell(4, 23);
-      g4.value = `4. YTD & 3-YEAR HISTORICAL SALES TOTALS (FY${twoPrevShortYear} - FY${shortYear})`;
+      // Group 4: Cols 18-24 (Quarterly Performance - Q1 & Q2)
+      worksheet.mergeCells(4, 18, 4, 24);
+      const g4 = worksheet.getCell(4, 18);
+      g4.value = `4. QUARTERLY PERFORMANCE (Q1 & Q2 FY${prevShortYear}-${shortYear})`;
       g4.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
       g4.alignment = { vertical: 'middle', horizontal: 'center' };
-      g4.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PURPLE_YTD } };
+      g4.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BLUE_HEADER } };
 
-      // Group 5: Cols 31-35 (Target & Fulfillment)
-      worksheet.mergeCells(4, 31, 4, 35);
-      const g5 = worksheet.getCell(4, 31);
-      g5.value = '5. TARGET & FULFILLMENT';
+      // Group 5: Cols 25-30 (MTD Performance & Growth)
+      worksheet.mergeCells(4, 25, 4, 30);
+      const g5 = worksheet.getCell(4, 25);
+      g5.value = `5. MTD PERFORMANCE & GROWTH (@ ${targetMonth}'${shortYear})`;
       g5.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
       g5.alignment = { vertical: 'middle', horizontal: 'center' };
-      g5.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: EMERALD_TARGET } };
+      g5.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TEAL_HEADER } };
+
+      // Group 6: Cols 31-33 (Target & Fulfillment)
+      worksheet.mergeCells(4, 31, 4, 33);
+      const g6 = worksheet.getCell(4, 31);
+      g6.value = '6. TARGET & FULFILLMENT';
+      g6.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+      g6.alignment = { vertical: 'middle', horizontal: 'center' };
+      g6.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: EMERALD_TARGET } };
 
       worksheet.getRow(4).height = 22;
 
-      // ─── ROW 5: DETAILED COLUMN HEADERS ────────────────────────────────
+      // ─── ROW 5: DETAILED COLUMN HEADERS (Exact 33 Columns from Reference Image) ───
       const headers = [
-        // 1. Core Dimensions (1-9)
-        { key: 'rank', label: 'SR #', width: 7, align: 'center', bg: NAVY_HEADER },
-        { key: 'branchCode', label: 'BRANCH CODE', width: 13, align: 'center', bg: NAVY_HEADER },
-        { key: 'branchName', label: 'BRANCH NAME', width: 24, align: 'left', bg: NAVY_HEADER },
+        // 1. Core Dimensions (1-8)
+        { key: 'branchCode', label: 'BRANCH CODE', width: 14, align: 'center', bg: NAVY_HEADER },
+        { key: 'branchName', label: 'BRANCH NAME', width: 26, align: 'left', bg: NAVY_HEADER },
         { key: 'partyCode', label: 'PARTY CODE', width: 16, align: 'center', bg: NAVY_HEADER },
         { key: 'originalCode', label: 'ORIGINAL CODE', width: 16, align: 'center', bg: NAVY_HEADER },
-        { key: 'partyName', label: 'PARTY / DEALER NAME', width: 32, align: 'left', bg: NAVY_HEADER },
-        { key: 'partyType', label: 'PARTY TYPE', width: 20, align: 'center', bg: NAVY_HEADER },
+        { key: 'partyName', label: 'PARTY / DEALER NAME', width: 34, align: 'left', bg: NAVY_HEADER },
+        { key: 'partyType', label: 'PARTY TYPE', width: 22, align: 'center', bg: NAVY_HEADER },
         { key: 'partCategoryCode', label: 'CAT', width: 10, align: 'center', bg: NAVY_HEADER },
-        { key: 'uniquePartlines', label: 'UNIQUE PARTLINE', width: 15, align: 'center', bg: NAVY_HEADER },
+        { key: 'uniquePartlines', label: 'UNIQUE PARTLINE', width: 16, align: 'center', bg: NAVY_HEADER },
 
-        // 2. MTD Performance (10-16) - Clean & Deduplicated
-        { key: 'mtdAug25', label: `MTD @ ${prevMonth}'${prevShortYear}`, width: 16, align: 'right', bg: 'FF0369A1' },
-        { key: 'lySameMonthSales', label: `LY ${targetMonth}'${prevShortYear} Total`, width: 16, align: 'right', bg: 'FF0369A1' },
-        { key: 'lmSales', label: `LM ${prevMonth}'${prevMonthShortYear} Total`, width: 16, align: 'right', bg: 'FF0369A1' },
-        { key: 'mtdSep26', label: `MTD @ ${targetMonth}'${shortYear}`, width: 16, align: 'right', bg: 'FF0369A1' },
-        { key: 'mtdAug25Growth', label: `MTD @ ${prevMonth}'${prevShortYear} Growth%`, width: 15, align: 'center', bg: 'FF075985' },
-        { key: 'mtdAug26Growth', label: `MTD @ ${prevMonth}'${prevMonthShortYear} Growth%`, width: 15, align: 'center', bg: 'FF075985' },
-        { key: 'mtdSep26Growth', label: `MTD @ ${targetMonth}'${shortYear} Growth%`, width: 15, align: 'center', bg: 'FF075985' },
+        // 2. Multi-Year Sales (9-13)
+        { key: 'fy0Total', label: `FY ${targetFY - 3} Total Sale`, width: 18, align: 'right', bg: 'FF4C1D95' },
+        { key: 'fy1Total', label: `FY ${targetFY - 2} Total Sale`, width: 18, align: 'right', bg: 'FF4C1D95' },
+        { key: 'fy2Total', label: `FY ${targetFY - 1} Total Sale`, width: 18, align: 'right', bg: 'FF4C1D95' },
+        { key: 'fy3Total', label: `FY ${targetFY} Sales`, width: 18, align: 'right', bg: 'FF4C1D95' },
+        { key: 'fyYoYGrowth', label: 'YoY Growth% (Current FY/LY-1)', width: 18, align: 'center', bg: 'FF3B0764' },
 
-        // 3. QTD Performance (17-22) - Clean & Deduplicated
-        { key: 'qtdQ2LyTotal', label: `QTD @ ${curQuarterName} FY${twoPrevShortYear}-${prevShortYear} (Total)`, width: 18, align: 'right', bg: 'FF4338CA' },
-        { key: 'qtdQ1CurTotal', label: `QTD @ ${prevQuarterName} FY${prevShortYear}-${shortYear} (Total)`, width: 18, align: 'right', bg: 'FF4338CA' },
-        { key: 'qtdQ2Cur', label: `QTD @ ${curQuarterName} FY${prevShortYear}-${shortYear}`, width: 18, align: 'right', bg: 'FF4338CA' },
-        { key: 'qtdAug25Growth', label: `QTD @ ${prevMonth}'${prevShortYear} Growth%`, width: 15, align: 'center', bg: 'FF3730A3' },
-        { key: 'qtdAug26Growth', label: `QTD @ ${prevMonth}'${prevMonthShortYear} Growth%`, width: 15, align: 'center', bg: 'FF3730A3' },
-        { key: 'qtdSep26Growth', label: `QTD @ ${targetMonth}'${shortYear} Growth%`, width: 15, align: 'center', bg: 'FF3730A3' },
+        // 3. YTD Performance (14-17)
+        { key: 'ytdCur', label: `YTD ${targetFY}`, width: 18, align: 'right', bg: 'FF312E81' },
+        { key: 'ytdGrowth', label: 'YTD Growth% YTD', width: 16, align: 'center', bg: 'FF1E1B4B' },
+        { key: 'ytdLy', label: `FY ${targetFY - 1} YTD`, width: 18, align: 'right', bg: 'FF312E81' },
+        { key: 'growthYtd', label: 'Growth%', width: 14, align: 'center', bg: 'FF1E1B4B' },
 
-        // 4. YTD & 3-Year Totals (23-30)
-        { key: 'ytdLy', label: `YTD @ FY${twoPrevShortYear}-${prevShortYear}`, width: 18, align: 'right', bg: 'FF6D28D9' },
-        { key: 'ytdCur', label: `YTD @ FY${prevShortYear}-${shortYear}`, width: 18, align: 'right', bg: 'FF6D28D9' },
-        { key: 'ytdGrowth', label: 'YTD Growth%', width: 14, align: 'center', bg: 'FF5B21B6' },
-        { key: 'fy1Total', label: `FY ${targetFY - 2} Total`, width: 18, align: 'right', bg: 'FF6D28D9' },
-        { key: 'fy2Total', label: `FY ${targetFY - 1} Total`, width: 18, align: 'right', bg: 'FF6D28D9' },
-        { key: 'fy3Total', label: `FY ${targetFY} Total`, width: 18, align: 'right', bg: 'FF6D28D9' },
-        { key: 'fy24Growth', label: `FY${twoPrevShortYear}-${prevShortYear} Growth%`, width: 15, align: 'center', bg: 'FF5B21B6' },
-        { key: 'fy25Growth', label: `FY${prevShortYear}-${shortYear} Growth%`, width: 15, align: 'center', bg: 'FF5B21B6' },
+        // 4. Quarterly Performance (18-24)
+        { key: 'q1CurTotal', label: `Q1 (FY${targetFY - 1}-${shortYear}) Total`, width: 18, align: 'right', bg: 'FF1E40AF' },
+        { key: 'q1CurTill', label: `Q1 (FY${targetFY - 1}-${shortYear}) Till date`, width: 18, align: 'right', bg: 'FF1E40AF' },
+        { key: 'q1LyTotal', label: `Q1 (FY${targetFY - 2}-${prevShortYear}) Total`, width: 18, align: 'right', bg: 'FF1E40AF' },
+        { key: 'q1LyTill', label: `Q1 (FY${targetFY - 2}-${prevShortYear}) Till date`, width: 18, align: 'right', bg: 'FF1E40AF' },
+        { key: 'q2CurTill', label: `Q2 (FY${targetFY - 1}-${shortYear}) Till date`, width: 18, align: 'right', bg: 'FF1E40AF' },
+        { key: 'q2LyTill', label: `Q2 (FY${targetFY - 2}-${prevShortYear}) Till date`, width: 18, align: 'right', bg: 'FF1E40AF' },
+        { key: 'q2Growth', label: 'Growth% over ly same periods', width: 18, align: 'center', bg: 'FF172554' },
 
-        // 5. Target & Fulfillment (31-35)
-        { key: 'weightedBase', label: 'WEIGHTED BASE', width: 18, align: 'right', bg: 'FF047857' },
-        { key: 'recommendedTarget', label: 'RECOMMENDED TARGET', width: 18, align: 'right', bg: 'FF047857' },
-        { key: 'finalTarget', label: `${targetMonth}'${shortYear} TARGET`, width: 18, align: 'right', bg: 'FF047857' },
-        { key: 'achievementPercent', label: 'ACH %', width: 13, align: 'center', bg: 'FF065F46' },
-        { key: 'status', label: 'STATUS', width: 16, align: 'center', bg: 'FF065F46' },
+        // 5. Monthly Performance (25-30)
+        { key: 'mtdCur', label: `MTD @ ${targetMonth}'${shortYear}`, width: 18, align: 'right', bg: 'FF0F766E' },
+        { key: 'lmTotal', label: `${prevMonth}'${prevMonthShortYear} Total`, width: 18, align: 'right', bg: 'FF0F766E' },
+        { key: 'lmTill', label: `MTD @ ${prevMonth}'${prevMonthShortYear}`, width: 18, align: 'right', bg: 'FF0F766E' },
+        { key: 'lySameMonthSales', label: `MTD @ ${lyMonth}'${prevShortYear}`, width: 18, align: 'right', bg: 'FF0F766E' },
+        { key: 'mtdLyGrowth', label: 'Growth% over last ly', width: 16, align: 'center', bg: 'FF134E4A' },
+        { key: 'mtdLmGrowth', label: 'Growth% over last LM', width: 16, align: 'center', bg: 'FF134E4A' },
+
+        // 6. Target & Status (31-33)
+        { key: 'finalTarget', label: `${targetMonth}'${shortYear} TARGET`, width: 18, align: 'right', bg: EMERALD_TARGET },
+        { key: 'achievementPercent', label: 'ACH %', width: 14, align: 'center', bg: GREEN_STATUS },
+        { key: 'status', label: 'STATUS', width: 16, align: 'center', bg: GREEN_STATUS },
       ];
 
       const headerRow = worksheet.getRow(5);
@@ -1684,7 +1721,6 @@ export class ReportsService {
         const defaultBg = isEven ? 'FFFFFFFF' : GRAY_LIGHT;
 
         const rowValues = [
-          idx + 1,
           item.branchCode || '-',
           (item.branchName || item.branchCode || '-').toUpperCase(),
           item.partyCode || '-',
@@ -1694,36 +1730,37 @@ export class ReportsService {
           (item.partCategoryCode || 'ALL').toUpperCase(),
           item.uniquePartlines || 0,
 
-          // MTD (10-16)
-          item.mtdAug25,
-          item.lySameMonthSales,
-          item.lmSales,
-          item.mtdSep26,
-          item.mtdAug25Growth,
-          item.mtdAug26Growth,
-          item.mtdSep26Growth,
-
-          // QTD (17-22)
-          item.qtdQ2LyTotal,
-          item.qtdQ1CurTotal,
-          item.qtdQ2Cur,
-          item.qtdAug25Growth,
-          item.qtdAug26Growth,
-          item.qtdSep26Growth,
-
-          // YTD & 3-Year (23-30)
-          item.ytdLy,
-          item.ytdCur,
-          item.ytdGrowth,
+          // Multi-Year (Cols 9-13)
+          item.fy0Total,
           item.fy1Total,
           item.fy2Total,
           item.fy3Total,
-          item.fy24Growth,
-          item.fy25Growth,
+          item.fyYoYGrowth,
 
-          // Target & Fulfillment (31-35)
-          item.weightedBase,
-          item.recommendedTarget,
+          // YTD (Cols 14-17)
+          item.ytdCur,
+          item.ytdGrowth,
+          item.ytdLy,
+          item.ytdGrowth,
+
+          // Quarterly (Cols 18-24)
+          item.q1CurTotal,
+          item.q1CurTill,
+          item.q1LyTotal,
+          item.q1LyTill,
+          item.q2CurTill,
+          item.q2LyTill,
+          item.q2Growth,
+
+          // Monthly (Cols 25-30)
+          item.mtdCur,
+          item.lmTotal,
+          item.lmTill,
+          item.lySameMonthSales,
+          item.mtdLyGrowth,
+          item.mtdLmGrowth,
+
+          // Target & Status (Cols 31-33)
           item.finalTarget,
           item.achievementPercent,
           item.status,
@@ -1747,18 +1784,18 @@ export class ReportsService {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: defaultBg } };
 
           // Number Formatting without INR / ₹ sign
-          const amountCols = [10, 11, 12, 13, 17, 18, 19, 23, 24, 26, 27, 28, 31, 32, 33];
-          const percentCols = [14, 15, 16, 20, 21, 22, 25, 29, 30, 34];
+          const amountCols = [9, 10, 11, 12, 14, 16, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28, 31];
+          const percentCols = [13, 15, 17, 24, 29, 30, 32];
 
           if (amountCols.includes(colIdx)) {
             cell.numFmt = '#,##,##0;[Red]-#,##,##0;"—"';
-          } else if (colIdx === 9) {
+          } else if (colIdx === 8) {
             cell.numFmt = '#,##0';
             cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FF0F172A' } };
           } else if (percentCols.includes(colIdx)) {
             cell.numFmt = '0.0%';
             const pVal = Number(val) || 0;
-            if (colIdx === 34) {
+            if (colIdx === 32) {
               cell.font = { name: 'Abadi', size: 9, bold: true };
               if (pVal >= 1.0) {
                 cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_FILL } };
@@ -1777,7 +1814,7 @@ export class ReportsService {
                 cell.font = { name: 'Abadi', size: 9, color: { argb: 'FFDC2626' } };
               }
             }
-          } else if (colIdx === 35) {
+          } else if (colIdx === 33) {
             cell.font = { name: 'Abadi', size: 8.5, bold: true };
             if (item.status === 'ACHIEVED') {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN_FILL } };
@@ -1789,7 +1826,7 @@ export class ReportsService {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: RED_FILL } };
               cell.font = { name: 'Abadi', size: 8.5, bold: true, color: { argb: RED_TEXT } };
             }
-          } else if (colIdx === 2 || colIdx === 4 || colIdx === 5) {
+          } else if (colIdx === 1 || colIdx === 3 || colIdx === 4) {
             cell.font = { name: 'Abadi', size: 9, bold: true, color: { argb: 'FF003366' } };
           }
         });
@@ -1804,16 +1841,16 @@ export class ReportsService {
         const firstDataRow = 6;
         const lastDataRow = currentRowIdx - 1;
 
-        worksheet.mergeCells(currentRowIdx, 1, currentRowIdx, 8);
+        worksheet.mergeCells(currentRowIdx, 1, currentRowIdx, 7);
         const grandLabelCell = totalRow.getCell(1);
         grandLabelCell.value = `GRAND TOTAL (${calculatedRows.length} DEALERS)`;
         grandLabelCell.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
         grandLabelCell.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
         grandLabelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
 
-        // Unique partlines total
-        const partlineCell = totalRow.getCell(9);
-        partlineCell.value = { formula: `SUM(I${firstDataRow}:I${lastDataRow})` };
+        // Unique partlines total (Col 8)
+        const partlineCell = totalRow.getCell(8);
+        partlineCell.value = { formula: `SUM(H${firstDataRow}:H${lastDataRow})` };
         partlineCell.numFmt = '#,##0';
         partlineCell.alignment = { vertical: 'middle', horizontal: 'center' };
         partlineCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
@@ -1823,9 +1860,9 @@ export class ReportsService {
           bottom: { style: 'medium', color: { argb: 'FF60A5FA' } },
         };
 
-        const amountCols = [10, 11, 12, 13, 17, 18, 19, 23, 24, 26, 27, 28, 31, 32, 33];
+        const amountCols = [9, 10, 11, 12, 14, 16, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28, 31];
 
-        for (let c = 10; c <= TOTAL_COLS; c++) {
+        for (let c = 9; c <= TOTAL_COLS; c++) {
           const colLetter = worksheet.getColumn(c).letter;
           const cell = totalRow.getCell(c);
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
@@ -1839,17 +1876,41 @@ export class ReportsService {
             cell.value = { formula: `SUM(${colLetter}${firstDataRow}:${colLetter}${lastDataRow})` };
             cell.numFmt = '#,##,##0';
             cell.alignment = { vertical: 'middle', horizontal: 'right' };
-            if (c === 33 || c === 13) {
+            if (c === 31 || c === 25) {
               cell.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
             }
-          } else if (c === 34) {
-            const targetCol = worksheet.getColumn(33).letter;
-            const salesCol = worksheet.getColumn(13).letter;
-            cell.value = { formula: `IF(${targetCol}${currentRowIdx}>0, ${salesCol}${currentRowIdx}/${targetCol}${currentRowIdx}, 0)` };
+          } else if (c === 13) {
+            // YoY Growth% = (FY26 - FY25) / FY25 (L vs K)
+            cell.value = { formula: `IF(K${currentRowIdx}>0, (L${currentRowIdx}-K${currentRowIdx})/K${currentRowIdx}, 0)` };
+            cell.numFmt = '0.0%';
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          } else if (c === 15 || c === 17) {
+            // YTD Growth% = (YTD26 - YTD25) / YTD25 (N vs P)
+            cell.value = { formula: `IF(P${currentRowIdx}>0, (N${currentRowIdx}-P${currentRowIdx})/P${currentRowIdx}, 0)` };
+            cell.numFmt = '0.0%';
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          } else if (c === 24) {
+            // Q2 Growth% = (Q2_26 - Q2_25) / Q2_25 (V vs W)
+            cell.value = { formula: `IF(W${currentRowIdx}>0, (V${currentRowIdx}-W${currentRowIdx})/W${currentRowIdx}, 0)` };
+            cell.numFmt = '0.0%';
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          } else if (c === 29) {
+            // MTD LY Growth% = (Sep26 - Sep25) / Sep25 (Y vs AB)
+            cell.value = { formula: `IF(AB${currentRowIdx}>0, (Y${currentRowIdx}-AB${currentRowIdx})/AB${currentRowIdx}, 0)` };
+            cell.numFmt = '0.0%';
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          } else if (c === 30) {
+            // MTD LM Growth% = (Sep26 - Aug26) / Aug26 (Y vs AA)
+            cell.value = { formula: `IF(AA${currentRowIdx}>0, (Y${currentRowIdx}-AA${currentRowIdx})/AA${currentRowIdx}, 0)` };
+            cell.numFmt = '0.0%';
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          } else if (c === 32) {
+            // ACH % = Sales / Target (Y vs AE)
+            cell.value = { formula: `IF(AE${currentRowIdx}>0, Y${currentRowIdx}/AE${currentRowIdx}, 0)` };
             cell.numFmt = '0.0%';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
             cell.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFBBF24' } };
-          } else if (c === 35) {
+          } else if (c === 33) {
             cell.value = 'PORTFOLIO';
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
             cell.font = { name: 'Abadi', size: 8.5, bold: true, color: { argb: 'FF94A3B8' } };
