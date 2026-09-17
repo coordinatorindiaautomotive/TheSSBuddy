@@ -2011,6 +2011,23 @@ export class ReportsService {
 
     // Group monthly timeline
     const timelineMap = new Map<string, any>();
+    const timelineByCategory = monthlyRecords.map((r) => {
+      const periodKey = `${r.month}'${String(r.fiscal_year).slice(-2)}`;
+      const invCount = Number(r.invoices) || 0;
+      const salesVal = Number(r.sales) || 0;
+      return {
+        period: periodKey,
+        month: r.month,
+        fiscalYear: Number(r.fiscal_year),
+        cat: r.cat || 'M',
+        sales: salesVal,
+        qty: Number(r.qty) || 0,
+        partlines: Number(r.partlines) || 0,
+        invoices: invCount,
+        avgInvoiceValue: invCount > 0 ? Math.round(salesVal / invCount) : 0,
+      };
+    });
+
     for (const r of monthlyRecords) {
       const key = `${r.month}'${String(r.fiscal_year).slice(-2)}`;
       if (!timelineMap.has(key)) {
@@ -2058,6 +2075,163 @@ export class ReportsService {
       lifetimeSales: Number(c.lifetime_sales) || 0,
       sharePercent: lifetimeSales > 0 ? Number(((Number(c.lifetime_sales) / lifetimeSales) * 100).toFixed(1)) : 0,
     }));
+
+    // Detailed Category Multi-Period Matrix Query
+    const MONTH_ORDER = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+    const monthIdx = MONTH_ORDER.indexOf(targetMonth) >= 0 ? MONTH_ORDER.indexOf(targetMonth) : 5;
+    const prevMonth = monthIdx === 0 ? 'Mar' : MONTH_ORDER[monthIdx - 1];
+    const prevMonthFY = monthIdx === 0 ? targetFY - 1 : targetFY;
+    const lyFY = targetFY - 1;
+    const lyMonth = targetMonth;
+    const lyPrevMonth = prevMonth;
+    const lyPrevMonthFY = prevMonthFY - 1;
+    const ly2PrevMonthFY = lyPrevMonthFY - 1;
+
+    let curQuarterMonths = ['Jul', 'Aug', 'Sep'];
+    let curQuarterTillMonths = ['Jul', 'Aug', 'Sep'];
+    let prevQuarterMonths = ['Apr', 'May', 'Jun'];
+    let prevQuarterTillMonths = ['Apr', 'May', 'Jun'];
+    let prevQuarterFY = targetFY;
+
+    if (monthIdx <= 2) {
+      curQuarterMonths = ['Apr', 'May', 'Jun'];
+      curQuarterTillMonths = MONTH_ORDER.slice(0, monthIdx + 1);
+      prevQuarterMonths = ['Jan', 'Feb', 'Mar'];
+      prevQuarterTillMonths = ['Jan', 'Feb', 'Mar'];
+      prevQuarterFY = targetFY - 1;
+    } else if (monthIdx >= 3 && monthIdx <= 5) {
+      curQuarterMonths = ['Jul', 'Aug', 'Sep'];
+      curQuarterTillMonths = MONTH_ORDER.slice(3, monthIdx + 1);
+      prevQuarterMonths = ['Apr', 'May', 'Jun'];
+      prevQuarterTillMonths = ['Apr', 'May', 'Jun'];
+      prevQuarterFY = targetFY;
+    } else if (monthIdx >= 6 && monthIdx <= 8) {
+      curQuarterMonths = ['Oct', 'Nov', 'Dec'];
+      curQuarterTillMonths = MONTH_ORDER.slice(6, monthIdx + 1);
+      prevQuarterMonths = ['Jul', 'Aug', 'Sep'];
+      prevQuarterTillMonths = ['Jul', 'Aug', 'Sep'];
+      prevQuarterFY = targetFY;
+    } else {
+      curQuarterMonths = ['Jan', 'Feb', 'Mar'];
+      curQuarterTillMonths = MONTH_ORDER.slice(9, monthIdx + 1);
+      prevQuarterMonths = ['Oct', 'Nov', 'Dec'];
+      prevQuarterTillMonths = ['Oct', 'Nov', 'Dec'];
+      prevQuarterFY = targetFY;
+    }
+    const ytdMonths = MONTH_ORDER.slice(0, monthIdx + 1);
+
+    const rawCatMatrix: any[] = await this.prisma.$queryRawUnsafe(`
+      SELECT 
+        COALESCE(part_category_code, 'M') as cat,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as mtd_cur,
+        ROUND(SUM(CASE WHEN fiscal_year = ${prevMonthFY} AND month = '${prevMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as lm_sales,
+        ROUND(SUM(CASE WHEN fiscal_year = ${lyFY} AND month = '${lyMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as ly_sm_sales,
+        ROUND(SUM(CASE WHEN fiscal_year = ${lyPrevMonthFY} AND month = '${lyPrevMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as ly_pm_sales,
+        ROUND(SUM(CASE WHEN fiscal_year = ${ly2PrevMonthFY} AND month = '${lyPrevMonth}' THEN net_retail_selling ELSE 0 END)::numeric, 2) as ly2_pm_sales,
+        
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month IN ('${curQuarterMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_cur,
+        ROUND(SUM(CASE WHEN fiscal_year = ${prevQuarterFY} AND month IN ('${prevQuarterMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_prev_qtr_total,
+        ROUND(SUM(CASE WHEN fiscal_year = ${prevQuarterFY} AND month IN ('${prevQuarterTillMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_prev_qtr_till,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${curQuarterMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_ly_total,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${curQuarterTillMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as qtd_ly_till,
+
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} AND month IN ('${ytdMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as ytd_cur,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} AND month IN ('${ytdMonths.join("','")}') THEN net_retail_selling ELSE 0 END)::numeric, 2) as ytd_ly,
+
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 3} THEN net_retail_selling ELSE 0 END)::numeric, 2) as fy0_total,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 2} THEN net_retail_selling ELSE 0 END)::numeric, 2) as fy1_total,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY - 1} THEN net_retail_selling ELSE 0 END)::numeric, 2) as fy2_total,
+        ROUND(SUM(CASE WHEN fiscal_year = ${targetFY} THEN net_retail_selling ELSE 0 END)::numeric, 2) as fy3_total,
+
+        COUNT(DISTINCT CASE WHEN fiscal_year = ${targetFY} AND month = '${targetMonth}' THEN part_num END)::int as cur_partlines,
+        COUNT(DISTINCT part_num)::int as total_partlines
+      FROM retail_sales_records
+      WHERE (cons_party_code = '${cleanCode.replace(/'/g, "''")}' OR dealer_code = '${cleanCode.replace(/'/g, "''")}')
+      GROUP BY COALESCE(part_category_code, 'M')
+    `);
+
+    const buildCategoryMatrixObject = (r: any, catName: string) => {
+      const mtdCur = Number(r?.mtd_cur) || 0;
+      const lmmtd = Number(r?.lm_sales) || 0;
+      const lmTotal = Number(r?.lm_sales) || 0;
+      const lymtd = Number(r?.ly_sm_sales) || 0;
+      const lySameMonthTotal = Number(r?.ly_sm_sales) || 0;
+      const lyPrevMonth = Number(r?.ly_pm_sales) || 0;
+      const ly2PrevMonth = Number(r?.ly2_pm_sales) || 0;
+
+      const qtdCur = Number(r?.qtd_cur) || 0;
+      const qtdPrevQtrTill = Number(r?.qtd_prev_qtr_till) || 0;
+      const qtdPrevQtrTotal = Number(r?.qtd_prev_qtr_total) || 0;
+      const qtdLyTill = Number(r?.qtd_ly_till) || 0;
+      const qtdLyTotal = Number(r?.qtd_ly_total) || 0;
+
+      const ytdCur = Number(r?.ytd_cur) || 0;
+      const ytdLy = Number(r?.ytd_ly) || 0;
+
+      const fy0Total = Number(r?.fy0_total) || 0;
+      const fy1Total = Number(r?.fy1_total) || 0;
+      const fy2Total = Number(r?.fy2_total) || 0;
+      const fy3Total = Number(r?.fy3_total) || 0;
+
+      return {
+        cat: catName,
+        curPartlines: Number(r?.cur_partlines) || 0,
+        totalPartlines: Number(r?.total_partlines) || 0,
+        mtd: {
+          mtdCur,
+          lmmtd,
+          lmTotal,
+          lymtd,
+          lySameMonthTotal,
+          lyPrevMonth,
+          ly2PrevMonth,
+          mtdVsLmmtdGrowth: lmmtd > 0 ? ((mtdCur - lmmtd) / lmmtd) : 0,
+          mtdVsLymtdGrowth: lymtd > 0 ? ((mtdCur - lymtd) / lymtd) : 0,
+          mtdVsLmTotalGrowth: lmTotal > 0 ? ((mtdCur - lmTotal) / lmTotal) : 0,
+          mtdVsLySameMonthGrowth: lySameMonthTotal > 0 ? ((mtdCur - lySameMonthTotal) / lySameMonthTotal) : 0,
+          lyPrevMonthGrowth: ly2PrevMonth > 0 ? ((lyPrevMonth - ly2PrevMonth) / ly2PrevMonth) : 0,
+        },
+        qtd: {
+          qtdCur,
+          qtdPrevQtrTill,
+          qtdPrevQtrTotal,
+          qtdLyTill,
+          qtdLyTotal,
+          qtdCurVsLyTillGrowth: qtdLyTill > 0 ? ((qtdCur - qtdLyTill) / qtdLyTill) : 0,
+          qtdCurVsLyTotalGrowth: qtdLyTotal > 0 ? ((qtdCur - qtdLyTotal) / qtdLyTotal) : 0,
+          qtdCurVsPrevQtrTillGrowth: qtdPrevQtrTill > 0 ? ((qtdCur - qtdPrevQtrTill) / qtdPrevQtrTill) : 0,
+          qtdCurVsPrevQtrTotalGrowth: qtdPrevQtrTotal > 0 ? ((qtdCur - qtdPrevQtrTotal) / qtdPrevQtrTotal) : 0,
+        },
+        ytd: {
+          ytdCur,
+          ytdLy,
+          ytdGrowth: ytdLy > 0 ? ((ytdCur - ytdLy) / ytdLy) : 0,
+          fy0Total,
+          fy1Total,
+          fy2Total,
+          fy3Total,
+          fy24Growth: fy0Total > 0 ? ((fy1Total - fy0Total) / fy0Total) : 0,
+          fy25Growth: fy1Total > 0 ? ((fy2Total - fy1Total) / fy1Total) : 0,
+          fy26Growth: fy2Total > 0 ? ((fy3Total - fy2Total) / fy2Total) : 0,
+        },
+      };
+    };
+
+    const categoryMultiPeriodMap: Record<string, any> = {};
+    rawCatMatrix.forEach((r) => {
+      categoryMultiPeriodMap[r.cat] = buildCategoryMatrixObject(r, r.cat);
+    });
+
+    const allRawAgg = rawCatMatrix.reduce((acc: any, r: any) => {
+      Object.keys(r).forEach((k) => {
+        if (k !== 'cat') {
+          acc[k] = (acc[k] || 0) + (Number(r[k]) || 0);
+        }
+      });
+      return acc;
+    }, {});
+    const allCategoryMultiPeriod = buildCategoryMatrixObject(allRawAgg, 'ALL');
+    categoryMultiPeriodMap['ALL'] = allCategoryMultiPeriod;
 
     // 5. Complete Part Purchase Frequency & Top Parts
     const partFrequencyRaw: any[] = await this.prisma.$queryRawUnsafe(`
@@ -2159,7 +2333,9 @@ export class ReportsService {
       basketStats,
       matrix: partyMatrix,
       timeline,
+      timelineByCategory,
       categories,
+      categoryMultiPeriod: categoryMultiPeriodMap,
       topParts,
       frequencySegmentation: {
         totalUniqueParts: classifiedParts.length,
@@ -2187,7 +2363,7 @@ export class ReportsService {
   // ─── EXPORT FULL PARTY 360° DOSSIER TO EXCEL ────────────────────────────────
   async exportParty360ToExcel(partyCode: string, branchCode?: string, fiscalYear = 2026, month = 'Sep'): Promise<Buffer> {
     const data = await this.getParty360Statistics(partyCode, branchCode, fiscalYear, month);
-    const { profile, basketStats, matrix, timeline, categories, topParts, pitchOpportunities, frequencySegmentation } = data;
+    const { profile, basketStats, matrix, timeline, timelineByCategory, categories, categoryMultiPeriod, topParts, pitchOpportunities, frequencySegmentation } = data;
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'The SS Buddy Intelligence Portal';
@@ -2290,6 +2466,7 @@ export class ReportsService {
       { header: 'PERIOD', key: 'period', width: 14 },
       { header: 'MONTH', key: 'month', width: 12 },
       { header: 'FISCAL YEAR', key: 'fiscalYear', width: 14 },
+      { header: 'CATEGORY', key: 'cat', width: 14 },
       { header: 'TOTAL SALES (₹)', key: 'sales', width: 20 },
       { header: 'TOTAL QTY', key: 'qty', width: 16 },
       { header: 'INVOICES', key: 'invoices', width: 14 },
@@ -2303,15 +2480,16 @@ export class ReportsService {
     timelineHeadRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF002060' } };
     timelineHeadRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-    timeline.forEach((t: any, i: number) => {
+    const exportTimelineRows = (timelineByCategory && timelineByCategory.length > 0) ? timelineByCategory : timeline;
+    exportTimelineRows.forEach((t: any) => {
       const row = wsTimeline.addRow(t);
       row.eachCell((cell, cIdx) => {
         cell.font = FONT_ABADI;
         cell.border = BORDER_THIN;
-        if (cIdx === 4 || cIdx === 8) {
+        if (cIdx === 5 || cIdx === 9) {
           cell.numFmt = '#,##,##0';
           cell.alignment = { vertical: 'middle', horizontal: 'right' };
-        } else if (cIdx === 5 || cIdx === 6 || cIdx === 7) {
+        } else if (cIdx === 6 || cIdx === 7 || cIdx === 8) {
           cell.numFmt = '#,##0';
           cell.alignment = { vertical: 'middle', horizontal: 'right' };
         } else {
@@ -2478,6 +2656,80 @@ export class ReportsService {
           cell.alignment = { vertical: 'middle', horizontal: 'right' };
         } else {
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        }
+      });
+    });
+
+    // ─── SHEET 6: MULTI-PERIOD & CATEGORY GROWTH MATRIX ────────────────────────
+    const wsMultiPeriod = workbook.addWorksheet('Multi-Period Growth Matrix');
+    wsMultiPeriod.views = [{ showGridLines: true, state: 'frozen', xSplit: 0, ySplit: 1 }];
+
+    wsMultiPeriod.columns = [
+      { header: 'CATEGORY', key: 'cat', width: 16 },
+      { header: `MTD @ ${month}'${String(fiscalYear).slice(-2)} (₹)`, key: 'mtdCur', width: 22 },
+      { header: 'LMMTD (₹)', key: 'lmmtd', width: 20 },
+      { header: 'LYMTD (₹)', key: 'lymtd', width: 20 },
+      { header: 'MoM RUN-RATE %', key: 'momGrowth', width: 18 },
+      { header: 'YoY MTD %', key: 'yoyMtdGrowth', width: 18 },
+      { header: 'CURRENT QTD (₹)', key: 'qtdCur', width: 20 },
+      { header: 'PREV QTR TILL (₹)', key: 'qtdPrevQtrTill', width: 20 },
+      { header: 'LY SAME QTR TILL (₹)', key: 'qtdLyTill', width: 20 },
+      { header: 'QoQ QTD %', key: 'qoqGrowth', width: 16 },
+      { header: 'YoY QTD %', key: 'yoyQtdGrowth', width: 16 },
+      { header: `CURRENT YTD (₹)`, key: 'ytdCur', width: 20 },
+      { header: 'LY SAME YTD (₹)', key: 'ytdLy', width: 20 },
+      { header: 'YoY YTD %', key: 'ytdGrowth', width: 16 },
+      { header: 'PARTLINES', key: 'partlines', width: 14 },
+    ];
+
+    const mpHead = wsMultiPeriod.getRow(1);
+    mpHead.height = 24;
+    mpHead.font = { name: 'Abadi', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+    mpHead.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF002060' } };
+    mpHead.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    const catKeys = Object.keys(categoryMultiPeriod || {});
+    catKeys.sort((a, b) => (a === 'ALL' ? -1 : b === 'ALL' ? 1 : a.localeCompare(b)));
+
+    catKeys.forEach((k) => {
+      const cmp = categoryMultiPeriod[k];
+      if (!cmp) return;
+      const row = wsMultiPeriod.addRow({
+        cat: k === 'ALL' ? '★ ALL CATEGORIES' : k,
+        mtdCur: cmp.mtd?.mtdCur || 0,
+        lmmtd: cmp.mtd?.lmmtd || 0,
+        lymtd: cmp.mtd?.lymtd || 0,
+        momGrowth: cmp.mtd?.mtdVsLmmtdGrowth || 0,
+        yoyMtdGrowth: cmp.mtd?.mtdVsLymtdGrowth || 0,
+        qtdCur: cmp.qtd?.qtdCur || 0,
+        qtdPrevQtrTill: cmp.qtd?.qtdPrevQtrTill || 0,
+        qtdLyTill: cmp.qtd?.qtdLyTill || 0,
+        qoqGrowth: cmp.qtd?.qtdCurVsPrevQtrTillGrowth || 0,
+        yoyQtdGrowth: cmp.qtd?.qtdCurVsLyTillGrowth || 0,
+        ytdCur: cmp.ytd?.ytdCur || 0,
+        ytdLy: cmp.ytd?.ytdLy || 0,
+        ytdGrowth: cmp.ytd?.ytdGrowth || 0,
+        partlines: cmp.curPartlines || cmp.totalPartlines || 0,
+      });
+
+      const isAll = k === 'ALL';
+      row.eachCell((cell, cIdx) => {
+        cell.font = isAll ? FONT_ABADI_BOLD : FONT_ABADI;
+        cell.border = BORDER_THIN;
+        if (isAll) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+        }
+        if ([2, 3, 4, 7, 8, 9, 12, 13].includes(cIdx)) {
+          cell.numFmt = '#,##,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else if ([5, 6, 10, 11, 14].includes(cIdx)) {
+          cell.numFmt = '0.0%';
+          cell.alignment = { vertical: 'middle', horizontal: 'right' };
+        } else if (cIdx === 15) {
+          cell.numFmt = '#,##0';
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        } else {
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
         }
       });
     });

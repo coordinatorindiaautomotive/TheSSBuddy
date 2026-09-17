@@ -65,6 +65,8 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [freqFilter, setFreqFilter] = useState<'all' | 'frequent' | 'regular' | 'rare'>('all');
+  const [selectedMultiPeriodCategory, setSelectedMultiPeriodCategory] = useState<string>('ALL');
+  const [timelineCatFilter, setTimelineCatFilter] = useState<string>('ALL_CONSOLIDATED');
   const [isExporting, setIsExporting] = useState(false);
 
   const partyCode = dealer?.partyCode || '';
@@ -89,7 +91,9 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
       branchName: profile.branchName || dealer.branchName || branchCode,
       basketStats: party360Data?.basketStats || null,
       timeline: party360Data?.timeline || [],
+      timelineByCategory: party360Data?.timelineByCategory || [],
       categories: party360Data?.categories || [],
+      categoryMultiPeriod: party360Data?.categoryMultiPeriod || {},
       topParts: party360Data?.topParts || [],
       pitchOpportunities: party360Data?.pitchOpportunities || { reorderCandidates: [], crossSellBranchMovers: [] },
       frequencySegmentation: party360Data?.frequencySegmentation || { frequentCount: 0, regularCount: 0, rareCount: 0, frequent: [], regular: [], rare: [] },
@@ -221,10 +225,38 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
       </tr>
     `).join('');
 
-    const timelineRows = (merged.timeline || []).map((t: any) => `
+    const catKeys = Object.keys(merged.categoryMultiPeriod || {});
+    catKeys.sort((a, b) => (a === 'ALL' ? -1 : b === 'ALL' ? 1 : a.localeCompare(b)));
+
+    const categoryMatrixRows = catKeys.map((k) => {
+      const cmp = merged.categoryMultiPeriod[k];
+      if (!cmp) return '';
+      const isAll = k === 'ALL';
+      return `
+        <tr style="${isAll ? 'background-color: #f1f5f9; font-weight: bold;' : ''}">
+          <td class="font-bold text-navy">${isAll ? '★ ALL CATEGORIES' : k}</td>
+          <td class="text-right font-mono">₹${Math.round(cmp.mtd?.mtdCur || 0).toLocaleString('en-IN')}</td>
+          <td class="text-right font-mono">₹${Math.round(cmp.mtd?.lmmtd || 0).toLocaleString('en-IN')}</td>
+          <td class="text-right font-mono">₹${Math.round(cmp.mtd?.lymtd || 0).toLocaleString('en-IN')}</td>
+          <td class="text-right ${cmp.mtd?.mtdVsLmmtdGrowth >= 0 ? 'text-navy' : 'text-red'} font-bold">${formatPercent(cmp.mtd?.mtdVsLmmtdGrowth)}</td>
+          <td class="text-right ${cmp.mtd?.mtdVsLymtdGrowth >= 0 ? 'text-navy' : 'text-red'} font-bold">${formatPercent(cmp.mtd?.mtdVsLymtdGrowth)}</td>
+          <td class="text-right font-mono">₹${Math.round(cmp.qtd?.qtdCur || 0).toLocaleString('en-IN')}</td>
+          <td class="text-right font-mono">₹${Math.round(cmp.qtd?.qtdPrevQtrTill || 0).toLocaleString('en-IN')}</td>
+          <td class="text-right ${cmp.qtd?.qtdCurVsPrevQtrTillGrowth >= 0 ? 'text-navy' : 'text-red'} font-bold">${formatPercent(cmp.qtd?.qtdCurVsPrevQtrTillGrowth)}</td>
+          <td class="text-right font-mono">₹${Math.round(cmp.ytd?.ytdCur || 0).toLocaleString('en-IN')}</td>
+          <td class="text-right font-mono">₹${Math.round(cmp.ytd?.ytdLy || 0).toLocaleString('en-IN')}</td>
+          <td class="text-right ${cmp.ytd?.ytdGrowth >= 0 ? 'text-navy' : 'text-red'} font-bold">${formatPercent(cmp.ytd?.ytdGrowth)}</td>
+          <td class="text-center font-bold">${cmp.curPartlines || cmp.totalPartlines || '-'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const timelineExportData = (merged.timelineByCategory && merged.timelineByCategory.length > 0) ? merged.timelineByCategory : merged.timeline;
+    const timelineRows = (timelineExportData || []).map((t: any) => `
       <tr>
         <td class="font-bold text-navy">${t.period}</td>
         <td class="text-center">FY${t.fiscalYear}</td>
+        <td class="text-center font-bold text-navy">${t.cat || 'ALL'}</td>
         <td class="text-right font-bold font-mono">₹${Math.round(t.sales || 0).toLocaleString('en-IN')}</td>
         <td class="text-center font-mono">${Number(t.qty || 0).toLocaleString('en-IN')}</td>
         <td class="text-center">${t.invoices}</td>
@@ -490,7 +522,31 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
             </tbody>
           </table>
 
-          <div class="section-title">3. PRODUCT CATEGORY SALES & PARTLINE DISTRIBUTION</div>
+          <div class="section-title">3. CATEGORY MULTI-PERIOD GROWTH MATRIX</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th class="text-right">MTD Sales (₹)</th>
+                <th class="text-right">LMMTD (₹)</th>
+                <th class="text-right">LYMTD (₹)</th>
+                <th class="text-right">MoM %</th>
+                <th class="text-right">YoY %</th>
+                <th class="text-right">Current QTD (₹)</th>
+                <th class="text-right">Prev QTD (₹)</th>
+                <th class="text-right">QoQ %</th>
+                <th class="text-right">Current YTD (₹)</th>
+                <th class="text-right">LY YTD (₹)</th>
+                <th class="text-right">YoY YTD %</th>
+                <th class="text-center">Lines</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${categoryMatrixRows || '<tr><td colspan="13" class="text-center">No category breakdown available</td></tr>'}
+            </tbody>
+          </table>
+
+          <div class="section-title">4. PRODUCT CATEGORY SALES & PARTLINE DISTRIBUTION</div>
           <table>
             <thead>
               <tr>
@@ -520,7 +576,7 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
             </div>
           </div>
 
-          <div class="section-title">4. SALES PITCH OPPORTUNITIES: DORMANT RE-ORDER & CROSS-SELL CANDIDATES</div>
+          <div class="section-title">5. SALES PITCH OPPORTUNITIES: DORMANT RE-ORDER & CROSS-SELL CANDIDATES</div>
           <table>
             <thead>
               <tr>
@@ -539,7 +595,7 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
             </tbody>
           </table>
 
-          <div class="section-title">5. TOP 20 PURCHASED PARTLINES (RANKED BY REVENUE)</div>
+          <div class="section-title">6. TOP 20 PURCHASED PARTLINES (RANKED BY REVENUE)</div>
           <table>
             <thead>
               <tr>
@@ -558,12 +614,13 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
             </tbody>
           </table>
 
-          <div class="section-title">6. MONTHLY HISTORICAL TURNOVER TIMELINE</div>
+          <div class="section-title">7. COMPLETE MONTHLY HISTORICAL TURNOVER TIMELINE</div>
           <table>
             <thead>
               <tr>
                 <th>Period</th>
                 <th class="text-center">Fiscal Year</th>
+                <th class="text-center">Category</th>
                 <th class="text-right">Total Sales (₹)</th>
                 <th class="text-center">Units Sold</th>
                 <th class="text-center">Invoices</th>
@@ -572,7 +629,7 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
               </tr>
             </thead>
             <tbody>
-              ${timelineRows || '<tr><td colspan="7" class="text-center">No timeline records</td></tr>'}
+              ${timelineRows || '<tr><td colspan="8" class="text-center">No timeline records</td></tr>'}
             </tbody>
           </table>
 
@@ -1325,184 +1382,506 @@ export const Dealer360Drawer: React.FC<Dealer360DrawerProps> = ({
           )}
 
           {/* ───────────────────────────────────────────────────────────── */}
-          {/* SECTION 6: MULTI-PERIOD GROWTH SCORECARD */}
+          {/* SECTION 6: MULTI-PERIOD GROWTH SCORECARD & CATEGORY MATRIX */}
           {/* ───────────────────────────────────────────────────────────── */}
-          {(activeTab === 'multi_period' || activeTab === 'all') && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              
-              {/* MTD Performance Table */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-                <div className="p-3.5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-xs uppercase flex items-center gap-1.5">
-                    <Calendar size={13} className="text-blue-600" />
-                    1. MTD Performance & Monthly Growth
-                  </h4>
-                  <span className="text-3xs text-slate-500 font-medium">Month-over-Month & Year-over-Year</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left font-mono text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-[#002060] text-white">
-                        <th className="py-2.5 px-3 border-r border-blue-900/60">Metric</th>
-                        <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Amount (₹)</th>
-                        <th className="py-2.5 px-3 text-right">Growth Rate %</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      <tr>
-                        <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">MTD @ {prevPeriodLabel} (LY-1)</td>
-                        <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(merged.mtdAug25)}</td>
-                        <td className="py-2.5 px-3 text-right text-slate-500">{formatPercent(merged.mtdAug25Growth)}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">LM Total ({prevPeriodLabel})</td>
-                        <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(merged.lmSales || merged.lastMonthSales)}</td>
-                        <td className="py-2.5 px-3 text-right text-emerald-700 font-bold">{formatPercent(merged.mtdAug26Growth)}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">LY Same Month ({lyPeriodLabel})</td>
-                        <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(merged.lySameMonthSales)}</td>
-                        <td className="py-2.5 px-3 text-right text-slate-500">-</td>
-                      </tr>
-                      <tr className="bg-blue-50/60">
-                        <td className="py-2.5 px-3 font-bold text-blue-900 border-r border-slate-200">MTD @ {currentPeriodLabel} (Current)</td>
-                        <td className="py-2.5 px-3 text-right font-black text-emerald-700 border-r border-slate-200">{formatCurrency(currentSales)}</td>
-                        <td className="py-2.5 px-3 text-right font-black text-emerald-700">{formatPercent(merged.mtdSep26Growth)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+          {(activeTab === 'multi_period' || activeTab === 'all') && (() => {
+            const catKeys = Object.keys(merged.categoryMultiPeriod || {});
+            catKeys.sort((a, b) => (a === 'ALL' ? -1 : b === 'ALL' ? 1 : a.localeCompare(b)));
+            const activeMultiPeriod = (merged.categoryMultiPeriod && merged.categoryMultiPeriod[selectedMultiPeriodCategory]) || merged.categoryMultiPeriod?.['ALL'] || null;
 
-              {/* QTD Performance Table */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-                <div className="p-3.5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-xs uppercase flex items-center gap-1.5">
-                    <Award size={13} className="text-blue-600" />
-                    2. QTD Performance & Quarterly Growth
-                  </h4>
-                  <span className="text-3xs text-slate-500 font-medium">Quarterly Aggregation</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left font-mono text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-[#002060] text-white">
-                        <th className="py-2.5 px-3 border-r border-blue-900/60">Quarter Period</th>
-                        <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Sales Total (₹)</th>
-                        <th className="py-2.5 px-3 text-right">Growth Rate %</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      <tr>
-                        <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">QTD Last Year Total</td>
-                        <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(merged.qtdQ2LyTotal)}</td>
-                        <td className="py-2.5 px-3 text-right text-slate-500">{formatPercent(merged.qtdAug25Growth)}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">QTD Prev Quarter Total</td>
-                        <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(merged.qtdQ1CurTotal)}</td>
-                        <td className="py-2.5 px-3 text-right text-blue-700 font-bold">{formatPercent(merged.qtdAug26Growth)}</td>
-                      </tr>
-                      <tr className="bg-blue-50/60">
-                        <td className="py-2.5 px-3 font-bold text-blue-900 border-r border-slate-200">QTD Current Quarter Total</td>
-                        <td className="py-2.5 px-3 text-right font-black text-emerald-700 border-r border-slate-200">{formatCurrency(merged.qtdQ2Cur)}</td>
-                        <td className="py-2.5 px-3 text-right font-black text-emerald-700">{formatPercent(merged.qtdSep26Growth)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+            const mtdData = activeMultiPeriod?.mtd || {
+              mtdCur: currentSales,
+              lmmtd: Number(merged.lmSales) || 0,
+              lmTotal: Number(merged.lmSales) || 0,
+              lymtd: Number(merged.lySameMonthSales) || 0,
+              lySameMonthTotal: Number(merged.lySameMonthSales) || 0,
+              lyPrevMonth: Number(merged.mtdAug25) || 0,
+              ly2PrevMonth: 0,
+              mtdVsLmmtdGrowth: Number(merged.mtdSep26Growth) || 0,
+              mtdVsLymtdGrowth: 0,
+              mtdVsLmTotalGrowth: 0,
+              mtdVsLySameMonthGrowth: 0,
+              lyPrevMonthGrowth: 0,
+            };
 
-              {/* YTD & 3-Year Historical Growth */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-                <div className="p-3.5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 text-xs uppercase flex items-center gap-1.5">
-                    <TrendingUp size={13} className="text-blue-600" />
-                    3. YTD & 3-Year Historical Totals
-                  </h4>
-                  <span className="text-3xs text-slate-500 font-medium">Annual Trajectory</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left font-mono text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-[#002060] text-white">
-                        <th className="py-2.5 px-3 border-r border-blue-900/60">Fiscal Year</th>
-                        <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Annual Total (₹)</th>
-                        <th className="py-2.5 px-3 text-right">YoY Growth %</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      <tr>
-                        <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">FY{fiscalYear - 2} Annual Total</td>
-                        <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(merged.fy1Total)}</td>
-                        <td className="py-2.5 px-3 text-right text-slate-500">-</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">FY{fiscalYear - 1} Annual Total</td>
-                        <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(merged.fy2Total)}</td>
-                        <td className="py-2.5 px-3 text-right text-purple-700 font-bold">{formatPercent(merged.fy24Growth)}</td>
-                      </tr>
-                      <tr className="bg-purple-50/60">
-                        <td className="py-2.5 px-3 font-bold text-purple-900 border-r border-slate-200">FY{fiscalYear} (YTD Total)</td>
-                        <td className="py-2.5 px-3 text-right font-black text-emerald-700 border-r border-slate-200">{formatCurrency(merged.ytdCur || merged.ytdSales)}</td>
-                        <td className="py-2.5 px-3 text-right font-black text-emerald-700">{formatPercent(merged.ytdGrowth || merged.yoyGrowthPercent)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
+            const qtdData = activeMultiPeriod?.qtd || {
+              qtdCur: Number(merged.qtdQ2Cur) || 0,
+              qtdPrevQtrTill: Number(merged.qtdQ1CurTill) || 0,
+              qtdPrevQtrTotal: Number(merged.qtdQ1CurTotal) || 0,
+              qtdLyTill: Number(merged.qtdQ2LyTill) || 0,
+              qtdLyTotal: Number(merged.qtdQ2LyTotal) || 0,
+              qtdCurVsLyTillGrowth: Number(merged.qtdSep26Growth) || 0,
+              qtdCurVsLyTotalGrowth: 0,
+              qtdCurVsPrevQtrTillGrowth: Number(merged.qtdAug26Growth) || 0,
+              qtdCurVsPrevQtrTotalGrowth: 0,
+            };
 
-          {/* ───────────────────────────────────────────────────────────── */}
-          {/* SECTION 7: MONTHLY HISTORY TIMELINE TABLE */}
-          {/* ───────────────────────────────────────────────────────────── */}
-          {(activeTab === 'timeline' || activeTab === 'all') && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-                <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-                  <h4 className="font-bold text-slate-900 text-xs uppercase flex items-center gap-1.5">
-                    <Calendar size={14} className="text-blue-600" />
-                    Complete Monthly Transaction Timeline (All Records in Database)
-                  </h4>
-                  <span className="text-3xs text-slate-500 font-mono font-medium">Historical Ledger Records</span>
+            const ytdData = activeMultiPeriod?.ytd || {
+              ytdCur: Number(merged.ytdCur || merged.ytdSales) || 0,
+              ytdLy: Number(merged.ytdLy || merged.lastYearYTDSales) || 0,
+              ytdGrowth: Number(merged.ytdGrowth || merged.yoyGrowthPercent) || 0,
+              fy0Total: 0,
+              fy1Total: Number(merged.fy1Total) || 0,
+              fy2Total: Number(merged.fy2Total) || 0,
+              fy3Total: Number(merged.fy3Total || merged.ytdCur || merged.ytdSales) || 0,
+              fy24Growth: Number(merged.fy24Growth) || 0,
+              fy25Growth: Number(merged.fy25Growth) || 0,
+              fy26Growth: 0,
+            };
+
+            return (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                {/* Category Switcher Ribbon */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-3 shadow-2xs flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <Layers size={13} className="text-blue-600" /> Filter Analysis by Category:
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      onClick={() => setSelectedMultiPeriodCategory('ALL')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+                        selectedMultiPeriodCategory === 'ALL'
+                          ? 'bg-[#002060] text-white'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      <Sparkles size={12} className={selectedMultiPeriodCategory === 'ALL' ? 'text-amber-300' : 'text-slate-500'} />
+                      <span>★ All Categories (Consolidated)</span>
+                    </button>
+                    {catKeys.filter(k => k !== 'ALL').map((catKey) => (
+                      <button
+                        key={catKey}
+                        onClick={() => setSelectedMultiPeriodCategory(catKey)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+                          selectedMultiPeriodCategory === catKey
+                            ? 'bg-[#002060] text-white'
+                            : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+                        }`}
+                      >
+                        <span>Category: {catKey}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {merged.timeline && merged.timeline.length > 0 ? (
+                {/* 0. CATEGORY COMPARISON MATRIX TABLE */}
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                  <div className="p-3.5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+                    <h4 className="font-bold text-slate-900 text-xs uppercase flex items-center gap-1.5">
+                      <Layers size={14} className="text-blue-600" />
+                      Category Multi-Period Growth Matrix ({catKeys.length} Segments)
+                    </h4>
+                    <span className="text-3xs text-slate-500 font-mono">Cross-Category Side-by-Side Comparison</span>
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left font-mono text-xs border-collapse">
                       <thead>
                         <tr className="bg-[#002060] text-white">
-                          <th className="py-2.5 px-3 border-r border-blue-900/60">Period</th>
-                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-center">FY</th>
-                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Sales (₹)</th>
-                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-center">Qty</th>
-                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-center">Invoices</th>
-                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-center">Partlines</th>
-                          <th className="py-2.5 px-3 text-right">Avg Invoice Value (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60">Category</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">MTD Sales (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">LMMTD (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">LYMTD (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">MoM %</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">YoY %</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Current QTD (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Prev QTD (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">QoQ %</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Current YTD (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">LY YTD (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">YoY YTD %</th>
+                          <th className="py-2.5 px-3 text-center">Partlines</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 bg-white">
-                        {merged.timeline.map((t: any, i: number) => (
-                          <tr key={i} className="hover:bg-blue-50/40 transition">
-                            <td className="py-2.5 px-3 font-bold text-blue-900 border-r border-slate-100">{t.period}</td>
-                            <td className="py-2.5 px-3 text-center text-slate-600 border-r border-slate-100">FY{t.fiscalYear}</td>
-                            <td className="py-2.5 px-3 text-right font-bold text-emerald-700 border-r border-slate-100">{formatCurrency(t.sales)}</td>
-                            <td className="py-2.5 px-3 text-center text-slate-700 border-r border-slate-100">{Number(t.qty).toLocaleString('en-IN')}</td>
-                            <td className="py-2.5 px-3 text-center text-blue-700 font-bold border-r border-slate-100">{t.invoices}</td>
-                            <td className="py-2.5 px-3 text-center text-purple-700 font-bold border-r border-slate-100">{t.partlines}</td>
-                            <td className="py-2.5 px-3 text-right text-slate-900 font-bold">{formatCurrency(t.avgInvoiceValue)}</td>
-                          </tr>
-                        ))}
+                        {catKeys.map((k) => {
+                          const cmp = merged.categoryMultiPeriod[k];
+                          if (!cmp) return null;
+                          const isAll = k === 'ALL';
+                          const isSelected = selectedMultiPeriodCategory === k;
+                          return (
+                            <tr
+                              key={k}
+                              onClick={() => setSelectedMultiPeriodCategory(k)}
+                              className={`cursor-pointer transition ${
+                                isSelected ? 'bg-blue-100/60 font-bold' : isAll ? 'bg-slate-50 font-bold hover:bg-slate-100' : 'hover:bg-blue-50/40'
+                              }`}
+                            >
+                              <td className="py-2.5 px-3 border-r border-slate-100">
+                                <span className={`px-2 py-0.5 rounded text-3xs font-bold border ${
+                                  isAll ? 'bg-slate-800 text-white border-slate-900' : 'bg-purple-50 text-purple-700 border-purple-200'
+                                }`}>
+                                  {isAll ? '★ ALL' : k}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-bold text-emerald-700 border-r border-slate-100">{formatCurrency(cmp.mtd?.mtdCur)}</td>
+                              <td className="py-2.5 px-3 text-right text-slate-700 border-r border-slate-100">{formatCurrency(cmp.mtd?.lmmtd)}</td>
+                              <td className="py-2.5 px-3 text-right text-slate-600 border-r border-slate-100">{formatCurrency(cmp.mtd?.lymtd)}</td>
+                              <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(cmp.mtd?.mtdVsLmmtdGrowth || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                {formatPercent(cmp.mtd?.mtdVsLmmtdGrowth)}
+                              </td>
+                              <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(cmp.mtd?.mtdVsLymtdGrowth || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                {formatPercent(cmp.mtd?.mtdVsLymtdGrowth)}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-bold text-blue-900 border-r border-slate-100">{formatCurrency(cmp.qtd?.qtdCur)}</td>
+                              <td className="py-2.5 px-3 text-right text-slate-600 border-r border-slate-100">{formatCurrency(cmp.qtd?.qtdPrevQtrTill)}</td>
+                              <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(cmp.qtd?.qtdCurVsPrevQtrTillGrowth || 0) >= 0 ? 'text-blue-700' : 'text-rose-700'}`}>
+                                {formatPercent(cmp.qtd?.qtdCurVsPrevQtrTillGrowth)}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-bold text-purple-900 border-r border-slate-100">{formatCurrency(cmp.ytd?.ytdCur)}</td>
+                              <td className="py-2.5 px-3 text-right text-slate-600 border-r border-slate-100">{formatCurrency(cmp.ytd?.ytdLy)}</td>
+                              <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(cmp.ytd?.ytdGrowth || 0) >= 0 ? 'text-purple-700' : 'text-rose-700'}`}>
+                                {formatPercent(cmp.ytd?.ytdGrowth)}
+                              </td>
+                              <td className="py-2.5 px-3 text-center text-slate-800 font-bold">{cmp.curPartlines || cmp.totalPartlines || '-'}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
-                ) : (
-                  <p className="text-slate-500 text-center py-6 font-medium">No monthly historical transactions found in database.</p>
-                )}
+                </div>
+
+                {/* 1. MTD Performance Table (Detailed Granular Rows) */}
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                  <div className="p-3.5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+                    <h4 className="font-bold text-slate-900 text-xs uppercase flex items-center gap-1.5">
+                      <Calendar size={13} className="text-blue-600" />
+                      1. MTD Performance & Granular Monthly Growth
+                    </h4>
+                    <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-3xs border border-blue-200">
+                      Category: {selectedMultiPeriodCategory === 'ALL' ? 'All (Consolidated)' : selectedMultiPeriodCategory}
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left font-mono text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-[#002060] text-white">
+                          <th className="py-2.5 px-3 border-r border-blue-900/60">Metric & Comparison Timeframe</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Selected Period (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Comparison Baseline (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Net Variance (₹)</th>
+                          <th className="py-2.5 px-3 text-right">Growth Rate %</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        <tr className="bg-emerald-50/40">
+                          <td className="py-2.5 px-3 font-bold text-emerald-950 border-r border-slate-100">MTD @ {currentPeriodLabel} vs LMMTD ({prevPeriodLabel} MTD)</td>
+                          <td className="py-2.5 px-3 text-right font-black text-emerald-700 border-r border-slate-100">{formatCurrency(mtdData.mtdCur)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(mtdData.lmmtd)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(mtdData.mtdCur - mtdData.lmmtd) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatCurrency(mtdData.mtdCur - mtdData.lmmtd)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-black ${(mtdData.mtdVsLmmtdGrowth || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatPercent(mtdData.mtdVsLmmtdGrowth)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2.5 px-3 font-bold text-blue-900 border-r border-slate-100">MTD @ {currentPeriodLabel} vs LYMTD ({lyPeriodLabel} MTD)</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(mtdData.mtdCur)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(mtdData.lymtd)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(mtdData.mtdCur - mtdData.lymtd) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatCurrency(mtdData.mtdCur - mtdData.lymtd)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-bold ${(mtdData.mtdVsLymtdGrowth || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatPercent(mtdData.mtdVsLymtdGrowth)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">MTD @ {currentPeriodLabel} vs LM Full Month ({prevPeriodLabel})</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(mtdData.mtdCur)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(mtdData.lmTotal)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(mtdData.mtdCur - mtdData.lmTotal) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatCurrency(mtdData.mtdCur - mtdData.lmTotal)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-bold ${(mtdData.mtdVsLmTotalGrowth || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatPercent(mtdData.mtdVsLmTotalGrowth)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">MTD @ {currentPeriodLabel} vs LY Same Month Full ({lyPeriodLabel})</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(mtdData.mtdCur)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(mtdData.lySameMonthTotal)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(mtdData.mtdCur - mtdData.lySameMonthTotal) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatCurrency(mtdData.mtdCur - mtdData.lySameMonthTotal)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-bold ${(mtdData.mtdVsLySameMonthGrowth || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatPercent(mtdData.mtdVsLySameMonthGrowth)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">LM Total ({prevPeriodLabel}) vs LY Previous Month</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(mtdData.lmTotal)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(mtdData.lyPrevMonth)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(mtdData.lmTotal - mtdData.lyPrevMonth) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatCurrency(mtdData.lmTotal - mtdData.lyPrevMonth)}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-700 font-bold">{formatPercent(mtdData.lyPrevMonth > 0 ? (mtdData.lmTotal - mtdData.lyPrevMonth) / mtdData.lyPrevMonth : 0)}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">LY Previous Month vs LY-2 Previous Month</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(mtdData.lyPrevMonth)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(mtdData.ly2PrevMonth)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(mtdData.lyPrevMonth - mtdData.ly2PrevMonth) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatCurrency(mtdData.lyPrevMonth - mtdData.ly2PrevMonth)}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-500 font-medium">{formatPercent(mtdData.lyPrevMonthGrowth)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 2. QTD Performance Table (Detailed Granular Rows) */}
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                  <div className="p-3.5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+                    <h4 className="font-bold text-slate-900 text-xs uppercase flex items-center gap-1.5">
+                      <Award size={13} className="text-blue-600" />
+                      2. QTD Performance & Granular Quarterly Growth
+                    </h4>
+                    <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-3xs border border-blue-200">
+                      Category: {selectedMultiPeriodCategory === 'ALL' ? 'All (Consolidated)' : selectedMultiPeriodCategory}
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left font-mono text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-[#002060] text-white">
+                          <th className="py-2.5 px-3 border-r border-blue-900/60">Quarter Period Comparison</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Selected QTD (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Benchmark Qtr (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Net Variance (₹)</th>
+                          <th className="py-2.5 px-3 text-right">Growth Rate %</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        <tr className="bg-blue-50/40">
+                          <td className="py-2.5 px-3 font-bold text-blue-900 border-r border-slate-100">Current QTD vs Prev Quarter (Till Same Point)</td>
+                          <td className="py-2.5 px-3 text-right font-black text-blue-900 border-r border-slate-100">{formatCurrency(qtdData.qtdCur)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(qtdData.qtdPrevQtrTill)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(qtdData.qtdCur - qtdData.qtdPrevQtrTill) >= 0 ? 'text-blue-700' : 'text-rose-700'}`}>
+                            {formatCurrency(qtdData.qtdCur - qtdData.qtdPrevQtrTill)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-black ${(qtdData.qtdCurVsPrevQtrTillGrowth || 0) >= 0 ? 'text-blue-700' : 'text-rose-700'}`}>
+                            {formatPercent(qtdData.qtdCurVsPrevQtrTillGrowth)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2.5 px-3 font-bold text-slate-800 border-r border-slate-100">Current QTD vs LY Same Quarter (Till Same Point)</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(qtdData.qtdCur)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(qtdData.qtdLyTill)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(qtdData.qtdCur - qtdData.qtdLyTill) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatCurrency(qtdData.qtdCur - qtdData.qtdLyTill)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-bold ${(qtdData.qtdCurVsLyTillGrowth || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatPercent(qtdData.qtdCurVsLyTillGrowth)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">Current QTD vs Prev Quarter (Full Quarter Total)</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(qtdData.qtdCur)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(qtdData.qtdPrevQtrTotal)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(qtdData.qtdCur - qtdData.qtdPrevQtrTotal) >= 0 ? 'text-blue-700' : 'text-rose-700'}`}>
+                            {formatCurrency(qtdData.qtdCur - qtdData.qtdPrevQtrTotal)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-bold ${(qtdData.qtdCurVsPrevQtrTotalGrowth || 0) >= 0 ? 'text-blue-700' : 'text-rose-700'}`}>
+                            {formatPercent(qtdData.qtdCurVsPrevQtrTotalGrowth)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">Current QTD vs LY Same Quarter (Full Quarter Total)</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(qtdData.qtdCur)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(qtdData.qtdLyTotal)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(qtdData.qtdCur - qtdData.qtdLyTotal) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatCurrency(qtdData.qtdCur - qtdData.qtdLyTotal)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-bold ${(qtdData.qtdCurVsLyTotalGrowth || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatPercent(qtdData.qtdCurVsLyTotalGrowth)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 3. YTD & 4-Year Historical Totals */}
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                  <div className="p-3.5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+                    <h4 className="font-bold text-slate-900 text-xs uppercase flex items-center gap-1.5">
+                      <TrendingUp size={13} className="text-blue-600" />
+                      3. YTD & 4-Year Historical Trajectory
+                    </h4>
+                    <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-3xs border border-blue-200">
+                      Category: {selectedMultiPeriodCategory === 'ALL' ? 'All (Consolidated)' : selectedMultiPeriodCategory}
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left font-mono text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-[#002060] text-white">
+                          <th className="py-2.5 px-3 border-r border-blue-900/60">Fiscal Year Evolution</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Annual Turnover (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Prior Year Baseline (₹)</th>
+                          <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Net Variance (₹)</th>
+                          <th className="py-2.5 px-3 text-right">YoY Growth %</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        <tr className="bg-purple-50/40">
+                          <td className="py-2.5 px-3 font-bold text-purple-900 border-r border-slate-100">FY{fiscalYear} Current YTD ({month}'{String(fiscalYear).slice(-2)} YTD)</td>
+                          <td className="py-2.5 px-3 text-right font-black text-purple-900 border-r border-slate-100">{formatCurrency(ytdData.ytdCur)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(ytdData.ytdLy)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(ytdData.ytdCur - ytdData.ytdLy) >= 0 ? 'text-purple-700' : 'text-rose-700'}`}>
+                            {formatCurrency(ytdData.ytdCur - ytdData.ytdLy)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-black ${(ytdData.ytdGrowth || 0) >= 0 ? 'text-purple-700' : 'text-rose-700'}`}>
+                            {formatPercent(ytdData.ytdGrowth)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">FY{fiscalYear - 1} Annual Total</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(ytdData.fy2Total)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(ytdData.fy1Total)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(ytdData.fy2Total - ytdData.fy1Total) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatCurrency(ytdData.fy2Total - ytdData.fy1Total)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-bold ${(ytdData.fy25Growth || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatPercent(ytdData.fy25Growth)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">FY{fiscalYear - 2} Annual Total</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(ytdData.fy1Total)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 border-r border-slate-100">{formatCurrency(ytdData.fy0Total)}</td>
+                          <td className={`py-2.5 px-3 text-right font-bold border-r border-slate-100 ${(ytdData.fy1Total - ytdData.fy0Total) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatCurrency(ytdData.fy1Total - ytdData.fy0Total)}
+                          </td>
+                          <td className={`py-2.5 px-3 text-right font-bold ${(ytdData.fy24Growth || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            {formatPercent(ytdData.fy24Growth)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-2.5 px-3 text-slate-700 border-r border-slate-100">FY{fiscalYear - 3} Annual Total</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900 border-r border-slate-100">{formatCurrency(ytdData.fy0Total)}</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-400 border-r border-slate-100">-</td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-400 border-r border-slate-100">-</td>
+                          <td className="py-2.5 px-3 text-right text-slate-400">-</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
+
+          {/* ───────────────────────────────────────────────────────────── */}
+          {/* SECTION 7: MONTHLY HISTORY TIMELINE TABLE */}
+          {/* ───────────────────────────────────────────────────────────── */}
+          {(activeTab === 'timeline' || activeTab === 'all') && (() => {
+            const availableCats = Array.from(new Set((merged.timelineByCategory || []).map((t: any) => t.cat))).filter(Boolean);
+            let displayTimeline = merged.timeline || [];
+            if (timelineCatFilter === 'ALL_DETAILED') {
+              displayTimeline = merged.timelineByCategory || [];
+            } else if (timelineCatFilter !== 'ALL_CONSOLIDATED') {
+              displayTimeline = (merged.timelineByCategory || []).filter((t: any) => t.cat === timelineCatFilter);
+            }
+
+            return (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+                  <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50 flex-wrap gap-2">
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-xs uppercase flex items-center gap-1.5">
+                        <Calendar size={14} className="text-blue-600" />
+                        Complete Monthly Transaction Timeline ({displayTimeline.length} Records)
+                      </h4>
+                      <p className="text-3xs text-slate-500 mt-0.5">Historical ledger transaction history stored in database</p>
+                    </div>
+
+                    {/* Timeline Category Filter Bar */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        onClick={() => setTimelineCatFilter('ALL_CONSOLIDATED')}
+                        className={`px-3 py-1 rounded-xl text-3xs font-bold transition cursor-pointer ${
+                          timelineCatFilter === 'ALL_CONSOLIDATED'
+                            ? 'bg-[#002060] text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        Consolidated (All Categories)
+                      </button>
+                      <button
+                        onClick={() => setTimelineCatFilter('ALL_DETAILED')}
+                        className={`px-3 py-1 rounded-xl text-3xs font-bold transition cursor-pointer ${
+                          timelineCatFilter === 'ALL_DETAILED'
+                            ? 'bg-blue-700 text-white shadow-xs'
+                            : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                        }`}
+                      >
+                        Detailed (All Category Rows)
+                      </button>
+                      {availableCats.map((catName: any) => (
+                        <button
+                          key={catName}
+                          onClick={() => setTimelineCatFilter(catName)}
+                          className={`px-3 py-1 rounded-xl text-3xs font-bold transition cursor-pointer ${
+                            timelineCatFilter === catName
+                              ? 'bg-purple-700 text-white shadow-xs'
+                              : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+                          }`}
+                        >
+                          Cat: {catName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {displayTimeline.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left font-mono text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-[#002060] text-white">
+                            <th className="py-2.5 px-3 border-r border-blue-900/60">Period</th>
+                            <th className="py-2.5 px-3 border-r border-blue-900/60 text-center">FY</th>
+                            <th className="py-2.5 px-3 border-r border-blue-900/60 text-center">Category</th>
+                            <th className="py-2.5 px-3 border-r border-blue-900/60 text-right">Sales (₹)</th>
+                            <th className="py-2.5 px-3 border-r border-blue-900/60 text-center">Qty</th>
+                            <th className="py-2.5 px-3 border-r border-blue-900/60 text-center">Invoices</th>
+                            <th className="py-2.5 px-3 border-r border-blue-900/60 text-center">Partlines</th>
+                            <th className="py-2.5 px-3 text-right">Avg Invoice Value (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {displayTimeline.map((t: any, i: number) => (
+                            <tr key={i} className="hover:bg-blue-50/40 transition">
+                              <td className="py-2.5 px-3 font-bold text-blue-900 border-r border-slate-100">{t.period}</td>
+                              <td className="py-2.5 px-3 text-center text-slate-600 border-r border-slate-100">FY{t.fiscalYear}</td>
+                              <td className="py-2.5 px-3 text-center border-r border-slate-100">
+                                <span className={`px-2 py-0.5 rounded text-3xs font-bold ${
+                                  t.cat ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-slate-100 text-slate-700'
+                                }`}>
+                                  {t.cat || 'ALL'}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-bold text-emerald-700 border-r border-slate-100">{formatCurrency(t.sales)}</td>
+                              <td className="py-2.5 px-3 text-center text-slate-700 border-r border-slate-100">{Number(t.qty).toLocaleString('en-IN')}</td>
+                              <td className="py-2.5 px-3 text-center text-blue-700 font-bold border-r border-slate-100">{t.invoices}</td>
+                              <td className="py-2.5 px-3 text-center text-purple-700 font-bold border-r border-slate-100">{t.partlines}</td>
+                              <td className="py-2.5 px-3 text-right text-slate-900 font-bold">{formatCurrency(t.avgInvoiceValue)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 text-center py-6 font-medium">No monthly historical transactions found in database for selected filter.</p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
         </div>
 
