@@ -2,14 +2,14 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const formatCurrency = (val: number | null | undefined) => {
-  if (val === null || val === undefined || isNaN(val)) return '₹0';
-  return `₹${Math.round(val).toLocaleString('en-IN')}`;
+  if (val === null || val === undefined || isNaN(val)) return 'Rs. 0';
+  return `Rs. ${Math.round(val).toLocaleString('en-IN')}`;
 };
 
 const formatLakhs = (val: number | null | undefined) => {
-  if (val === null || val === undefined || isNaN(val)) return '₹0.00 L';
+  if (val === null || val === undefined || isNaN(val)) return 'Rs. 0.00 L';
   const l = (val / 100000).toFixed(2);
-  return `₹${l} L`;
+  return `Rs. ${l} L`;
 };
 
 const formatGrowth = (val: number | null | undefined) => {
@@ -133,24 +133,28 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
   );
 
   // Health Score & Branch Rank (Right aligned inside box)
-  const rightColX = pageWidth - margin - 50;
+  const rightColX = pageWidth - margin - 58;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(...SLATE);
   doc.text('HEALTH INDEX', rightColX, currentY + 6);
-  doc.text('BRANCH POSITION', rightColX + 26, currentY + 6);
+  doc.text('BRANCH POSITION', rightColX + 28, currentY + 6);
 
   doc.setFontSize(13);
-  doc.setTextColor(health.status === 'GROWING' ? 22 : health.status === 'STABLE' ? 37 : 217, health.status === 'GROWING' ? 163 : health.status === 'STABLE' ? 99 : 119, health.status === 'GROWING' ? 74 : health.status === 'STABLE' ? 235 : 6);
+  doc.setTextColor(
+    health.status === 'GROWING' ? 22 : health.status === 'STABLE' ? 37 : 217,
+    health.status === 'GROWING' ? 163 : health.status === 'STABLE' ? 99 : 119,
+    health.status === 'GROWING' ? 74 : health.status === 'STABLE' ? 235 : 6
+  );
   doc.text(`${health.score || 75}/100`, rightColX, currentY + 12);
 
   doc.setFontSize(11);
   doc.setTextColor(...DARK_SLATE);
-  doc.text(`Rank #${branch.branchRank || 1}`, rightColX + 26, currentY + 12);
+  doc.text(`Rank #${branch.branchRank || 1}`, rightColX + 28, currentY + 12);
 
   doc.setFontSize(7.5);
-  doc.text(`● ${health.status || 'STABLE'}`, rightColX, currentY + 17);
-  doc.text(`${branch.branchSharePercent || 0}% of Branch`, rightColX + 26, currentY + 17);
+  doc.text(`[${health.status || 'STABLE'}]`, rightColX, currentY + 17);
+  doc.text(`${branch.branchSharePercent || 0}% of Branch`, rightColX + 28, currentY + 17);
 
   currentY += boxHeight + 4;
 
@@ -191,13 +195,13 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     headStyles: {
       fillColor: NAVY,
       textColor: [255, 255, 255],
-      fontSize: 7,
+      fontSize: 6.8,
       fontStyle: 'bold',
       halign: 'center',
       cellPadding: 1.8,
     },
     bodyStyles: {
-      fontSize: 6.8,
+      fontSize: 6.5,
       fontStyle: 'bold',
       halign: 'center',
       textColor: DARK_SLATE,
@@ -257,10 +261,10 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     theme: 'grid',
     head: [[
       'Period',
-      `FY${data.fiscalYear} (Current ₹)`,
-      `FY${data.fiscalYear - 1} (LY Same Period ₹)`,
+      `FY${data.fiscalYear} (Current)`,
+      `FY${data.fiscalYear - 1} (LY Period)`,
       'YoY Sales %',
-      'Net Var (₹)',
+      'Net Var',
       'Qty (Cur vs LY)',
       'Invoices',
       `Target (@+${data.targetGrowthPercent}%)`,
@@ -270,15 +274,15 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     headStyles: {
       fillColor: NAVY,
       textColor: [255, 255, 255],
-      fontSize: 6.8,
+      fontSize: 6.5,
       fontStyle: 'bold',
       halign: 'center',
-      cellPadding: 1.8,
+      cellPadding: 1.6,
     },
     bodyStyles: {
-      fontSize: 6.5,
+      fontSize: 6.2,
       textColor: DARK_SLATE,
-      cellPadding: 1.8,
+      cellPadding: 1.6,
     },
     columnStyles: {
       0: { fontStyle: 'bold' },
@@ -354,10 +358,10 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     startY: currentY,
     margin: { left: margin, right: pageWidth / 2 + 1 },
     theme: 'grid',
-    head: [['Fiscal Year', 'Sales (Lakhs)', 'Turnover (₹)', 'YoY Growth %']],
+    head: [['Fiscal Year', 'Sales (Lakhs)', 'Turnover', 'YoY Growth %']],
     body: trendRows,
-    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 6.5, fontStyle: 'bold', cellPadding: 1.6 },
-    bodyStyles: { fontSize: 6.5, cellPadding: 1.6 },
+    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 6.5, fontStyle: 'bold', cellPadding: 1.5 },
+    bodyStyles: { fontSize: 6.2, cellPadding: 1.5 },
     columnStyles: {
       0: { fontStyle: 'bold' },
       1: { halign: 'right', fontStyle: 'bold' },
@@ -371,10 +375,10 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     startY: currentY,
     margin: { left: pageWidth / 2 + 1, right: margin },
     theme: 'grid',
-    head: [['Cat', 'MTD (₹ | %)', 'MTD Qty', 'QTD (₹ | %)', 'YTD (₹ | %)', 'YTD Qty', 'Share %']],
+    head: [['Cat', 'MTD (Sales | %)', 'MTD Qty', 'QTD (Sales | %)', 'YTD (Sales | %)', 'YTD Qty', 'Share %']],
     body: catRows.length > 0 ? catRows : [['No categories', '-', '-', '-', '-', '-', '-']],
-    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 6.5, fontStyle: 'bold', cellPadding: 1.6 },
-    bodyStyles: { fontSize: 6.5, cellPadding: 1.6 },
+    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 6.5, fontStyle: 'bold', cellPadding: 1.5 },
+    bodyStyles: { fontSize: 6.2, cellPadding: 1.5 },
     columnStyles: {
       0: { fontStyle: 'bold' },
       1: { halign: 'right' },
@@ -386,7 +390,7 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     },
   });
 
-  currentY = Math.max((doc as any).lastAutoTable.finalY, currentY + 24) + 3.5;
+  currentY = Math.max((doc as any).lastAutoTable.finalY, currentY + 22) + 3.5;
 
   // ─── 6. 5-PILLAR TARGET GAP DECOMPOSITION TABLE ───
   const gapAmount = Math.max(0, dynamicGap);
@@ -397,7 +401,7 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
   const dormantRecovery = Math.max(0, gapAmount - (lostPartVol + catExpansion + fastMovers + crossSell));
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
   doc.setTextColor(...NAVY);
   doc.text(`TARGET ACHIEVEMENT ENGINE — 5-PILLAR GAP DECOMPOSITION (100% OF ${formatLakhs(gapAmount)} GAP)`, margin, currentY);
   currentY += 2;
@@ -406,7 +410,7 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     startY: currentY,
     margin: { left: margin, right: margin },
     theme: 'grid',
-    head: [['Strategic Pillar', 'Allocation %', 'Target Revenue (₹)', 'Turnover Lakhs', 'Field Action Strategy']],
+    head: [['Strategic Pillar', 'Allocation %', 'Target Revenue', 'Turnover Lakhs', 'Field Action Strategy']],
     body: [
       ['1. Lost Part Volume Recovery', '30%', formatCurrency(lostPartVol), formatLakhs(lostPartVol), 'Pitch reorders for parts where units dropped vs previous year baseline'],
       ['2. Category Expansion', '25%', formatCurrency(catExpansion), formatLakhs(catExpansion), 'Introduce lagging categories representing <15% of customer basket'],
@@ -414,8 +418,8 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
       ['4. Cross-Sell Root Part Families', '15%', formatCurrency(crossSell), formatLakhs(crossSell), 'Pair complementary root part items with active product orders'],
       ['5. Dormant Part Reactivation', '10%', formatCurrency(dormantRecovery), formatLakhs(dormantRecovery), 'Reactivate core items bought in FY23-FY24 but silent this fiscal year'],
     ],
-    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', cellPadding: 1.8 },
-    bodyStyles: { fontSize: 7, cellPadding: 1.8 },
+    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 6.8, fontStyle: 'bold', cellPadding: 1.6 },
+    bodyStyles: { fontSize: 6.5, cellPadding: 1.6 },
     columnStyles: {
       0: { fontStyle: 'bold' },
       1: { halign: 'center', fontStyle: 'bold', textColor: BLUE },
@@ -425,14 +429,11 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     },
   });
 
-  currentY = (doc as any).lastAutoTable.finalY + 4;
+  // Explicit Clean Page Break to keep Page 1 & Page 2 visually balanced
+  doc.addPage();
+  currentY = margin;
 
-  // ─── 7. PRODUCT DECLINE & LOST VOLUME PITCH TARGETS ───
-  if (currentY > pageHeight - 65) {
-    doc.addPage();
-    currentY = margin;
-  }
-
+  // ─── 7. PRODUCT DECLINE & LOST VOLUME PITCH TARGETS (PAGE 2 TOP) ───
   const decliningRows = (data.decliningParts || []).slice(0, 10).map((p: any) => [
     p.partNum,
     p.rootPartNum || p.partNum,
@@ -456,10 +457,10 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     startY: currentY,
     margin: { left: margin, right: margin },
     theme: 'grid',
-    head: [['Part Number', 'Root Family', 'Cat', 'LY Qty', 'Cur Qty', 'Qty Gap', 'LY Sales (₹)', 'Cur Sales (₹)', 'Opportunity (₹)', 'Pitch Action']],
+    head: [['Part Number', 'Root Family', 'Cat', 'LY Qty', 'Cur Qty', 'Qty Gap', 'LY Sales', 'Cur Sales', 'Opportunity', 'Pitch Action']],
     body: decliningRows.length > 0 ? decliningRows : [['No significant declining parts detected.', '', '', '', '', '', '', '', '', '']],
-    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', cellPadding: 1.8 },
-    bodyStyles: { fontSize: 7, cellPadding: 1.8 },
+    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 6.8, fontStyle: 'bold', cellPadding: 1.8 },
+    bodyStyles: { fontSize: 6.5, cellPadding: 1.8 },
     columnStyles: {
       0: { fontStyle: 'bold', textColor: DARK_SLATE },
       1: { textColor: SLATE },
@@ -474,14 +475,9 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     },
   });
 
-  currentY = (doc as any).lastAutoTable.finalY + 4;
+  currentY = (doc as any).lastAutoTable.finalY + 5;
 
   // ─── 8. TOP 5 RECOMMENDED ACTIONS ───
-  if (currentY > pageHeight - 55) {
-    doc.addPage();
-    currentY = margin;
-  }
-
   const actionRows = (data.recommendedActions || []).slice(0, 5).map((a: any, idx: number) => [
     `#${a.rank || idx + 1}`,
     a.title,
@@ -500,10 +496,10 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     startY: currentY,
     margin: { left: margin, right: margin },
     theme: 'grid',
-    head: [['Rank', 'Playbook Action', 'Data-Backed Rationale', 'Opportunity (₹)', 'Priority']],
-    body: actionRows.length > 0 ? actionRows : [['#1', 'Maintain regular catalog ordering rhythm', 'Account is performing on baseline', '₹0', 'LOW']],
-    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', cellPadding: 1.8 },
-    bodyStyles: { fontSize: 7, cellPadding: 1.8 },
+    head: [['Rank', 'Playbook Action', 'Data-Backed Rationale', 'Opportunity', 'Priority']],
+    body: actionRows.length > 0 ? actionRows : [['#1', 'Maintain regular catalog ordering rhythm', 'Account is performing on baseline', 'Rs. 0', 'LOW']],
+    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 6.8, fontStyle: 'bold', cellPadding: 1.8 },
+    bodyStyles: { fontSize: 6.5, cellPadding: 1.8 },
     columnStyles: {
       0: { halign: 'center', fontStyle: 'bold' },
       1: { fontStyle: 'bold', textColor: DARK_SLATE },
@@ -519,14 +515,9 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     },
   });
 
-  currentY = (doc as any).lastAutoTable.finalY + 4;
+  currentY = (doc as any).lastAutoTable.finalY + 5;
 
   // ─── 9. TOP PARTLINE CONTRIBUTORS ───
-  if (currentY > pageHeight - 55) {
-    doc.addPage();
-    currentY = margin;
-  }
-
   const cleanTopParts = (data.topParts || []).slice(0, 10).map((p: any, idx: number) => [
     idx + 1,
     p.partNum,
@@ -547,10 +538,10 @@ export function generateCustomer360PDF(data: Customer360PDFData) {
     startY: currentY,
     margin: { left: margin, right: margin },
     theme: 'grid',
-    head: [['#', 'Part Number', 'Root Family', 'Cat', 'Qty', 'Turnover (₹)', 'Share %']],
+    head: [['#', 'Part Number', 'Root Family', 'Cat', 'Qty', 'Turnover', 'Share %']],
     body: cleanTopParts.length > 0 ? cleanTopParts : [['-', 'No parts recorded', '', '', '', '', '']],
-    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 7, fontStyle: 'bold', cellPadding: 1.8 },
-    bodyStyles: { fontSize: 7, cellPadding: 1.8 },
+    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontSize: 6.8, fontStyle: 'bold', cellPadding: 1.8 },
+    bodyStyles: { fontSize: 6.5, cellPadding: 1.8 },
     columnStyles: {
       0: { halign: 'center', textColor: SLATE },
       1: { fontStyle: 'bold', textColor: DARK_SLATE },
