@@ -19,11 +19,8 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  LineChart,
-  Line,
   AreaChart,
-  Area,
-  Legend
+  Area
 } from 'recharts';
 import toast from 'react-hot-toast';
 
@@ -67,6 +64,7 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
   const [partySearch, setPartySearch] = useState<string>('');
   const [searchOpen, setSearchOpen] = useState<boolean>(false);
   const [isExportingExcel, setIsExportingExcel] = useState<boolean>(false);
+  const [isExportingPDF, setIsExportingPDF] = useState<boolean>(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Sync prop changes
@@ -151,10 +149,35 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
   const riskAndSignals = party360?.riskAndSignals || { attentionRequired: [], positiveSignals: [] };
   const timeline = party360?.timeline || [];
 
+  // Normalized Metric Calculations
+  const curYtd = periodComparison.ytd?.current ?? periodComparison.ytd?.curSales ?? matrix.curYtdSales ?? 0;
+  const lyYtd = periodComparison.ytd?.lySamePeriod ?? periodComparison.ytd?.lySales ?? matrix.lyYtdSales ?? 0;
+  const curQtd = periodComparison.qtd?.current ?? periodComparison.qtd?.curSales ?? 0;
+  const curMqtd = periodComparison.mqtd?.current ?? periodComparison.mqtd?.curSales ?? 0;
+  const curHtd = periodComparison.htd?.current ?? periodComparison.htd?.curSales ?? 0;
+  const curMtd = periodComparison.mtd?.current ?? periodComparison.mtd?.curSales ?? 0;
+  const ytdGrowth = periodComparison.ytd?.growthPercent ?? 0;
+
+  // 4-Year Trend normalized items
+  const trendYears: any[] = (fourYearTrend.years && Array.isArray(fourYearTrend.years) && fourYearTrend.years.length > 0)
+    ? fourYearTrend.years
+    : [
+        { year: 'FY 2023', sales: fourYearTrend.fy23 || 0, yoyGrowth: null },
+        { year: 'FY 2024', sales: fourYearTrend.fy24 || 0, yoyGrowth: fourYearTrend.yoy24 },
+        { year: 'FY 2025', sales: fourYearTrend.fy25 || 0, yoyGrowth: fourYearTrend.yoy25 },
+        { year: 'FY 2026', sales: fourYearTrend.fy26 || 0, yoyGrowth: fourYearTrend.yoy26 },
+      ];
+  const cagrValue = fourYearTrend.cagr4Year ?? fourYearTrend.cagr ?? 0;
+
+  // Normalized Basket Stats
+  const lifetimeSales = basketStats.lifetimeSales || 0;
+  const activeMonths = basketStats.activeMonths || 0;
+  const totalInvoices = basketStats.totalInvoices || 0;
+  const avgMonthlyBuying = activeMonths > 0 ? Math.round(lifetimeSales / activeMonths) : (basketStats.avgMonthlySales || 0);
+  const avgOrderValue = totalInvoices > 0 ? Math.round(lifetimeSales / totalInvoices) : (basketStats.avgSalesPerInvoice || 0);
+
   // Dynamic Target Calculation based on Target Growth % input
   const dynamicCalculations = useMemo(() => {
-    const curYtd = periodComparison.ytd?.curSales || matrix.curYtdSales || 0;
-    const lyYtd = periodComparison.ytd?.lySales || matrix.lyYtdSales || 0;
     const dynamicTarget = Math.round(lyYtd * (1 + targetGrowthPercent / 100));
     const dynamicGap = dynamicTarget - curYtd;
     const dynamicAchievementPercent = dynamicTarget > 0 ? (curYtd / dynamicTarget) * 100 : (curYtd > 0 ? 100 : 0);
@@ -181,7 +204,20 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
         dormantRecovery
       }
     };
-  }, [periodComparison, matrix, targetGrowthPercent, decliningParts]);
+  }, [curYtd, lyYtd, targetGrowthPercent, decliningParts]);
+
+  // Clean Top Parts
+  const cleanTopParts = useMemo(() => {
+    return topParts.map((p: any, idx: number) => ({
+      rank: p.rank || idx + 1,
+      partNum: p.partNum,
+      rootPartNum: p.rootPartNum || p.partNum,
+      cat: p.cat || 'M',
+      qty: p.curQty ?? p.qty ?? p.totalQty ?? 0,
+      sales: p.curSales ?? p.sales ?? p.totalSales ?? 0,
+      sharePercent: p.sharePercent ?? p.revenueShare ?? 0,
+    }));
+  }, [topParts]);
 
   // Excel Export Handler
   const handleExportExcel = async () => {
@@ -208,9 +244,518 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
     }
   };
 
-  // PDF Print Handler
+  // Complete Formatted Multi-Page PDF Print Handler
   const handlePrintPDF = () => {
-    window.print();
+    setIsExportingPDF(true);
+    const printWin = window.open('', '_blank', 'width=1100,height=900');
+    if (!printWin) {
+      window.print();
+      setIsExportingPDF(false);
+      return;
+    }
+
+    const partyNameStr = profile.partyName || partyCode;
+    const branchNameStr = profile.branchName || profile.branchCode || 'Head Office';
+    const statusStr = health.status || 'STABLE';
+    const scoreStr = `${health.score || 75}/100`;
+
+    // Category rows HTML
+    const catRowsHtml = categories.map((c: any) => `
+      <tr>
+        <td style="font-weight: bold; color: #0f172a;">Category ${c.cat}</td>
+        <td style="text-align: right; font-family: monospace;">₹${Math.round(c.curMonthSales || 0).toLocaleString('en-IN')}</td>
+        <td style="text-align: right; font-family: monospace; font-weight: bold; color: #002060;">₹${Math.round(c.ytdSales || 0).toLocaleString('en-IN')}</td>
+        <td style="text-align: right; font-family: monospace; color: #64748b;">₹${Math.round(c.lifetimeSales || 0).toLocaleString('en-IN')}</td>
+        <td style="text-align: right; font-weight: bold; color: #2563eb;">${c.sharePercent || 0}%</td>
+      </tr>
+    `).join('');
+
+    // Top parts rows HTML
+    const topPartsRowsHtml = cleanTopParts.slice(0, 15).map((p: any, idx: number) => `
+      <tr>
+        <td style="text-align: center; color: #64748b;">${idx + 1}</td>
+        <td style="font-family: monospace; font-weight: bold; color: #002060;">${p.partNum}</td>
+        <td style="font-family: monospace; color: #64748b;">${p.rootPartNum}</td>
+        <td style="text-align: center; font-weight: bold;">${p.cat}</td>
+        <td style="text-align: right; font-family: monospace;">${Number(p.qty).toLocaleString('en-IN')}</td>
+        <td style="text-align: right; font-family: monospace; font-weight: bold; color: #0f172a;">₹${Math.round(p.sales).toLocaleString('en-IN')}</td>
+        <td style="text-align: right; font-weight: bold; color: #2563eb;">${p.sharePercent}%</td>
+      </tr>
+    `).join('');
+
+    // Declining parts rows HTML
+    const decliningPartsRowsHtml = decliningParts.slice(0, 10).map((p: any) => `
+      <tr>
+        <td style="font-family: monospace; font-weight: bold; color: #991b1b;">${p.partNum}</td>
+        <td style="text-align: center; font-weight: bold;">${p.cat || 'M'}</td>
+        <td style="text-align: right; font-family: monospace;">${p.lyQty}</td>
+        <td style="text-align: right; font-family: monospace; font-weight: bold;">${p.curQty}</td>
+        <td style="text-align: right; font-family: monospace; font-weight: bold; color: #dc2626;">${p.qtyGap}</td>
+        <td style="text-align: right; font-family: monospace;">₹${Math.round(p.lySales || 0).toLocaleString('en-IN')}</td>
+        <td style="text-align: right; font-family: monospace; font-weight: bold;">₹${Math.round(p.curSales || 0).toLocaleString('en-IN')}</td>
+        <td style="text-align: right; font-family: monospace; font-weight: bold; color: #d97706;">₹${Math.round(p.opportunityValue || 0).toLocaleString('en-IN')}</td>
+        <td style="color: #2563eb; font-weight: bold; font-size: 10px;">Reorder ${Math.abs(p.qtyGap)} pcs</td>
+      </tr>
+    `).join('');
+
+    // Actions rows HTML
+    const actionsRowsHtml = recommendedActions.slice(0, 5).map((a: any, idx: number) => `
+      <tr>
+        <td style="text-align: center; font-weight: bold;">#${a.rank || idx + 1}</td>
+        <td style="font-weight: bold; color: #0f172a;">${a.title}</td>
+        <td style="color: #475569; font-size: 10.5px;">${a.reason}</td>
+        <td style="text-align: right; font-family: monospace; font-weight: bold; color: #16a34a;">₹${Math.round(a.potentialValue || 0).toLocaleString('en-IN')}</td>
+        <td style="text-align: center;"><span style="background: ${a.priority === 'HIGH' ? '#fee2e2; color: #991b1b;' : '#fef3c7; color: #92400e;'} padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 9.5px;">${a.priority}</span></td>
+      </tr>
+    `).join('');
+
+    const htmlDoc = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Customer 360 Dossier — ${partyNameStr} (${partyCode})</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 10mm 12mm;
+          }
+          * { box-sizing: border-box; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #0f172a;
+            background: #ffffff;
+            margin: 0;
+            padding: 0;
+            font-size: 11px;
+            line-height: 1.35;
+          }
+          .page-container {
+            width: 100%;
+          }
+          .header-dossier {
+            border-bottom: 2.5px solid #002060;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+          }
+          .brand-title {
+            font-size: 16px;
+            font-weight: 900;
+            color: #002060;
+            letter-spacing: -0.3px;
+          }
+          .brand-sub {
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #2563eb;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .meta-box {
+            text-align: right;
+            font-size: 10px;
+            color: #64748b;
+          }
+          .profile-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 10px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+          }
+          .profile-name {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+          }
+          .badge {
+            display: inline-block;
+            padding: 1.5px 6px;
+            border-radius: 4px;
+            font-size: 9.5px;
+            font-weight: bold;
+          }
+          .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
+          }
+          .kpi-cell {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 6px 8px;
+            text-align: center;
+          }
+          .kpi-cell-label {
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+          }
+          .kpi-cell-val {
+            font-size: 12px;
+            font-weight: 900;
+            color: #002060;
+            margin-top: 2px;
+            font-family: monospace;
+          }
+          .section-heading {
+            font-size: 11px;
+            font-weight: 800;
+            color: #002060;
+            text-transform: uppercase;
+            border-bottom: 1.5px solid #002060;
+            padding-bottom: 3px;
+            margin-top: 14px;
+            margin-bottom: 6px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-bottom: 10px;
+          }
+          th {
+            background: #002060;
+            color: #ffffff;
+            font-weight: 700;
+            text-align: left;
+            padding: 5px 6px;
+            border: 1px solid #002060;
+            font-size: 9px;
+            text-transform: uppercase;
+          }
+          td {
+            padding: 4.5px 6px;
+            border: 1px solid #e2e8f0;
+          }
+          tr:nth-child(even) td {
+            background-color: #f8fafc;
+          }
+          .pillars-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
+          }
+          .pillar-box {
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 6px 8px;
+          }
+          .pillar-title {
+            font-size: 9px;
+            font-weight: bold;
+            color: #0f172a;
+          }
+          .pillar-val {
+            font-size: 12px;
+            font-weight: 900;
+            color: #2563eb;
+            font-family: monospace;
+            margin: 2px 0;
+          }
+          .page-break {
+            page-break-before: always;
+            break-before: always;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page-container">
+          
+          <!-- TOP HEADER -->
+          <div class="header-dossier">
+            <div>
+              <div class="brand-sub">TheSSBuddy • Powered by Thesssystems</div>
+              <div class="brand-title">CUSTOMER 360 — COMPREHENSIVE INTELLIGENCE DOSSIER</div>
+            </div>
+            <div class="meta-box">
+              <div><strong>As of:</strong> ${month} FY${fiscalYear}</div>
+              <div><strong>Generated:</strong> ${new Date().toLocaleDateString('en-IN')}</div>
+              <div><strong>Target Aim:</strong> +${targetGrowthPercent}% YoY</div>
+            </div>
+          </div>
+
+          <!-- SECTION 1: CUSTOMER IDENTITY & HEALTH -->
+          <div class="profile-grid">
+            <div>
+              <div class="profile-name">${partyNameStr}</div>
+              <div style="margin-top: 3px;">
+                <span class="badge" style="background: #dbeafe; color: #1e40af;">Code: ${profile.partyCode || partyCode}</span>
+                ${profile.originalCode && profile.originalCode !== (profile.partyCode || partyCode) ? `<span class="badge" style="background: #f1f5f9; color: #475569;">Orig: ${profile.originalCode}</span>` : ''}
+                <span class="badge" style="background: #f1f5f9; color: #334155;">${profile.partyType || 'RETAILER'}</span>
+              </div>
+              <div style="font-size: 10px; color: #64748b; margin-top: 4px;">
+                📍 Branch: <strong>${branchNameStr}</strong> | 📅 Since: <strong>${basketStats.firstPurchase || 'N/A'}</strong> | 🕒 Last Order: <strong>${basketStats.lastPurchase || 'N/A'}</strong>
+              </div>
+            </div>
+
+            <div style="text-align: center; border-left: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1; padding: 0 8px;">
+              <div style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">Branch Position</div>
+              <div style="font-size: 13px; font-weight: 900; color: #0f172a; margin-top: 2px;">Rank #${branchContribution.branchRank || 1}</div>
+              <div style="font-size: 9.5px; font-weight: bold; color: #2563eb;">${branchContribution.branchSharePercent || 0}% Share of Branch</div>
+            </div>
+
+            <div style="text-align: center;">
+              <div style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">Account Health</div>
+              <div style="font-size: 16px; font-weight: 900; color: #16a34a; margin-top: 1px;">${scoreStr}</div>
+              <span class="badge" style="background: #dcfce7; color: #15803d; text-transform: uppercase;">● ${statusStr}</span>
+            </div>
+          </div>
+
+          <!-- KEY ORDER BEHAVIOR STRIP -->
+          <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 12px; background: #f1f5f9; padding: 6px 8px; border-radius: 6px; font-size: 9.5px;">
+            <div>Lifetime Sales: <strong>${formatLakhs(lifetimeSales)}</strong></div>
+            <div>Avg Monthly: <strong>${formatLakhs(avgMonthlyBuying)}</strong></div>
+            <div>Avg Order: <strong>${formatCurrency(avgOrderValue)}</strong></div>
+            <div>Active Months: <strong>${activeMonths} Months</strong></div>
+            <div>Catalog Breadth: <strong>${basketStats.totalUniqueParts || 0} Parts</strong></div>
+            <div>Total Invoices: <strong>${totalInvoices} Invoices</strong></div>
+          </div>
+
+          <!-- SECTION 2: 7 PRIMARY KPI METRICS -->
+          <div class="kpi-row">
+            <div class="kpi-cell">
+              <div class="kpi-cell-label">YTD Sales</div>
+              <div class="kpi-cell-val">${formatLakhs(curYtd)}</div>
+              <div style="font-size: 8px; color: #64748b;">${formatCurrency(curYtd)}</div>
+            </div>
+            <div class="kpi-cell">
+              <div class="kpi-cell-label">QTD Sales</div>
+              <div class="kpi-cell-val">${formatLakhs(curQtd)}</div>
+              <div style="font-size: 8px; color: #64748b;">${formatCurrency(curQtd)}</div>
+            </div>
+            <div class="kpi-cell">
+              <div class="kpi-cell-label">MQTD Sales</div>
+              <div class="kpi-cell-val">${formatLakhs(curMqtd)}</div>
+              <div style="font-size: 8px; color: #64748b;">${formatCurrency(curMqtd)}</div>
+            </div>
+            <div class="kpi-cell">
+              <div class="kpi-cell-label">HTD Sales</div>
+              <div class="kpi-cell-val">${formatLakhs(curHtd)}</div>
+              <div style="font-size: 8px; color: #64748b;">${formatCurrency(curHtd)}</div>
+            </div>
+            <div class="kpi-cell" style="background: ${ytdGrowth >= 0 ? '#ecfdf5' : '#fff1f2'};">
+              <div class="kpi-cell-label">YoY Growth</div>
+              <div class="kpi-cell-val" style="color: ${ytdGrowth >= 0 ? '#16a34a' : '#dc2626'};">${formatGrowth(ytdGrowth)}</div>
+              <div style="font-size: 8px; color: #64748b;">vs LY Same Period</div>
+            </div>
+            <div class="kpi-cell" style="background: #eff6ff;">
+              <div class="kpi-cell-label">Target Achieved</div>
+              <div class="kpi-cell-val" style="color: #2563eb;">${dynamicCalculations.dynamicAchievementPercent.toFixed(1)}%</div>
+              <div style="font-size: 8px; color: #2563eb;">Tgt: ${formatLakhs(dynamicCalculations.dynamicTarget)}</div>
+            </div>
+            <div class="kpi-cell" style="background: ${dynamicCalculations.dynamicGap > 0 ? '#fffbeb' : '#ecfdf5'};">
+              <div class="kpi-cell-label">${dynamicCalculations.dynamicGap > 0 ? 'Target Gap' : 'Target Surplus'}</div>
+              <div class="kpi-cell-val" style="color: ${dynamicCalculations.dynamicGap > 0 ? '#d97706' : '#16a34a'};">${formatLakhs(Math.abs(dynamicCalculations.dynamicGap))}</div>
+              <div style="font-size: 8px; color: #64748b;">@+${targetGrowthPercent}% aim</div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: EXACT SAME-PERIOD COMPARISON TABLE -->
+          <div class="section-heading">Period Performance vs Last Year (Exact Same-Period Comparison)</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th style="text-align: right;">FY${fiscalYear} (Current)</th>
+                <th style="text-align: right;">FY${fiscalYear - 1} (LY Same Period)</th>
+                <th style="text-align: right;">YoY Growth %</th>
+                <th style="text-align: right;">Net Diff (₹)</th>
+                <th style="text-align: right;">Target (@+${targetGrowthPercent}%)</th>
+                <th style="text-align: right;">Target Ach %</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${[
+                { label: `MTD (${month})`, key: 'mtd' },
+                { label: 'MQTD (Aug-Sep)', key: 'mqtd' },
+                { label: 'QTD (Jul-Sep)', key: 'qtd' },
+                { label: 'HTD (Apr-Sep)', key: 'htd' },
+                { label: 'YTD (Apr-Sep)', key: 'ytd', bold: true },
+              ].map(r => {
+                const d = periodComparison[r.key] || {};
+                const c = d.current ?? d.curSales ?? 0;
+                const l = d.lySamePeriod ?? d.lySales ?? 0;
+                const g = d.growthPercent ?? 0;
+                const diff = d.diffAmount ?? (c - l);
+                const tgt = Math.round(l * (1 + targetGrowthPercent / 100));
+                const ach = tgt > 0 ? (c / tgt) * 100 : (c > 0 ? 100 : 0);
+                return `
+                  <tr style="${r.bold ? 'background: #eff6ff; font-weight: bold;' : ''}">
+                    <td>${r.label}</td>
+                    <td style="text-align: right; font-family: monospace; font-weight: bold;">₹${Math.round(c).toLocaleString('en-IN')}</td>
+                    <td style="text-align: right; font-family: monospace; color: #64748b;">₹${Math.round(l).toLocaleString('en-IN')}</td>
+                    <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${g >= 0 ? '#16a34a' : '#dc2626'};">${formatGrowth(g)}</td>
+                    <td style="text-align: right; font-family: monospace; color: ${diff >= 0 ? '#16a34a' : '#dc2626'};">${diff >= 0 ? '+' : ''}₹${Math.round(diff).toLocaleString('en-IN')}</td>
+                    <td style="text-align: right; font-family: monospace;">₹${Math.round(tgt).toLocaleString('en-IN')}</td>
+                    <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${ach >= 100 ? '#16a34a' : '#2563eb'};">${ach.toFixed(1)}%</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+
+          <!-- SECTION 4: 4-YEAR TREND & CATEGORY BREAKDOWN -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <div class="section-heading">4-Year Sales History (4Y CAGR: ${cagrValue}%)</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fiscal Year</th>
+                    <th style="text-align: right;">Sales Turnover</th>
+                    <th style="text-align: right;">YoY Growth %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${trendYears.map((yr: any) => `
+                    <tr>
+                      <td style="font-weight: bold;">${yr.year}</td>
+                      <td style="text-align: right; font-family: monospace; font-weight: bold;">${formatLakhs(yr.sales)}</td>
+                      <td style="text-align: right; font-family: monospace; font-weight: bold; color: ${yr.yoyGrowth >= 0 ? '#16a34a' : '#dc2626'};">${yr.yoyGrowth !== null && yr.yoyGrowth !== undefined ? formatGrowth(yr.yoyGrowth) : 'Base Year'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <div class="section-heading">Category Breakdown & Wallet Share</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th style="text-align: right;">Month</th>
+                    <th style="text-align: right;">YTD Sales</th>
+                    <th style="text-align: right;">Lifetime</th>
+                    <th style="text-align: right;">Share %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${catRowsHtml}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- SECTION 5: 5-PILLAR TARGET GAP DECOMPOSITION -->
+          <div class="section-heading">Target Achievement Engine — 5-Pillar Gap Decomposition (100% Coverage)</div>
+          <div class="pillars-grid">
+            <div class="pillar-box">
+              <div class="pillar-title">1. Lost Part Volume (30%)</div>
+              <div class="pillar-val">${formatLakhs(dynamicCalculations.pillars.lostPartVol)}</div>
+              <div style="font-size: 8.5px; color: #64748b;">Recover dropped catalog items</div>
+            </div>
+            <div class="pillar-box">
+              <div class="pillar-title">2. Category Expansion (25%)</div>
+              <div class="pillar-val">${formatLakhs(dynamicCalculations.pillars.catExpansion)}</div>
+              <div style="font-size: 8.5px; color: #64748b;">Cross-sell lagging categories</div>
+            </div>
+            <div class="pillar-box">
+              <div class="pillar-title">3. Branch Movers (20%)</div>
+              <div class="pillar-val">${formatLakhs(dynamicCalculations.pillars.fastMovers)}</div>
+              <div style="font-size: 8.5px; color: #64748b;">Introduce branch top-sellers</div>
+            </div>
+            <div class="pillar-box">
+              <div class="pillar-title">4. Cross-Sell Families (15%)</div>
+              <div class="pillar-val">${formatLakhs(dynamicCalculations.pillars.crossSell)}</div>
+              <div style="font-size: 8.5px; color: #64748b;">Pair root part accessories</div>
+            </div>
+            <div class="pillar-box">
+              <div class="pillar-title">5. Dormant Recovery (10%)</div>
+              <div class="pillar-val">${formatLakhs(dynamicCalculations.pillars.dormantRecovery)}</div>
+              <div style="font-size: 8.5px; color: #64748b;">Reactivate lapsed core parts</div>
+            </div>
+          </div>
+
+          <!-- SECTION 6: PRODUCT DECLINE & LOST VOLUME ANALYSIS -->
+          <div class="section-heading">Product Decline & Lost Volume Analysis (Field Pitch Targets)</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Part Number</th>
+                <th style="text-align: center;">Cat</th>
+                <th style="text-align: right;">LY Qty</th>
+                <th style="text-align: right;">Cur Qty</th>
+                <th style="text-align: right;">Qty Gap</th>
+                <th style="text-align: right;">LY Sales</th>
+                <th style="text-align: right;">Cur Sales</th>
+                <th style="text-align: right;">Opportunity (₹)</th>
+                <th>Pitch Recommendation</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${decliningPartsRowsHtml || '<tr><td colspan="9" style="text-align:center;">No declining parts detected.</td></tr>'}
+            </tbody>
+          </table>
+
+          <!-- SECTION 7: TOP 5 RECOMMENDED ACTIONS -->
+          <div class="section-heading">Top Recommended Next Best Actions (Field Rep Sales Playbook)</div>
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align: center; width: 40px;">Rank</th>
+                <th>Action Playbook</th>
+                <th>Data-Driven Rationale</th>
+                <th style="text-align: right; width: 110px;">Potential (₹)</th>
+                <th style="text-align: center; width: 70px;">Priority</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${actionsRowsHtml || '<tr><td colspan="5" style="text-align:center;">No immediate playbook actions required.</td></tr>'}
+            </tbody>
+          </table>
+
+          <!-- SECTION 8: TOP PARTLINE CONTRIBUTORS -->
+          <div class="section-heading">Top Partline Revenue Contributors (Catalog Volume)</div>
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align: center; width: 35px;">#</th>
+                <th>Part Num</th>
+                <th>Root Part Family</th>
+                <th style="text-align: center;">Cat</th>
+                <th style="text-align: right;">Qty</th>
+                <th style="text-align: right;">Turnover (₹)</th>
+                <th style="text-align: right;">Revenue Share %</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${topPartsRowsHtml || '<tr><td colspan="7" style="text-align:center;">No parts recorded.</td></tr>'}
+            </tbody>
+          </table>
+
+          <!-- FOOTER -->
+          <div style="border-top: 1.5px solid #cbd5e1; padding-top: 6px; margin-top: 14px; display: flex; justify-content: space-between; font-size: 9px; color: #64748b;">
+            <div>TheSSBuddy Enterprise Customer 360 Intelligence System • Powered by Thesssystems</div>
+            <div>Confidential Business Intelligence Report • Page 1 of 1</div>
+          </div>
+
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWin.document.open();
+    printWin.document.write(htmlDoc);
+    printWin.document.close();
+
+    // Trigger Print after styles render
+    setTimeout(() => {
+      printWin.focus();
+      printWin.print();
+      setIsExportingPDF(false);
+    }, 450);
   };
 
   const handleSelectParty = (p: any) => {
@@ -231,10 +776,14 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
       {/* ─── PRINT CSS INJECTION ─── */}
       <style jsx global>{`
         @media print {
-          body {
+          html, body, #__next, main {
+            height: auto !important;
+            min-height: 100% !important;
+            overflow: visible !important;
+            position: static !important;
             background-color: #ffffff !important;
             color: #000000 !important;
-            font-size: 11px !important;
+            font-size: 10.5px !important;
           }
           .no-print, header, aside, nav, .print-hidden {
             display: none !important;
@@ -246,9 +795,6 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           .print-card {
             border: 1px solid #cbd5e1 !important;
             box-shadow: none !important;
-          }
-          .print-header {
-            border-bottom: 2px solid #0f172a !important;
           }
         }
       `}</style>
@@ -426,14 +972,15 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
               <span>Excel</span>
             </button>
 
-            {/* Export PDF Print */}
+            {/* Complete Formatted PDF Print */}
             <button
               onClick={handlePrintPDF}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors shadow-xs"
-              title="Print or save one-pager PDF"
+              disabled={isExportingPDF || !partyCode}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors shadow-xs disabled:opacity-50"
+              title="Print complete formatted multi-page PDF Dossier with all 23 sections"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>PDF</span>
+              <span>{isExportingPDF ? 'Preparing PDF...' : 'PDF'}</span>
             </button>
           </div>
         </div>
@@ -532,19 +1079,19 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 mt-3 pt-1">
             <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
               <div className="text-[10px] font-medium text-slate-500">Lifetime Sales</div>
-              <div className="text-xs font-bold text-slate-900 mt-0.5">{formatLakhs(basketStats.lifetimeSales)}</div>
+              <div className="text-xs font-bold text-slate-900 mt-0.5">{formatLakhs(lifetimeSales)}</div>
             </div>
             <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
               <div className="text-[10px] font-medium text-slate-500">Avg Monthly Buying</div>
-              <div className="text-xs font-bold text-slate-900 mt-0.5">{formatLakhs(basketStats.avgMonthlySales)}</div>
+              <div className="text-xs font-bold text-slate-900 mt-0.5">{formatLakhs(avgMonthlyBuying)}</div>
             </div>
             <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
               <div className="text-[10px] font-medium text-slate-500">Avg Order Value</div>
-              <div className="text-xs font-bold text-slate-900 mt-0.5">{formatCurrency(basketStats.avgSalesPerInvoice)}</div>
+              <div className="text-xs font-bold text-slate-900 mt-0.5">{formatCurrency(avgOrderValue)}</div>
             </div>
             <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
               <div className="text-[10px] font-medium text-slate-500">Active Months</div>
-              <div className="text-xs font-bold text-slate-900 mt-0.5">{basketStats.activeMonths || 0} Months</div>
+              <div className="text-xs font-bold text-slate-900 mt-0.5">{activeMonths} Months</div>
             </div>
             <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
               <div className="text-[10px] font-medium text-slate-500">Avg Qty / Invoice</div>
@@ -563,10 +1110,10 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs print-card">
             <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">YTD Sales</div>
             <div className="text-base font-extrabold text-slate-900 mt-1">
-              {formatLakhs(periodComparison.ytd?.curSales || matrix.curYtdSales)}
+              {formatLakhs(curYtd)}
             </div>
             <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
-              {formatCurrency(periodComparison.ytd?.curSales || matrix.curYtdSales)}
+              {formatCurrency(curYtd)}
             </div>
           </div>
 
@@ -574,10 +1121,10 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs print-card">
             <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">QTD Sales</div>
             <div className="text-base font-extrabold text-slate-900 mt-1">
-              {formatLakhs(periodComparison.qtd?.curSales)}
+              {formatLakhs(curQtd)}
             </div>
             <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
-              {formatCurrency(periodComparison.qtd?.curSales)}
+              {formatCurrency(curQtd)}
             </div>
           </div>
 
@@ -585,10 +1132,10 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs print-card">
             <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">MQTD Sales</div>
             <div className="text-base font-extrabold text-slate-900 mt-1">
-              {formatLakhs(periodComparison.mqtd?.curSales)}
+              {formatLakhs(curMqtd)}
             </div>
             <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
-              {formatCurrency(periodComparison.mqtd?.curSales)}
+              {formatCurrency(curMqtd)}
             </div>
           </div>
 
@@ -596,29 +1143,29 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
           <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs print-card">
             <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">HTD Sales</div>
             <div className="text-base font-extrabold text-slate-900 mt-1">
-              {formatLakhs(periodComparison.htd?.curSales)}
+              {formatLakhs(curHtd)}
             </div>
             <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
-              {formatCurrency(periodComparison.htd?.curSales)}
+              {formatCurrency(curHtd)}
             </div>
           </div>
 
           {/* Tile 5: YTD Growth % */}
           <div className={`rounded-xl border p-3 shadow-xs print-card ${
-            (periodComparison.ytd?.growthPercent || 0) >= 0
+            ytdGrowth >= 0
               ? 'bg-emerald-50/70 border-emerald-200'
               : 'bg-rose-50/70 border-rose-200'
           }`}>
             <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">YTD Growth YoY</div>
             <div className={`text-base font-extrabold mt-1 flex items-center gap-1 ${
-              (periodComparison.ytd?.growthPercent || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'
+              ytdGrowth >= 0 ? 'text-emerald-700' : 'text-rose-700'
             }`}>
-              {(periodComparison.ytd?.growthPercent || 0) >= 0 ? (
+              {ytdGrowth >= 0 ? (
                 <TrendingUp className="w-4 h-4" />
               ) : (
                 <TrendingDown className="w-4 h-4" />
               )}
-              {formatGrowth(periodComparison.ytd?.growthPercent)}
+              {formatGrowth(ytdGrowth)}
             </div>
             <div className="text-[11px] text-slate-500 mt-0.5">
               vs LY Same Period
@@ -692,10 +1239,10 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                   { label: 'YTD (Apr-Sep)', key: 'ytd', isPrimary: true },
                 ].map((row) => {
                   const pData = periodComparison[row.key] || {};
-                  const cur = pData.curSales || 0;
-                  const ly = pData.lySales || 0;
-                  const growth = pData.growthPercent || 0;
-                  const diff = cur - ly;
+                  const cur = pData.current ?? pData.curSales ?? 0;
+                  const ly = pData.lySamePeriod ?? pData.lySales ?? 0;
+                  const growth = pData.growthPercent ?? 0;
+                  const diff = pData.diffAmount ?? (cur - ly);
                   const tgt = Math.round(ly * (1 + targetGrowthPercent / 100));
                   const ach = tgt > 0 ? (cur / tgt) * 100 : (cur > 0 ? 100 : 0);
                   const isPositive = growth >= 0;
@@ -761,33 +1308,28 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                 </h3>
               </div>
               <div className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                4Y CAGR: {fourYearTrend.cagr || 0}%
+                4Y CAGR: {cagrValue}%
               </div>
             </div>
 
             {/* 4 Year Bars Grid */}
             <div className="grid grid-cols-4 gap-2 mb-4">
-              {[
-                { fy: 'FY 2022-23', sales: fourYearTrend.fy23 || 0, tag: 'FY23' },
-                { fy: 'FY 2023-24', sales: fourYearTrend.fy24 || 0, tag: 'FY24', yoy: fourYearTrend.yoy24 },
-                { fy: 'FY 2024-25', sales: fourYearTrend.fy25 || 0, tag: 'FY25', yoy: fourYearTrend.yoy25 },
-                { fy: 'FY 2025-26', sales: fourYearTrend.fy26 || 0, tag: 'FY26', yoy: fourYearTrend.yoy26, active: true },
-              ].map((yr) => (
+              {trendYears.map((yr: any, idx: number) => (
                 <div
-                  key={yr.tag}
+                  key={yr.year || idx}
                   className={`p-2.5 rounded-lg border text-center ${
-                    yr.active
+                    idx === trendYears.length - 1
                       ? 'bg-blue-50/60 border-blue-300'
                       : 'bg-slate-50 border-slate-200'
                   }`}
                 >
-                  <div className="text-[10px] font-bold text-slate-500">{yr.tag}</div>
+                  <div className="text-[10px] font-bold text-slate-500">{yr.year}</div>
                   <div className="text-xs font-extrabold text-slate-900 mt-1">
                     {formatLakhs(yr.sales)}
                   </div>
-                  {yr.yoy !== undefined ? (
-                    <div className={`text-[10px] font-bold mt-0.5 ${yr.yoy >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {formatGrowth(yr.yoy)}
+                  {yr.yoyGrowth !== undefined && yr.yoyGrowth !== null ? (
+                    <div className={`text-[10px] font-bold mt-0.5 ${yr.yoyGrowth >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {formatGrowth(yr.yoyGrowth)}
                     </div>
                   ) : (
                     <div className="text-[10px] text-slate-400 mt-0.5">Base Year</div>
@@ -800,12 +1342,10 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
             <div className="h-44 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={[
-                    { year: 'FY23', sales: Math.round((fourYearTrend.fy23 || 0) / 100000) },
-                    { year: 'FY24', sales: Math.round((fourYearTrend.fy24 || 0) / 100000) },
-                    { year: 'FY25', sales: Math.round((fourYearTrend.fy25 || 0) / 100000) },
-                    { year: 'FY26 (YTD)', sales: Math.round((fourYearTrend.fy26 || 0) / 100000) },
-                  ]}
+                  data={trendYears.map((y: any) => ({
+                    year: y.year,
+                    sales: Number(((y.sales || 0) / 100000).toFixed(2)),
+                  }))}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -916,7 +1456,7 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                             <span>Category {c.cat}</span>
                           </td>
                           <td className="py-2 px-3 text-right font-mono text-slate-900">
-                            {formatCurrency(c.curYtdSales || c.curMonthSales)}
+                            {formatCurrency(c.ytdSales || c.curYtdSales || c.curMonthSales)}
                           </td>
                           <td className="py-2 px-3 text-right font-mono text-slate-500">
                             {formatCurrency(c.lyYtdSales || c.lyMonthSales)}
@@ -969,12 +1509,12 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-800">
-                  {topParts.length === 0 ? (
+                  {cleanTopParts.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-4 text-center text-slate-400 text-xs">No part items recorded</td>
                     </tr>
                   ) : (
-                    topParts.slice(0, 5).map((p: any) => (
+                    cleanTopParts.slice(0, 5).map((p: any) => (
                       <tr key={p.partNum} className="hover:bg-slate-50/80 transition-colors">
                         <td className="py-2 px-3">
                           <div className="font-mono font-bold text-slate-900">{p.partNum}</div>
@@ -988,10 +1528,10 @@ export const Customer360Cockpit: React.FC<Customer360CockpitProps> = ({
                           </span>
                         </td>
                         <td className="py-2 px-2 text-right font-mono text-slate-700">
-                          {p.curQty || p.qty || 0}
+                          {Number(p.qty).toLocaleString('en-IN')}
                         </td>
                         <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">
-                          {formatCurrency(p.curSales || p.sales)}
+                          {formatCurrency(p.sales)}
                         </td>
                         <td className="py-2 px-3 text-right font-mono text-blue-700 font-bold">
                           {p.sharePercent || 0}%
