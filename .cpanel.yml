@@ -1,0 +1,55 @@
+# ============================================================
+# TheSSBuddy B2B Portal - cPanel Auto-Deploy Configuration
+# ============================================================
+#
+# HOW IT WORKS:
+#   cPanel Git Version Control runs these tasks automatically
+#   after every git pull or manual Deploy trigger.
+#
+# PREREQUISITES ON CPANEL SERVER:
+#   1. Node.js 18+ enabled via cPanel Node.js Selector
+#   2. PostgreSQL database created and accessible
+#   3. .env file placed at repository root with prod values
+#      (copy .env.example -> .env and fill in credentials)
+#   4. nvm installed OR Node.js in PATH via Node.js Selector
+#
+# FIRST TIME SETUP:
+#   1. cPanel > Git Version Control > Create Repository
+#   2. Clone URL: https://github.com/coordinatorindiaautomotive/TheSSBuddy.git
+#   3. Place your .env file in the repo root (NOT committed to git)
+#   4. Pull latest code and trigger Deploy
+# ============================================================
+
+---
+deployment:
+  tasks:
+    # -- 0. Activate Node.js via nvm if available ----------------------------------
+    - export HOME=/home/$USER
+    - export NVM_DIR="$HOME/.nvm"
+    - "[ -s $NVM_DIR/nvm.sh ] && . $NVM_DIR/nvm.sh && nvm use 18 2>/dev/null || true"
+
+    # -- 1. Backend: install production dependencies only --------------------------
+    - cd $CPANEL_BASE_INSTALL_PATH && npm install --omit=dev --legacy-peer-deps
+
+    # -- 2. Generate Prisma client (must be after install) -------------------------
+    - cd $CPANEL_BASE_INSTALL_PATH && npx prisma generate
+
+    # -- 3. Run DB migrations in production mode (safe, idempotent) ----------------
+    - cd $CPANEL_BASE_INSTALL_PATH && npx prisma migrate deploy
+
+    # -- 4. Compile NestJS backend to dist/ ----------------------------------------
+    - cd $CPANEL_BASE_INSTALL_PATH && npx nest build
+
+    # -- 5. Frontend: install production dependencies ------------------------------
+    - cd $CPANEL_BASE_INSTALL_PATH/frontend && npm install --omit=dev --legacy-peer-deps
+
+    # -- 6. Build Next.js frontend (standalone output) -----------------------------
+    - cd $CPANEL_BASE_INSTALL_PATH/frontend && npm run build
+
+    # -- 7. Create runtime directories if they don't exist -------------------------
+    - mkdir -p $CPANEL_BASE_INSTALL_PATH/uploads
+    - mkdir -p $CPANEL_BASE_INSTALL_PATH/logs
+    - mkdir -p $CPANEL_BASE_INSTALL_PATH/tmp
+
+    # -- 8. Signal Passenger to restart the Node.js app ----------------------------
+    - touch $CPANEL_BASE_INSTALL_PATH/tmp/restart.txt

@@ -1,11 +1,16 @@
-{
+﻿{
   "name": "incentive-portal",
-  "version": "1.0.0",
-  "description": "B2B Dealer Incentive & Financial Operations Management Platform",
+  "version": "2.0.0",
+  "description": "TheSSBuddy - Maruti Suzuki B2B Dealer Incentive & Financial Operations Management Platform",
   "private": true,
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
-    "dev": "concurrently \"npm run start:dev\" \"npm run dev --prefix frontend\" \"node -e \\\"setTimeout(() => { const cmd = process.platform === 'win32' ? 'start http://localhost:3001' : 'open http://localhost:3001'; require('child_process').exec(cmd); }, 3500)\\\"",
+    "dev": "concurrently \"npm run start:dev\" \"npm run dev --prefix frontend\"",
     "build": "prisma generate && nest build",
+    "build:full": "npm run build && npm run build --prefix frontend",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "node dist/src/main.js",
     "start:dev": "node --max-old-space-size=8192 node_modules/@nestjs/cli/bin/nest.js start --watch",
@@ -16,8 +21,11 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:prod": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "install:all": "npm install && npm install --prefix frontend",
+    "deploy:build": "npm run prisma:generate && npm run build && npm run build --prefix frontend"
   },
   "dependencies": {
     "@nestjs/bullmq": "^10.1.1",
