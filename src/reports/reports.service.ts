@@ -955,7 +955,7 @@ export class ReportsService {
       const pmRecord = partyMasterMap.get(r.partyCode.toUpperCase());
       const originalCode = pmRecord?.originalCode || r.partyCode || '-';
       const partyName = pmRecord?.consPartyName || pMaster?.name || r.partyName || r.partyCode;
-      const partyType = r.partyType || pMaster?.type || 'TRADER/RETAILER';
+      const partyType = pmRecord?.partyType || r.partyType || pMaster?.type || 'TRADER/RETAILER';
       const branchName = branchMap.get(r.branchCode.toUpperCase()) || r.branchCode;
 
       const curSales = Number(r.curSales) || 0;
